@@ -34,18 +34,45 @@ def test_type_expression_log_files_here():
     assert f.slots["path"] == "."
 
 
-def test_vague_big_in_downloads():
-    # Resolution: a bare magnitude word ("big") IS a size-intent cue, so we
-    # emit find_by_size with no size_bytes threshold (see nlu.py comment).
-    f = parse("big files in downloads")
-    assert f is not None
-    assert f.intent == "find_by_size"
-    assert f.slots["path"] == "$HOME/Downloads"
-    assert "size_bytes" not in f.slots
+def test_vague_big_in_downloads_now_abstains():
+    # CHANGED by Task 05 (P1.1). A bare magnitude word with no numeric
+    # threshold used to resolve to find_by_size WITHOUT size_bytes. That is
+    # the silent-slot-dropping bug: it compiles to a match-everything
+    # `find . -type f`. Per CLAUDE.md invariant #6 (abstain over guess) and
+    # Task 05, find_by_size with no size_bytes now abstains.
+    assert parse("big files in downloads") is None
 
 
 def test_abstain_on_vague_input():
     assert parse("clean up my mess") is None
+
+
+# --- Task 05: abstain on size-intent with no numeric threshold ------------
+
+def test_abstain_biggest_files_here():
+    assert parse("show me the biggest files here") is None
+
+
+def test_abstain_largest_files():
+    assert parse("largest files") is None
+
+
+# --- Task 05: plural / possessive file-type words normalize to the ext ----
+
+def test_plural_csvs_bigger_than_2_gigs():
+    f = parse("csvs bigger than 2 gigs")
+    assert f is not None
+    assert f.intent == "find_by_size"
+    assert f.slots["ext"] == "csv"
+    assert f.slots["size_bytes"] == 2147483648  # 2 * 1073741824 (GiB)
+
+
+def test_plural_logs_from_today():
+    f = parse("logs from today")
+    assert f is not None
+    assert f.intent == "find_by_time"
+    assert f.slots["ext"] == "log"
+    assert f.slots["days"] == 1
 
 
 # --- a few extra normalization checks the table implies -------------------

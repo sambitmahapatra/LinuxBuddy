@@ -3,7 +3,7 @@
 > The single source of truth for where the project is NOW. Overwrite this
 > after every task. Keep it short. Next session reads this first.
 
-**Last updated:** 2026-11-03 (initial)
+**Last updated:** 2026-11-03 (after Task 05 / P1.1)
 **Current phase:** Phase 1 — Harden
 **Branch:** v1-file-discovery
 
@@ -14,26 +14,25 @@
 - Scoping, taxonomy (`kb/taxonomy.yaml`, 9 domains), 360 validated scenarios
 - Test maze (`testlinuxbuddy/`) — deterministic, bindings + runtime setup
 - **file_discovery domain works end to end** — 4 intents, rule-based NLU,
-  planner, renderer with injection-safety proven, `lb` CLI. 33 tests pass.
+  planner, renderer with injection-safety proven, `lb` CLI.
+- **P1.1 (Task 05) — both known bugs fixed.** Abstention gate: a defining
+  slot missing → abstain, never a match-everything command. Plural/possessive
+  file-type words normalize to the extension. 39 tests pass.
 - All project docs in place (ROADMAP, WBS, HANDOVER, MAZE, CLAUDE)
 
 ## In progress
 
-- Phase 1: nothing started yet.
+- **P1.2 (Task 06)** — verifying the 360 reference commands against the maze.
 
 ## Next (in order)
 
-1. **P1.1** — fix the two known bugs (`Prompts/05_fix_slot_dropping.md`)
-2. **P1.2** — run the 360 verification (`Prompts/06_verify_360.md`), raw verdicts
-3. Then **Phase 2** — build the 8 remaining domains (see WBS)
+1. **P1.2** — run the 360 verification (`Prompts/06_verify_360.md`), raw verdicts
+2. Then **Phase 2** — build the 8 remaining domains (see WBS)
 
 ## Open bugs
 
-- **Silent slot dropping:** `lb show me the biggest files here` → `find . -type f`
-  (matches everything). Fix in P1.1: abstain when an intent's defining slot
-  is missing.
-- **Plural extensions dropped:** `lb csvs bigger than 2 gigs` omits
-  `-name '*.csv'`. Fix in P1.1: normalize plural file-type words.
+- None open in `file_discovery`. (Both P1.1 bugs fixed — see `LOG.md`
+  2026-11-03.)
 
 ## Decisions the human still needs to make
 

@@ -24,3 +24,23 @@ def test_single_string_arg_from_widget(capsys):
     captured = capsys.readouterr()
     assert code == 0
     assert captured.out.strip() == "find . -type f -name '*.csv' -size +104857600c"
+
+
+# --- Task 05 -------------------------------------------------------------
+
+def test_superlative_abstains_with_size_hint(capsys):
+    code = main(["show", "me", "the", "biggest", "files", "here"])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert captured.out == ""
+    # A specific hint, not the generic "not sure" message.
+    assert "how big" in captured.err
+    assert "LinuxBuddy:" in captured.err
+
+
+def test_plural_csvs_includes_name_filter(capsys):
+    code = main(["csvs", "bigger", "than", "2", "gigs"])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "-name '*.csv'" in captured.out
+    assert captured.out.strip() == "find . -type f -name '*.csv' -size +2147483648c"

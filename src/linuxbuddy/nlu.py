@@ -8,24 +8,28 @@ Abstention is a feature: on vague input ("clean up my files") we return
 ``None`` rather than guess a command.
 
 ----------------------------------------------------------------------------
-Vague-"big" resolution (required by Task 02)
+Abstention gate (Task 05, P1.1) — supersedes the old vague-"big" rule
 ----------------------------------------------------------------------------
-"big files in downloads" names a size *intent* but no threshold. We resolve
-it to ``find_by_size`` WITHOUT a ``size_bytes`` slot, rather than abstaining,
-because:
-  * the user clearly expressed a size-ordered goal (unlike "clean up my
-    mess", which expresses no capability at all), and
-  * the test for this row asserts a resolved ``path`` slot, which only
-    exists if a Frame is produced.
-The downstream planner can then either list candidates or prompt for a
-threshold; the frame faithfully records "size intent, threshold unknown".
+An intent is emitted ONLY when its defining slot is present:
+  * ``find_by_size`` needs ``size_bytes``,
+  * ``find_by_time`` needs ``days``,
+  * ``find_by_name`` needs ``pattern``.
+A size cue with no number ("biggest files", "big files in downloads") names
+a *goal* but no threshold. Emitting ``find_by_size`` without ``size_bytes``
+compiles to a bare ``find . -type f`` — a match-everything command that looks
+like it worked while ignoring the request. Per CLAUDE.md invariant #6
+("abstain over guess"), we return ``None`` instead. :func:`abstain_hint` then
+lets the CLI say what was missing (e.g. 'how big? try "over 100MB"').
+
+(An earlier revision resolved "big ..." to a thresholdless ``find_by_size``.
+That was the silent-slot-dropping bug this task fixes.)
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
 
-__all__ = ["Frame", "parse"]
+__all__ = ["Frame", "parse", "abstain_hint"]
 
 
 @dataclass
@@ -60,6 +64,13 @@ _SIZE_RE = re.compile(
 # Bare magnitude words that signal size-intent with no numeric threshold.
 _SIZE_CUE_RE = re.compile(
     r"\b(big|bigger|biggest|large|larger|largest|huge|small|smaller|tiny)\b",
+    re.IGNORECASE,
+)
+
+# Age superlatives that signal time-intent with no numeric window. Like the
+# size superlatives, these abstain-with-a-hint rather than guess a window.
+_TIME_CUE_RE = re.compile(
+    r"\b(oldest|newest|latest|most recent|recent)\b",
     re.IGNORECASE,
 )
 
@@ -127,6 +138,19 @@ _KNOWN_EXTS = {
 _DOT_EXT_RE = re.compile(r"\*?\.([a-z0-9]+)\b", re.IGNORECASE)
 _WORD_FILES_RE = re.compile(r"\b([a-z0-9+]{1,12})\s+files?\b", re.IGNORECASE)
 
+# Plural / possessive file-type words that do not singularize cleanly by just
+# dropping a trailing "s" (Task 05, bug 2). Explicit and small on purpose —
+# this is a lookup, not a stemmer. "images" is deliberately absent: it is
+# ambiguous (png? jpg? all of them?) and must NOT map to an extension.
+_PLURAL_EXT = {
+    "csvs": "csv",
+    "logs": "log",
+    "pys": "py",
+    "jsons": "json",
+    "notebooks": "ipynb",
+    "scripts": "sh",
+}
+
 
 def _normalize_ext(word: str) -> str | None:
     w = word.lower()
@@ -134,6 +158,17 @@ def _normalize_ext(word: str) -> str | None:
         return _LANG_TO_EXT[w]
     if w in _KNOWN_EXTS:
         return w
+    if w in _PLURAL_EXT:
+        return _PLURAL_EXT[w]
+    # Trailing-s fallback: singularize once and retry the known maps. This
+    # catches "tsvs" -> tsv, "pdfs" -> pdf without an entry each. It stays a
+    # single-character strip, never a real stemmer.
+    if len(w) > 1 and w.endswith("s"):
+        singular = w[:-1]
+        if singular in _LANG_TO_EXT:
+            return _LANG_TO_EXT[singular]
+        if singular in _KNOWN_EXTS:
+            return singular
     return None
 
 
@@ -224,9 +259,15 @@ def parse(text: str) -> Frame | None:
         slots["ext"] = ext
 
     # Intent precedence: size -> time -> name -> type -> abstain.
+    #
+    # Abstention gate (Task 05, CLAUDE.md invariant #6): an intent is only
+    # emitted when its DEFINING slot is present. A size cue with no numeric
+    # threshold ("biggest files") would compile to a match-everything
+    # `find . -type f`, so we abstain instead of dropping the slot silently.
     if size_cue:
-        if size_bytes is not None:
-            slots["size_bytes"] = size_bytes
+        if size_bytes is None:
+            return None  # size intent, no threshold -> abstain (see hint)
+        slots["size_bytes"] = size_bytes
         return Frame("find_by_size", slots)
     if days is not None:
         slots["days"] = days
@@ -236,4 +277,23 @@ def parse(text: str) -> Frame | None:
         return Frame("find_by_name", slots)
     if ext is not None:
         return Frame("find_by_type", slots)
+    return None
+
+
+def abstain_hint(text: str) -> str | None:
+    """A specific hint for *why* :func:`parse` abstained, or ``None``.
+
+    Called by the CLI only after ``parse`` returned ``None``. When we can see
+    the user named a capability but omitted its defining slot (a size or age
+    superlative with no number), we say what is missing instead of the
+    generic "not sure what you mean". Pure rules, no state.
+    """
+    if not text or not text.strip():
+        return None
+    low = text.lower()
+    size_bytes, size_cue = _detect_size(low)
+    if size_cue and size_bytes is None:
+        return 'LinuxBuddy: how big? try "over 100MB"'
+    if _TIME_CUE_RE.search(low) and _detect_time(low) is None:
+        return 'LinuxBuddy: how recent? try "in the last 7 days"'
     return None

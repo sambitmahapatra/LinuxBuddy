@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import sys
 
-from .nlu import parse
+from .nlu import parse, abstain_hint
 from .planner import compile, PlanError
 from .render import to_shell, RenderError
 
@@ -29,7 +29,9 @@ def main(argv: list[str] | None = None) -> int:
 
     frame = parse(request)
     if frame is None:
-        print(_ABSTAIN_MSG, file=sys.stderr)
+        # Prefer a specific hint ("how big? try ...") when we can tell which
+        # defining slot was missing; otherwise the generic message.
+        print(abstain_hint(request) or _ABSTAIN_MSG, file=sys.stderr)
         return 1
 
     try:
