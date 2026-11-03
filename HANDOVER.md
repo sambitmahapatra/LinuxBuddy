@@ -1,9 +1,15 @@
-# LinuxBuddy — Handover
+# LinuxBuddy — Handover (Founding Context)
 
-**Last updated:** 2026-11-03
+> ⚠ **This is a frozen snapshot from 2026-11-03 — the project's founding
+> context and the reasoning behind its design.** It does NOT track work done
+> since. For current state (what's done, open bugs, what's next) read
+> **`STATUS.md`**; for recent history read **`LOG.md`**. Use this doc to
+> understand *why* the project is shaped the way it is, not *where it is now*.
+
 **Repo:** https://github.com/sambitmahapatra/LinuxBuddy
-**Status:** Working thin slice (file_discovery domain). Prototype, not research.
 **Owner:** Sambit Mahapatra
+**At time of writing:** working thin slice (file_discovery). Prototype, not
+research.
 
 ---
 
