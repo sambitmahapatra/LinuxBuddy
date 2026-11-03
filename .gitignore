@@ -1,0 +1,5 @@
+testlinuxbuddy/
+data/external/
+__pycache__/
+*.pyc
+.venv/
