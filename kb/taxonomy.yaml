@@ -1,0 +1,90 @@
+# LinuxBuddy V1 — capability taxonomy
+# Rebuilt from the 360 validated WSL scenarios (not NL2Bash).
+# Tag `taxonomy-v1` once reviewed. Phase 2 writes the human test set against
+# this; changing an intent after that invalidates part of the test set.
+#
+# User: a skilled professional (data scientist / ML engineer) handed Linux as
+# a tool, on Ubuntu under WSL2. Expert in their field, new to Linux, no time
+# to learn it as a subject.
+
+version: 2
+dataset_evidence: wsl-360-scenarios@8f653420
+generated: 2026-11-03
+
+slots:
+  - id: PATH         # a file or directory, literal or named ("the data folder", "here")
+  - id: EXT          # a file extension
+  - id: SIZE         # a size threshold, normalizes to bytes
+  - id: TIME         # an age / modification window, normalizes to -mtime/-mmin
+  - id: PATTERN      # a string or glob to match in names or contents
+  - id: COUNT        # a number of items or lines
+  - id: PROCESS      # a process name, pattern, or PID
+  - id: PORT         # a TCP/UDP port number
+  - id: PERMISSION   # an octal or symbolic permission
+  - id: WINPATH      # a Windows-side path (/mnt/c, C:\...) — WSL-specific
+
+# Comparators, sort order, recursion and file-vs-directory type are derived
+# deterministically as frame attributes, not slot types.
+
+# Nine domains, each a cluster of intents. V1 ships the thin slice first
+# (file_discovery), then widens domain by domain.
+
+domains:
+
+  - id: file_discovery          # 40 rows, 38 find — THE THIN SLICE for V1.0
+    priority: 1
+    thin_slice: true
+    intents:
+      - find_by_size            # "where are my big csv files"
+      - find_by_time            # "what changed in the last day"
+      - find_by_name            # "find files called config"
+      - find_by_type            # "find all the python files"
+    lead_utilities: [find, du]
+
+  - id: file_inspection         # 40 rows
+    priority: 2
+    intents: [preview_head, preview_tail, show_stat, detect_filetype, count_lines]
+    lead_utilities: [head, tail, stat, file, wc, cat]
+
+  - id: text_and_logs           # 40 rows, 25 grep
+    priority: 2
+    intents: [search_in_files, filter_log, sort_unique, extract_column]
+    lead_utilities: [grep, sort, uniq, cut, tail]
+
+  - id: workspace_and_shell     # 40 rows
+    priority: 3
+    intents: [navigate, make_dir, scaffold_project, shell_history, which_tool]
+    lead_utilities: [cd, mkdir, pwd, git, history, command]
+    note: multi-step scaffolding lives here (mkdir + cd + git init)
+
+  - id: filesystem_permissions  # 40 rows
+    priority: 3
+    intents: [show_permissions, change_permissions, check_writable, disk_usage]
+    lead_utilities: [stat, chmod, test, find, du]
+
+  - id: processes               # 40 rows
+    priority: 3
+    intents: [list_processes, find_process, process_on_port, kill_process]
+    lead_utilities: [ps, pgrep, ss, kill]
+    note: WSL has no systemd — use ps/pgrep/pkill, never systemctl
+
+  - id: wsl_interop             # 40 rows — the differentiator, no prior corpus
+    priority: 2
+    intents: [open_in_explorer, convert_path, reach_windows_files, clipboard, win_disk]
+    lead_utilities: [explorer.exe, wslpath, clip.exe, cd, df]
+
+  - id: archives_backup         # 40 rows, 15 tar
+    priority: 4
+    intents: [create_archive, extract_archive, list_archive, checksum]
+    lead_utilities: [tar, gzip, sha256sum, zip]
+
+  - id: python_environments     # 40 rows, 31 python3
+    priority: 4
+    intents: [create_venv, inspect_python, run_tests, list_packages]
+    lead_utilities: [python3, pip]
+
+deferred:
+  - { id: find_then_act, version: V1.5, reason: "find | xargs rm — needs preview + safety suite first" }
+  - { id: git_workflows, version: V1.5, reason: "large domain of its own; only navigate/init in V1" }
+  - { id: text_transform, version: V1.5, reason: "awk/sed are languages, not single commands; tier 2 covers them" }
+  - { id: containers_k8s_ssh_db, version: V2, reason: "beyond the WSL-migrant first-month surface" }
