@@ -1,0 +1,42 @@
+# find.yaml — capability spec for `find` (domain: file_discovery).
+#
+# Contract (shared with planner + nlu):
+#   - Every base_argv and every optional_args fragment is a LIST of strings.
+#   - A {placeholder} occupies exactly ONE list element. Placeholder names
+#     are the Frame slot keys (path, ext, size_bytes, days, ftype, pattern),
+#     so the planner can substitute frame.slots[key] into "{key}" directly.
+#   - optional_args is iterated in THIS order by the planner; a fragment is
+#     appended only when its slot is present in the frame. Order here fixes
+#     the order of flags in the rendered command.
+#
+# NOTE: this file is intentionally a small YAML subset (block maps + flow
+# lists + plain scalars) so it can be read with a stdlib-only loader. No
+# PyYAML at runtime (CLAUDE.md invariant: pure Python + stdlib).
+
+capability: search_files
+utility: find
+
+intents:
+  find_by_size:
+    base_argv: ["find", "{path}", "-type", "f"]
+    optional_args:
+      ext: ["-name", "*.{ext}"]
+      size_bytes: ["-size", "+{size_bytes}c"]
+    risk_ops: ["read"]
+  find_by_time:
+    base_argv: ["find", "{path}", "-type", "f"]
+    optional_args:
+      ext: ["-name", "*.{ext}"]
+      days: ["-mtime", "-{days}"]
+    risk_ops: ["read"]
+  find_by_name:
+    base_argv: ["find", "{path}"]
+    optional_args:
+      pattern: ["-name", "{pattern}"]
+    risk_ops: ["read"]
+  find_by_type:
+    base_argv: ["find", "{path}"]
+    optional_args:
+      ftype: ["-type", "{ftype}"]
+      ext: ["-name", "*.{ext}"]
+    risk_ops: ["read"]

@@ -3,3 +3,6 @@ data/external/
 __pycache__/
 *.pyc
 .venv/
+
+# Windows alternate-data-stream metadata (WSL)
+*:Zone.Identifier
