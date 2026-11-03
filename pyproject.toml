@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linuxbuddy"
+version = "0.1.0"
+description = "LinuxBuddy — natural-language to a runnable Linux command, for the WSL2 migrant. No LLM, no network: pure rules + a typed-argv security boundary."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+lb = "linuxbuddy.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+# Keep pytest out of the generated test-fixture maze (which contains an
+# intentionally unreadable directory) and the venv.
+testpaths = ["tests"]
