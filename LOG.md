@@ -129,3 +129,134 @@ command, 1 GUI, 1 `/mnt/[a-z]` glob. **UNSAFE (1):** WORK-037 `>> ~/.bashrc`.
 exit-code FAILs are arguably "working as intended" depending on whether a
 reference command is expected to exit 0. That's your call (the task said you
 decide what to fix or drop); the raw verdicts are in `verify_results.csv`.
+
+## 2026-11-05 — Task 07 (P1.2.2): triage the 360 verdicts
+
+**What this task is.** Separate the 59 Task-06 FAILs into (a) false failures
+of the *verification method* and (b) genuine dataset bugs; fix only the genuine
+ones; decide the 13 EMPTY rows. Added two columns to `verify_results.csv`:
+`verdict_final` and `verdict_final_reason` (every one of the 360 rows now
+carries a final verdict with a one-line justification). Original `verdict`
+column is left untouched for provenance. A backup of the pre-triage CSV is in
+the session scratchpad.
+
+**Headline result.**
+`verdict_final`: **PASS 275 · PASS_WITH_STDERR 21 · PASS_IN_SEQUENCE 1 ·
+ACCEPTED_EMPTY 13 · ENV_UNSUPPORTED 3 · SKIP 43 · UNSAFE 1 · FAIL 3** (360/360).
+**True pass (PASS + PASS_WITH_STDERR) = 296/360 = 82.2%.** Counting the
+correct-but-sequence/host-blocked commands too (PASS_IN_SEQUENCE + ENV), 300
+of 360 reference commands are correct. **Only 3 genuine dataset defects
+remain**, all the same root cause (see below).
+
+**Step 1 — reclassified false failures (verified each against its recorded
+stderr/exit, did not trust the list blindly):**
+- **20 → PASS_WITH_STDERR.** `find`/`tar`/`du`/`grep -R` whose *only* nonzero
+  cause is the maze's deliberate `perms/noaccess_dir` (chmod 000). Confirmed
+  programmatically that each one's stderr is noaccess-only and stdout is the
+  expected content. (FIND-003/006/012/013/016/019/021/024/030/037/040,
+  ARCH-021/029/039, FS-024/029/034/035, TEXT-025, WORK-040.)
+- **15 → PASS.** grep/cmp/diff/comm that exit 1 with empty stderr = correct
+  "no match / files differ", not a crash. Confirmed empty stderr + exit 1 on
+  each. (TEXT-009/011/012/017/032/034, INS-023/024, ARCH-032/034, WORK-026,
+  PROC-017/029, FS-037, PY-038.)
+
+**Step 2 — fixed the genuine dataset bugs (CSV only; re-verified each against a
+freshly rebuilt maze, writes rows on a clean maze, PROC-021 with a live
+runtime PID). I deliberately did NOT mutate `build_maze.sh`/the maze — a shared
+byte-reproducible fixture; mutating it mid-triage would risk silent regressions
+across the 244 originally-passing rows and force a full 360 re-run. The task
+allowed "fix the command's target" as the alternative, so I took it.**
+- **ARCH-001** — `-C "$PARENT_DIR"` tarred `project/project` (PARENT_DIR==the
+  project dir; see binding note G). Fixed to `-C "$MAZE_ROOT"`. Re-verify: the
+  archive is now created correctly; the only residual nonzero is the
+  `noaccess_dir` artifact → **PASS_WITH_STDERR** (not clean PASS).
+- **PY-003/018/024/036/037 + WORK-039** — these ran `good_script.sh` (a bash
+  script) through `python3` → SyntaxError. The task suggested switching to
+  `bash`, but the scenarios are inherently Python (run a Python script,
+  `py_compile`, `tracemalloc`, `importtime`, env-passing). So I repointed the
+  placeholder `$SCRIPT_FILE` → `$TRAIN_SCRIPT` (`scripts/train_stub.py`, the
+  maze's deterministic runs-anywhere Python stub) — a faithful fix that keeps
+  each scenario's Python meaning and runs green. PY-018 additionally redirects
+  the script's stdout into `$OUTPUT_FILE` so its `test -f "$OUTPUT_FILE"`
+  passes ("the output was produced"). All six now exit 0.
+  *Correction to the task's list:* the sixth python-via-.sh row is **WORK-039**,
+  not PY-039. Actual **PY-039** in the CSV is a passing `multiprocessing`
+  inspection row and was left untouched.
+- **PROC-021** — `$(ps -p "$PID" -o ppid=)` yields a space-padded ppid, so the
+  outer `ps -p " 1234"` errored "improper list". Quoting alone doesn't help (it
+  was already quoted); fixed by stripping whitespace: `… | tr -d ' '`. Exit 0.
+- **WORK-017/021** — `mkdir -- "$PROJECT_DIR"` failed ("File exists"); the maze
+  already has the project dir. Added `-p` (task's first suggestion) so it's
+  idempotent. Both exit 0.
+- **ARCH-022** — `--wildcards '*checkpoint.pt'` found no member (the archive
+  holds README/a/b/c.txt, no checkpoints). Retargeted the wildcard to `'*.txt'`
+  — same command shape ("inspect a tar before selective extraction"), now lists
+  real members, exit 0.
+- **ARCH-023** — `tar -C "$RUN_DIR" checkpoints`: `runs/run_001` has no
+  `checkpoints/` subdir. Retargeted to pack the run dir itself
+  (`-C "$RUNS_DIR" run_001`) — "pack the run's saved artifacts". Exit 0.
+- **ARCH-031** — `tar -C "$RUN_DIR" results`: no `results/` subdir. Retargeted
+  to pack the run's result file (`-C "$RUN_DIR" metrics.txt`). Exit 0.
+- **ARCH-024** — the task filed this under "missing archive member", but its
+  real fault is a dangling `$COPIED_FILE` (`output/sales_copy.csv`) that **no
+  row creates**. The scenario ("verify the copied model is identical")
+  presupposes a copy, so I made it self-contained: prepend
+  `cp -- "$ORIGINAL_FILE" "$COPIED_FILE"`, then the checksum+`cmp` verify
+  identical bytes. Exit 0. **This changes its `risk` read-only → writes** (now
+  updated in the CSV) — flagging because it moves the row under the Phase-2
+  destructive-location gate.
+
+**Step 3 — EMPTY rows (13): all marked ACCEPTED_EMPTY with a reason** (I did
+not add maze content, same fixture-stability reasoning as Step 2). Three kinds:
+- *Non-interactive shell (expected):* WORK-011 `history`, PROC-014 `jobs -l`.
+- *Recency window vs the maze's fixed historical mtimes:* FIND-023 (-mmin
+  -2880), FIND-033 (-mmin -4320). The commands are correct; byte-reproducible
+  fixtures carry old timestamps, so "last N days" matches nothing.
+- *Content the maze doesn't carry, command correct:* FIND-010 (no `.pt`
+  checkpoints), FIND-014 (no multi-GB files by design, so `-size +1G` is
+  always empty), FIND-018 (no `train_*` in processed), FIND-032 (output/ empty
+  until a run writes), ARCH-014/019 (archives live in `archives/`, not the
+  `backups/` dir these target — likely a binding mismatch), ARCH-015 (no
+  `data/` member in the archive), TEXT-020 (no "deprecated" string in
+  train.log), TEXT-026 (no BEGIN/END METRICS markers). Each is a candidate for
+  a one-line `build_maze.sh` addition later if you want the scenario literal;
+  none is a command bug.
+
+**Beyond the task's explicit lists** (verified live; flagging as interpreted):
+- **FS-016 → PASS** — `test -z "$(ls -A RESULTS_DIR)"` on a non-empty dir
+  correctly prints nothing and exits 1 (same "expected negative" logic as the
+  grep no-match class).
+- **INS-035 → PASS** — the JSONL validator raises on `malformed.jsonl`'s
+  deliberately-invalid line 3; a nonzero exit is exactly the intended signal
+  that a bad line exists. (A friendlier reference would print the line number
+  rather than a traceback — noted as optional polish, not a correctness bug.)
+- **PROC-013 → PASS** — `ps --ppid "$$"` finds no children in the verification
+  shell and exits 1; correct no-match.
+- **TEXT-018 → PASS_IN_SEQUENCE** (new label) — reads `$OUTPUT_FILE`, which the
+  writes rows ARCH-006/ARCH-025 create; absent only under isolated single-row
+  verification. Correct command, missing precondition.
+- **PROC-037 / PY-023 / PY-026 → ENV_UNSUPPORTED** (new label) — correct
+  commands this host can't run: WSL exposes no `/proc/<pid>/io`; `pandas` isn't
+  installed; `python3-venv`/`ensurepip` isn't installed. Not dataset bugs.
+
+**Genuine remaining failures (3) — all one root cause, left for you to
+decide:** INS-007, FS-022, FS-040 all read `$TARGET_FILE`
+(`output/target.txt`), a write-target that **no scenario row creates** and the
+maze omits — so these read-only rows have no valid operand in any order. Fix
+options: rebind `TARGET_FILE` to an existing file, or create `output/target.txt`
+(and a row that produces it) in `build_maze.sh`. I did not fix these — not in
+the task's genuine-bug list, and the fix is a binding/fixture decision, not a
+command edit.
+
+**Step 4 — the one product decision (recorded, NOT acted on).** Should
+LinuxBuddy's *generated* `find`/`grep -R`/`du`/`tar` commands append
+`2>/dev/null` to suppress the permission-denied noise from unreadable dirs
+(like the maze's `noaccess_dir`)? For: cleaner output, exit stays meaningful to
+a new user. Against: hand-written finds rarely do this, and silencing stderr
+can hide real "permission denied" problems the user *should* see. This is the
+single cause of the 21 PASS_WITH_STDERR rows. **Left open — your call.**
+
+**Re-verification harness.** Throwaway scripts in the session scratchpad
+(`reverify2.sh` + `triage.py`); not product code, not committed. Each fixed
+writes row was run on a freshly rebuilt maze; the maze was rebuilt clean at the
+end (archive fixture confirmed back to README/a/b/c.txt).
