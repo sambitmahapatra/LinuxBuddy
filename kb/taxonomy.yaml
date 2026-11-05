@@ -43,7 +43,10 @@ domains:
 
   - id: file_inspection         # 40 rows
     priority: 2
-    intents: [preview_head, preview_tail, show_stat, detect_filetype, count_lines]
+    capability: inspect_file     # kb/commands/inspect.yaml (Task 08)
+    # Built Task 08 (Tier 1, single-command only). detect_type was named
+    # detect_filetype in the draft; show_size (wc -c) added.
+    intents: [preview_head, preview_tail, count_lines, show_size, detect_type, show_stat]
     lead_utilities: [head, tail, stat, file, wc, cat]
 
   - id: text_and_logs           # 40 rows, 25 grep

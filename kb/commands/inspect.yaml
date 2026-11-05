@@ -1,0 +1,34 @@
+# inspect.yaml — capability spec for file_inspection (Task 08).
+#
+# Same contract as find.yaml:
+#   - Every base_argv / optional_args fragment is a LIST of strings.
+#   - A {placeholder} occupies exactly ONE list element (never shares with a
+#     flag, never contains a space in the TEMPLATE — a slot VALUE may contain
+#     spaces, e.g. a stat format, and the renderer quotes it).
+#   - Placeholder names are Frame slot keys: path, count, fmt.
+#
+# All intents are read-only (risk_ops: [read]) — single-command only. Compound
+# "preview AND count AND size" requests abstain in the NLU, not here.
+
+capability: inspect_file
+utility: coreutils
+
+intents:
+  preview_head:
+    base_argv: ["head", "-n", "{count}", "--", "{path}"]
+    risk_ops: ["read"]
+  preview_tail:
+    base_argv: ["tail", "-n", "{count}", "--", "{path}"]
+    risk_ops: ["read"]
+  count_lines:
+    base_argv: ["wc", "-l", "--", "{path}"]
+    risk_ops: ["read"]
+  show_size:
+    base_argv: ["wc", "-c", "--", "{path}"]
+    risk_ops: ["read"]
+  detect_type:
+    base_argv: ["file", "--", "{path}"]
+    risk_ops: ["read"]
+  show_stat:
+    base_argv: ["stat", "-c", "{fmt}", "--", "{path}"]
+    risk_ops: ["read"]

@@ -260,3 +260,62 @@ single cause of the 21 PASS_WITH_STDERR rows. **Left open — your call.**
 (`reverify2.sh` + `triage.py`); not product code, not committed. Each fixed
 writes row was run on a freshly rebuilt maze; the maze was rebuilt clean at the
 end (archive fixture confirmed back to README/a/b/c.txt).
+
+## 2026-11-05 — Task 08 (Tier 1): domain file_inspection
+
+**What I did.** Built the second domain, `file_inspection`, as 6
+single-command read-only intents (TDD, tests first). Introduced the Phase-2
+**NLU router** that every later domain will plug into.
+
+**Router (new in nlu.py).** `parse()` is now a router over `_ROUTER`, a tuple
+of domain parsers tried in order. Each parser returns a `Frame` (matched),
+`None` (not my domain — try next), or the `_ABSTAIN` sentinel (this *is* my
+domain but the request is compound/underspecified — stop, abstain, do NOT let a
+later domain guess at one fragment). `file_discovery` stays LAST so a bare
+extension like "json" still routes to `find_by_type`. The old `parse` body is
+now `_parse_file_discovery`; its behaviour is unchanged (all 39 prior tests
+still pass).
+
+**Intents → commands** (`kb/commands/inspect.yaml`, capability `inspect_file`,
+all `risk_ops: [read]`): preview_head `head -n {count} -- {path}`,
+preview_tail `tail -n {count} -- {path}`, count_lines `wc -l -- {path}`,
+show_size `wc -c -- {path}` (bytes), detect_type `file -- {path}`, show_stat
+`stat -c {fmt} -- {path}`. Preview `count` defaults to 10. `show_stat` picks
+`%y %n` for a time-focused ask, `%A %n` for a permission ask, else
+`%y %A %s %n`.
+
+**Decisions (interpreted — flagging per CLAUDE.md).**
+- *Compound → abstain, via broad nouns.* "preview, count and size of this csv"
+  must abstain, not resolve to one part. I detect compound by counting *broad*
+  action categories (preview/count/size/type/stat) present as literal nouns —
+  independent of whether a precise intent cue fired — and abstain at ≥2. That
+  stops the request falling through to file_discovery's "csv" → find_by_type.
+- *The stat `fmt` is one argv element with spaces* (e.g. `%y %A %s %n`). That
+  is the design working as intended: one slot value → one argv element, and
+  the renderer quotes it (`stat -c '%y %A %s %n' -- f`). A round-trip test
+  asserts it.
+- *Deferred:* `less`/`od`/`nl`/`cat -A`/`sha256sum`/`cmp`/`diff`/`sed`/`python`
+  one-liners and all multi-command "sanity check" rows — Tier 1 is
+  single-command only. `wc -w` (word count, INS-011) is not one of the six
+  task intents, so "how many words" is not mapped.
+- *No concrete file named* ("last 50 lines of the log") → the intent is
+  recognised but the frame carries no `path`, so the CLI abstains at
+  planning. Verification uses real filenames, where it compiles and runs.
+
+**Tests.** `tests/test_file_inspection.py` — the task table (incl. the
+compound-abstain case), preview defaults, planner/render incl. the spaced-fmt
+round-trip, and a file_discovery regression. **Full suite: 53 passed** (was 39).
+
+**Maze verification (Done when).**
+- `lb first 20 lines of train.log` → `head -n 20 -- train.log`; run in the
+  maze it prints exactly 20 lines. ✓
+- `lb how many lines in train.log` → `wc -l -- train.log` → 1988. ✓
+- `lb size of config.yaml in bytes` → `wc -c` → 155; `lb when was model.pkl
+  last changed` → `stat -c '%y %n'` → the mtime. ✓
+
+**Pass rate vs the 40 File-inspection maze scenarios.** The 6 intents map
+cleanly onto **5** of the 40 rows (INS-005/010/012/015/031). The other 35 are
+compound/multi-command or use utilities deferred for Tier 1 (od, nl, cat -A,
+sha256sum, cmp, diff, sed, less, python one-liners). Low coverage is expected:
+this domain is mostly compound in the dataset. The six intents themselves are
+correct end-to-end against the maze.

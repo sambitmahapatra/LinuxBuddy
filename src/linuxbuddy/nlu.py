@@ -243,11 +243,7 @@ def _detect_path(text: str, low: str) -> str:
 # --------------------------------------------------------------------------
 
 
-def parse(text: str) -> Frame | None:
-    if not text or not text.strip():
-        return None
-    low = text.lower()
-
+def _parse_file_discovery(text: str, low: str) -> Frame | None:
     ext = _detect_ext(low)
     size_bytes, size_cue = _detect_size(low)
     days = _detect_time(low)
@@ -278,6 +274,169 @@ def parse(text: str) -> Frame | None:
     if ext is not None:
         return Frame("find_by_type", slots)
     return None
+
+
+# --------------------------------------------------------------------------
+# Router (Phase 2) — pick the domain/intent, then the right slot extractor.
+#
+# Each domain parser returns a Frame (matched), ``None`` (not my domain, try
+# the next), or the ``_ABSTAIN`` sentinel (this IS my domain but the request
+# is compound / underspecified — stop and abstain, do NOT let a later domain
+# guess at one fragment of it). file_discovery stays LAST so a bare extension
+# ("json") still routes to find_by_type.
+# --------------------------------------------------------------------------
+
+_ABSTAIN = object()
+
+
+def parse(text: str) -> Frame | None:
+    if not text or not text.strip():
+        return None
+    low = text.lower()
+    for domain_parser in _ROUTER:
+        result = domain_parser(text, low)
+        if result is _ABSTAIN:
+            return None
+        if result is not None:
+            return result
+    return None
+
+
+# --------------------------------------------------------------------------
+# Shared: a concrete file/path argument (quoted, slash-path, or bare NAME.ext)
+# --------------------------------------------------------------------------
+
+# A bare filename with an extension: train.log, config.yaml, data.bin,
+# model.pt, access.log, src/app.py. The extension must start with a letter so
+# a decimal like "3.14" is not mistaken for a file.
+_FILE_TOKEN_RE = re.compile(r"\b([\w./+-]*\w\.[A-Za-z][A-Za-z0-9]{0,7})\b")
+
+
+def _detect_path_arg(text: str, low: str) -> str | None:
+    """A concrete file/dir the request names, or None. Prefers an explicit
+    quote, then a slash path, then a bare ``name.ext``."""
+    m = _QUOTED_RE.search(text)
+    if m:
+        return m.group(1)
+    m = _PATH_TOKEN_RE.search(text)
+    if m:
+        return m.group(1).strip()
+    m = _FILE_TOKEN_RE.search(text)
+    if m:
+        return m.group(1)
+    return None
+
+
+# --------------------------------------------------------------------------
+# Domain: file_inspection (Task 08) — single-command intents only.
+# --------------------------------------------------------------------------
+
+_COUNT_LINES_RE = re.compile(
+    r"\b(?:how many lines|line count|number of lines|count .* lines)\b"
+)
+_HEAD_RE = re.compile(
+    r"\b(?:head\b|first\s+\d+\s+\w*\s*lines?|first\s+\d+\s+lines?"
+    r"|top of|beginning of|column (?:names|headers)|header row)\b"
+)
+_TAIL_RE = re.compile(r"\b(?:tail\b|last\s+\d+\s+\w*\s*lines?|end of)\b")
+_SIZE_BYTES_RE = re.compile(
+    r"\b(?:in bytes|byte size|size in bytes|how many bytes"
+    r"|how big is (?:this|the) file|file size|size of [^?]* in bytes)\b"
+)
+_TYPE_RE = re.compile(
+    r"\b(?:what (?:kind|type) of file|what format|file ?type"
+    r"|what (?:kind|type) is|is this (?:a )?(?:text|binary))\b"
+)
+_STAT_RE = re.compile(
+    r"\b(?:when (?:was|were)\b|last (?:modified|changed|changed\?)"
+    r"|modification time|timestamp|time stamp|metadata|mod time"
+    r"|show (?:the )?stat\b)\b"
+)
+# a plain "size of X" (no folder) when "in bytes" is not literally present
+_SIZE_WORD_RE = re.compile(r"\bsize of\b|\bhow big is\b|\bbyte")
+_FOLDER_RE = re.compile(r"\b(?:folder|directory|dir|disk|space)\b")
+
+# count: "first 20", "last 50", "20 lines", "top 5"
+_INSPECT_COUNT_RE = re.compile(
+    r"\b(?:first|last|top|head|tail)\s+(\d+)\b|\b(\d+)\s+lines?\b", re.IGNORECASE
+)
+
+
+def _inspect_count(low: str) -> int:
+    m = _INSPECT_COUNT_RE.search(low)
+    if m:
+        return int(m.group(1) or m.group(2))
+    return 10
+
+
+def _stat_fmt(low: str) -> str:
+    """Pick a stat -c format. Time-focused => %y; permission-focused => %A;
+    otherwise a compact metadata line."""
+    if re.search(r"\b(permission|perms|mode|access bits)\b", low):
+        return "%A %n"
+    if re.search(r"\b(when|time|modified|changed|timestamp|mod time)\b", low):
+        return "%y %n"
+    return "%y %A %s %n"
+
+
+def _parse_file_inspection(text: str, low: str):
+    folder = bool(_FOLDER_RE.search(low))
+    is_count = bool(_COUNT_LINES_RE.search(low))
+    is_head = bool(_HEAD_RE.search(low))
+    is_tail = bool(_TAIL_RE.search(low))
+    is_type = bool(_TYPE_RE.search(low)) or "format" in low
+    is_stat = bool(_STAT_RE.search(low))
+    # size of a FILE (in bytes); a folder/disk "size" belongs to filesystem.
+    is_size = (("size" in low or "bytes" in low) and not folder)
+
+    # Broad action categories, used ONLY to spot a compound request. The
+    # literal nouns catch "preview, count and size ..." even though no single
+    # precise intent cue fires for all three.
+    broad = set()
+    if "preview" in low or is_head or is_tail:
+        broad.add("preview")
+    if "count" in low or is_count:
+        broad.add("count")
+    if is_size:
+        broad.add("size")
+    if is_type:
+        broad.add("type")
+    if is_stat:
+        broad.add("stat")
+
+    if not broad:
+        return None  # not a file_inspection request — let the next domain try
+
+    # Compound: several distinct asks → abstain rather than answering one of
+    # them silently (CLAUDE.md invariant #6). "multi-step" is later work.
+    if len(broad) >= 2:
+        return _ABSTAIN
+
+    (category,) = tuple(broad)
+    path = _detect_path_arg(text, low)
+    slots: dict = {}
+    if path is not None:
+        slots["path"] = path
+
+    if category == "count":
+        return Frame("count_lines", slots)
+    if category == "size":
+        return Frame("show_size", slots)
+    if category == "type":
+        return Frame("detect_type", slots)
+    if category == "stat":
+        slots["fmt"] = _stat_fmt(low)
+        return Frame("show_stat", slots)
+    # preview: tail if an "end/last" cue, else head
+    slots["count"] = _inspect_count(low)
+    return Frame("preview_tail" if is_tail and not is_head else "preview_head", slots)
+
+
+# Router order: specific domains first, file_discovery last (see parse()).
+_ROUTER = (
+    _parse_file_inspection,
+    _parse_file_discovery,
+)
 
 
 def abstain_hint(text: str) -> str | None:
