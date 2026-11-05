@@ -15,6 +15,7 @@ import re
 
 from .kb import load_kb
 from .nlu import Frame
+from .render import Stages
 
 __all__ = ["compile", "PlanError"]
 
@@ -98,11 +99,14 @@ def compile(frame: Frame) -> list[str] | list[list[str]]:
         intent_spec["base_argv"], intent_spec.get("optional_args", {}), frame, slots
     )
 
-    pipe_argv = intent_spec.get("pipe_argv")
-    if pipe_argv is None:
-        return stage1
+    # A second stage is declared as either `pipe_argv` (joined with `|`) or
+    # `and_argv` (joined with `&&`). The operator is fixed by the KB spec here,
+    # never by a slot value.
+    for key, op in (("pipe_argv", "|"), ("and_argv", "&&")):
+        second = intent_spec.get(key)
+        if second is not None:
+            opt_key = key.replace("_argv", "_optional_args")
+            stage2 = _build_stage(second, intent_spec.get(opt_key, {}), frame, slots)
+            return Stages([stage1, stage2], op)
 
-    stage2 = _build_stage(
-        pipe_argv, intent_spec.get("pipe_optional_args", {}), frame, slots
-    )
-    return [stage1, stage2]
+    return stage1

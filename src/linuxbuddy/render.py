@@ -13,11 +13,25 @@ from __future__ import annotations
 
 import shlex
 
-__all__ = ["to_shell", "RenderError"]
+__all__ = ["to_shell", "RenderError", "Stages"]
 
 
 class RenderError(ValueError):
     """Raised when a rendered string fails to round-trip back to the argv."""
+
+
+class Stages(list):
+    """A multi-stage shell plan: a list of argv lists joined by a fixed
+    operator ``op`` (``"|"`` for a pipe, ``"&&"`` for an and-chain). It
+    subclasses ``list`` so equality with a plain list-of-lists still holds
+    (handy in tests); the operator rides along as an attribute. The operator
+    is ALWAYS compiler-chosen here — it never comes from a slot value or an
+    argv element, so a hostile slot can never inject a pipe or a `&&`.
+    """
+
+    def __init__(self, stages, op: str):
+        super().__init__(stages)
+        self.op = op
 
 
 def _render_stage(argv: list[str]) -> str:
@@ -39,11 +53,14 @@ def _render_stage(argv: list[str]) -> str:
 
 
 def to_shell(argv: list) -> str:
-    """Render a single-stage argv, or a PIPELINE (a list of argv lists) joined
-    by ``|``. The pipe is inserted HERE, between independently-quoted stages —
-    it never comes from a slot or an argv element. Each stage round-trips on
-    its own, so a hostile slot value in any stage stays one token.
+    """Render a single-stage argv, or a multi-stage :class:`Stages` plan whose
+    argv lists are joined by its operator (``|`` or ``&&``). The operator is
+    inserted HERE, between independently-quoted stages — never from a slot or
+    an argv element. Each stage round-trips on its own, so a hostile slot value
+    in any stage stays one token.
     """
+    if isinstance(argv, Stages):
+        return f" {argv.op} ".join(_render_stage(stage) for stage in argv)
     if argv and all(isinstance(e, list) for e in argv):
         return " | ".join(_render_stage(stage) for stage in argv)
     return _render_stage(argv)

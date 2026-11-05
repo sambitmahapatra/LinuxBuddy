@@ -635,11 +635,95 @@ def _parse_processes(text: str, low: str):
     return None
 
 
+# --------------------------------------------------------------------------
+# Domain: filesystem_permissions (Task 11) — read-only intents.
+# chmod abstains (destructive); dir_empty is deferred (command substitution).
+# --------------------------------------------------------------------------
+
+_CHMOD_RE = re.compile(
+    r"\b(?:chmod|make\s+(?:it|this|that|the\s+\w+)?\s*(?:executable|runnable|writable"
+    r"|read-?only|non-?executable)|set\s+(?:the\s+)?permissions?"
+    r"|change\s+(?:the\s+)?permissions?|give\s+.*permission)\b",
+    re.IGNORECASE,
+)
+_EMPTY_RE = re.compile(r"\bempty\b", re.IGNORECASE)
+_FS_WRITABLE_RE = re.compile(
+    r"\b(?:can i write|writable|write to|write access|able to write|i can write)\b",
+    re.IGNORECASE,
+)
+_FS_READABLE_RE = re.compile(
+    r"\b(?:can i read|readable|read access|able to read|i can read)\b", re.IGNORECASE
+)
+_FS_EXISTS_RE = re.compile(
+    r"\b(?:exists?|is there|is it there|does .* exist|is present|do i have)\b",
+    re.IGNORECASE,
+)
+_FS_PERMS_RE = re.compile(
+    r"\b(?:permissions?|perms|file mode|access bits|mode of)\b", re.IGNORECASE
+)
+_FS_OWNER_RE = re.compile(
+    r"\b(?:who owns|owner of|owns (?:this|the|it)|what account owns|ownership)\b",
+    re.IGNORECASE,
+)
+_FS_DISK_RE = re.compile(
+    r"\b(?:how big|disk usage|how much space|using space|take[sn]? up|du\b"
+    r"|size of .* (?:folder|dir|directory))\b",
+    re.IGNORECASE,
+)
+
+_FOLDER_NAME_RE = re.compile(r"\b([\w.-]+)\s+(?:folder|directory|dir)\b", re.IGNORECASE)
+_ARTICLES = {"the", "this", "that", "a", "an", "my", "current", "same"}
+
+
+def _detect_fs_target(text: str, low: str) -> str | None:
+    m = _FOLDER_NAME_RE.search(low)
+    if m and m.group(1).lower() not in _ARTICLES:
+        return m.group(1)
+    p = _detect_path_arg(text, low)
+    if p is not None:
+        return p
+    if re.search(r"\b(?:here|this (?:folder|directory))\b", low):
+        return "."
+    return None
+
+
+def _fs_frame(intent: str, text: str, low: str):
+    slots: dict = {}
+    target = _detect_fs_target(text, low)
+    if target is not None:
+        slots["path"] = target
+    return Frame(intent, slots)
+
+
+def _parse_filesystem(text: str, low: str):
+    # destructive / deferred first → abstain (this IS the fs domain, so stop;
+    # don't let e.g. "make this executable" fall through to another domain).
+    if _CHMOD_RE.search(low):
+        return _ABSTAIN
+    if _EMPTY_RE.search(low):
+        return _ABSTAIN  # dir_empty deferred (needs $(...) command substitution)
+
+    if _FS_WRITABLE_RE.search(low):
+        return _fs_frame("check_writable", text, low)
+    if _FS_READABLE_RE.search(low):
+        return _fs_frame("check_readable", text, low)
+    if _FS_OWNER_RE.search(low):
+        return _fs_frame("show_owner", text, low)
+    if _FS_PERMS_RE.search(low):
+        return _fs_frame("show_permissions", text, low)
+    if _FS_DISK_RE.search(low):
+        return _fs_frame("disk_usage", text, low)
+    if _FS_EXISTS_RE.search(low):
+        return _fs_frame("check_exists", text, low)
+    return None
+
+
 # Router order: specific domains first, file_discovery last (see parse()).
 _ROUTER = (
     _parse_file_inspection,
     _parse_text_and_logs,
     _parse_processes,
+    _parse_filesystem,
     _parse_file_discovery,
 )
 

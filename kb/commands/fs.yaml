@@ -1,0 +1,39 @@
+# fs.yaml — capability spec for filesystem_permissions (Task 11), read-only.
+#
+# Placeholder names are Frame slot keys: path.
+#
+# check_* intents are `test ... && printf ...` and-chains: base_argv is the
+# test, and_argv is the printf that runs only when the test passes. The `&&`
+# is inserted by the renderer (never a slot/argv element). NOTE: `test` does
+# NOT support `--`, so check_* deliberately omit it (matching the dataset's
+# reference commands); the slot value is still quoted to one argv element.
+#
+# chmod (destructive) and dir_empty (needs a `$(...)` command substitution,
+# which the flat-argv/round-trip model can't represent safely) are NOT built —
+# see the NLU, which abstains on both.
+
+capability: inspect_filesystem
+utility: coreutils
+
+intents:
+  check_writable:
+    base_argv: ["test", "-w", "{path}"]
+    and_argv: ["printf", "writable\n"]
+    risk_ops: ["read"]
+  check_readable:
+    base_argv: ["test", "-r", "{path}"]
+    and_argv: ["printf", "readable\n"]
+    risk_ops: ["read"]
+  check_exists:
+    base_argv: ["test", "-e", "{path}"]
+    and_argv: ["printf", "found\n"]
+    risk_ops: ["read"]
+  show_permissions:
+    base_argv: ["ls", "-ld", "--", "{path}"]
+    risk_ops: ["read"]
+  show_owner:
+    base_argv: ["stat", "-c", "%U:%G", "--", "{path}"]
+    risk_ops: ["read"]
+  disk_usage:
+    base_argv: ["du", "-sh", "--", "{path}"]
+    risk_ops: ["read"]

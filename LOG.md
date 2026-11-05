@@ -433,3 +433,69 @@ CPU. ✓
 **Pass rate vs the 40 Processes scenarios.** 7 of 40 map to the 6 intents by
 command shape (PROC-001/004/007/008/009/022/027). The other 33 are the deferred
 /proc/top/free/nproc/watch/jobs/kill rows.
+
+## 2026-11-05 — Task 11 (Tier 1): domain filesystem_permissions (read-only)
+
+**What I did.** Built `filesystem_permissions` as 6 read-only intents, closing
+the Tier-1 batch. Generalised the 2-stage mechanism to also chain with `&&`.
+
+**`&&` chaining (small generalisation of the pipe work).** The `check_*`
+intents are `test … && printf …`. I introduced a single `Stages(list)` plan
+container (in render.py) carrying its join operator; the planner emits
+`Stages([test, printf], "&&")` for an intent whose KB spec has `and_argv`, and
+`Stages([…], "|")` for `pipe_argv` (replacing the bare list-of-lists). Because
+`Stages` subclasses `list`, the earlier pipe tests (`== [[…],[…]]`) still hold.
+The operator is always compiler-chosen — never from a slot — so a hostile slot
+can't inject a `&&` or `|`, and each stage still round-trips independently.
+
+**Intents → commands** (`kb/commands/fs.yaml`, capability
+`inspect_filesystem`): check_writable `test -w {path} && printf 'writable\n'`,
+check_readable (`-r`), check_exists (`-e`, "found"), show_permissions
+`ls -ld -- {path}`, show_owner `stat -c %U:%G -- {path}`, disk_usage
+`du -sh -- {path}`. Target extraction handles "the <name> folder/dir" → name,
+a bare `name.ext`, a slash path, and "here" → `.`.
+
+**Decisions (interpreted).**
+- *chmod → abstain* (destructive; "make this executable" / "set permissions"
+  etc.). The fs parser returns `_ABSTAIN` so it doesn't leak to another domain.
+- *dir_empty → DEFERRED (abstain).* The reference is
+  `test -z "$(ls -A -- {path})" && printf empty` — a `$(…)` command
+  substitution the flat-argv + shlex-round-trip model cannot represent safely.
+  Per the task ("defer … don't hack it in unsafely"), "is X empty" abstains. A
+  clean single-command alternative exists for later —
+  `find {path} -maxdepth 0 -empty` — noted for Tier 2.
+- *`test` takes no `--`.* POSIX `test` would treat `--` as an operand, so
+  check_* deliberately omit it (matching the dataset); the path is still
+  quoted to one argv element.
+- *printf's `\n` is a literal backslash-n* in the argv (the KB subset parser
+  does not process escapes); printf expands it at runtime. A test asserts the
+  and-chain round-trips per stage.
+
+**Tests.** `tests/test_filesystem_read.py` — the task table (incl.
+dir_empty-deferred and chmod-abstain), the and-chain round-trip, and a
+prior-domains regression. **92 passed** (was 79).
+
+**Maze verification (Done when; run from $PROJECT_DIR / the file's dir).**
+`lb can I write to the output folder` → `test -w output && printf 'writable\n'`
+→ prints `writable`. `lb how big is the data folder` → `du -sh -- data` →
+`5.2M data`. `lb who owns train.log` → `stat -c %U:%G -- train.log` →
+`sambi:sambi`. `lb does config.yaml exist` → prints `found`. ✓
+
+**Pass rate vs the 40 Filesystem scenarios.** Only **1** of 40 matches by
+command shape (FS-007 `ls -ld`). The dataset's FS domain is dominated by
+`find … -perm`, chmod, mv/cp/touch/ln (writes), readlink, `stat -f`, findmnt
+and umask — all deferred (destructive or specialised). The six built intents
+answer the simpler "can I write/read", "who owns", "how big", "does it exist",
+"show permissions" questions; they're verified correct end-to-end against the
+maze even though the maze's FS sampling barely exercises them.
+
+## Tier 1 batch — summary
+
+All four domains (08–11) built, each tested and committed separately; no push.
+file_discovery regression intact throughout. **92 tests pass.** Router now
+dispatches: file_inspection → text_and_logs → processes → filesystem →
+file_discovery (bare-extension fallback). Planner/renderer gained safe 2-stage
+`|` and `&&` composition. New domains cover their task intents; maze
+scenario-coverage is modest by design because Tier 1 is single-command-only and
+the dataset's inspection/processes/filesystem rows are largely compound,
+`/proc`-based, or destructive (all deferred to later tiers).

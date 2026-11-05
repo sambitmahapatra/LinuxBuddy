@@ -64,7 +64,10 @@ domains:
 
   - id: filesystem_permissions  # 40 rows
     priority: 3
-    intents: [show_permissions, change_permissions, check_writable, disk_usage]
+    capability: inspect_filesystem  # kb/commands/fs.yaml (Task 11)
+    # Built Task 11 (Tier 1, read-only). change_permissions (chmod) deferred
+    # (destructive, P2.0 gate); dir_empty deferred (needs $(...) substitution).
+    intents: [check_writable, check_readable, check_exists, show_permissions, show_owner, disk_usage]
     lead_utilities: [stat, chmod, test, find, du]
 
   - id: processes               # 40 rows
