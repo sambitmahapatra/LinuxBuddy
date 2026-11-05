@@ -68,26 +68,41 @@ def _substitute(element: str, slots: dict[str, str]) -> str:
     return element
 
 
-def compile(frame: Frame) -> list[str]:
+def _build_stage(base: list, optional: dict, frame: Frame, slots: dict) -> list[str]:
+    argv: list[str] = [_substitute(elem, slots) for elem in base]
+    # Append optional fragments in KB-declared order, only for slots present.
+    # Iterating the KB (not the frame) fixes the flag order deterministically.
+    for slot_key, fragment in optional.items():
+        if slot_key in frame.slots:
+            argv.extend(_substitute(elem, slots) for elem in fragment)
+    for elem in argv:
+        if _PLACEHOLDER_RE.search(elem):
+            raise PlanError(f"unresolved placeholder in argv element {elem!r}")
+    return argv
+
+
+def compile(frame: Frame) -> list[str] | list[list[str]]:
+    """Compile a frame to a typed argv list, or — for a piped intent (one with
+    ``pipe_argv`` in its KB spec) — a LIST OF argv lists, one per stage. The
+    ``|`` itself is never a slot or an argv element; the renderer inserts it
+    between stages. Each stage independently satisfies the one-slot-one-element
+    and no-surviving-placeholder invariants.
+    """
     if frame is None:
         raise PlanError("cannot compile a None frame")
 
     intent_spec = _lookup(frame.intent)
     slots = _resolved_slots(frame)
 
-    argv: list[str] = [
-        _substitute(elem, slots) for elem in intent_spec["base_argv"]
-    ]
+    stage1 = _build_stage(
+        intent_spec["base_argv"], intent_spec.get("optional_args", {}), frame, slots
+    )
 
-    # Append optional fragments in KB-declared order, only for slots present.
-    # Iterating the KB (not the frame) fixes the flag order deterministically.
-    for slot_key, fragment in intent_spec.get("optional_args", {}).items():
-        if slot_key in frame.slots:
-            argv.extend(_substitute(elem, slots) for elem in fragment)
+    pipe_argv = intent_spec.get("pipe_argv")
+    if pipe_argv is None:
+        return stage1
 
-    # No placeholder may survive into the output.
-    for elem in argv:
-        if _PLACEHOLDER_RE.search(elem):
-            raise PlanError(f"unresolved placeholder in argv element {elem!r}")
-
-    return argv
+    stage2 = _build_stage(
+        pipe_argv, intent_spec.get("pipe_optional_args", {}), frame, slots
+    )
+    return [stage1, stage2]

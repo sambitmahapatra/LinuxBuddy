@@ -1,0 +1,36 @@
+# process.yaml — capability spec for processes (Task 10), read-only intents.
+#
+# Same contract as the other specs. Placeholder names are Frame slot keys:
+# pattern, port, pid, count.
+#
+# top_by_cpu / top_by_mem are 2-STAGE PIPELINES: `base_argv | pipe_argv`. The
+# planner compiles each stage separately and returns a list of argv lists; the
+# renderer inserts the `|`. The `|` is never a slot and never an argv element.
+#
+# kill / pkill are destructive and NOT built here (later tier, needs the gate).
+# All intents below are read-only.
+
+capability: inspect_process
+utility: ps
+
+intents:
+  list_processes:
+    base_argv: ["ps", "aux"]
+    risk_ops: ["read"]
+  top_by_cpu:
+    base_argv: ["ps", "-eo", "pid,comm,%cpu", "--sort=-%cpu"]
+    pipe_argv: ["head", "-n", "{count}"]
+    risk_ops: ["read"]
+  top_by_mem:
+    base_argv: ["ps", "-eo", "pid,comm,rss", "--sort=-rss"]
+    pipe_argv: ["head", "-n", "{count}"]
+    risk_ops: ["read"]
+  find_process:
+    base_argv: ["pgrep", "-af", "{pattern}"]
+    risk_ops: ["read"]
+  process_on_port:
+    base_argv: ["ss", "-ltnp", "sport = :{port}"]
+    risk_ops: ["read"]
+  show_pid:
+    base_argv: ["ps", "-p", "{pid}", "-o", "pid,ppid,stat,%cpu,%mem,args"]
+    risk_ops: ["read"]

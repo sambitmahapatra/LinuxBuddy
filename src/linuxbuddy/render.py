@@ -20,7 +20,7 @@ class RenderError(ValueError):
     """Raised when a rendered string fails to round-trip back to the argv."""
 
 
-def to_shell(argv: list[str]) -> str:
+def _render_stage(argv: list[str]) -> str:
     for i, elem in enumerate(argv):
         if not isinstance(elem, str):
             raise RenderError(
@@ -36,3 +36,14 @@ def to_shell(argv: list[str]) -> str:
             f"!= {argv!r}"
         )
     return rendered
+
+
+def to_shell(argv: list) -> str:
+    """Render a single-stage argv, or a PIPELINE (a list of argv lists) joined
+    by ``|``. The pipe is inserted HERE, between independently-quoted stages —
+    it never comes from a slot or an argv element. Each stage round-trips on
+    its own, so a hostile slot value in any stage stays one token.
+    """
+    if argv and all(isinstance(e, list) for e in argv):
+        return " | ".join(_render_stage(stage) for stage in argv)
+    return _render_stage(argv)

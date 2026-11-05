@@ -46,18 +46,45 @@ def _unquote(token: str) -> str:
     return token
 
 
-def _parse_flow_list(text: str) -> list[str]:
-    """Parse ``[a, "b c", 'd']`` into a list of strings.
+def _split_top_level_commas(s: str) -> list[str]:
+    """Split on commas that are OUTSIDE quotes.
 
-    The command specs never place a comma inside a list item, so a plain
-    comma split (after stripping the brackets) is sufficient and safe.
+    Needed so a quoted item that itself contains commas stays intact, e.g.
+    ``ps -o "pid,ppid,stat"`` or ``ps -eo "pid,comm,%cpu"``.
+    """
+    parts: list[str] = []
+    buf: list[str] = []
+    quote: str | None = None
+    for ch in s:
+        if quote is not None:
+            buf.append(ch)
+            if ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+            buf.append(ch)
+        elif ch == ",":
+            parts.append("".join(buf))
+            buf = []
+        else:
+            buf.append(ch)
+    parts.append("".join(buf))
+    return parts
+
+
+def _parse_flow_list(text: str) -> list[str]:
+    """Parse ``[a, "b c", 'd', "x,y,z"]`` into a list of strings.
+
+    Commas inside a quoted item do not split it (see
+    :func:`_split_top_level_commas`), so an ``-o`` field list like
+    ``"pid,ppid,stat"`` survives as one element.
     """
     inner = text.strip()
     assert inner.startswith("[") and inner.endswith("]")
     inner = inner[1:-1].strip()
     if not inner:
         return []
-    return [_unquote(part) for part in inner.split(",")]
+    return [_unquote(part) for part in _split_top_level_commas(inner)]
 
 
 def _parse_scalar(text: str) -> Any:

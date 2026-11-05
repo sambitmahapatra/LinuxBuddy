@@ -375,3 +375,61 @@ train.log` → `grep -ciF -- warning train.log` → 39; `lb find TODO across src
 command shape (TEXT-001/004/005/006/007/009/010/016). The other 32 use deferred
 features above. NLU pattern extraction is reliable for quoted / "word X" /
 log-keyword / ALL-CAPS patterns; arbitrary multi-word phrases need quoting.
+
+## 2026-11-05 — Task 10 (Tier 1): domain processes + 2-stage pipe support
+
+**What I did.** Added **2-stage pipe support** to the planner/renderer (the
+batch required it before building pipe intents), then built `processes` as 6
+read-only intents. TDD.
+
+**Pipe support (new infrastructure).**
+- *KB loader:* `_parse_flow_list` now splits flow-list commas **outside quotes**
+  only, so a quoted `-o` field list like `"pid,ppid,stat,%cpu,%mem,args"` or
+  `"pid,comm,%cpu"` stays one element instead of being shredded. (The old
+  parser assumed no item ever contained a comma.)
+- *planner.compile* returns a flat argv for a single command (unchanged), or a
+  **list of argv lists** when the intent's KB spec has a `pipe_argv` stage.
+  Each stage is built and placeholder-checked independently.
+- *render.to_shell* detects a pipeline (all elements are lists) and joins the
+  stages with ` | `. The `|` is compiler-inserted — never a slot, never an argv
+  element — and each stage still round-trips via `shlex.split` on its own, so a
+  hostile slot value in any stage stays one token.
+
+**Intents → commands** (`kb/commands/process.yaml`, capability
+`inspect_process`): list_processes `ps aux`; top_by_cpu
+`ps -eo pid,comm,%cpu --sort=-%cpu | head -n {count}`; top_by_mem (same with
+rss); find_process `pgrep -af {pattern}`; process_on_port
+`ss -ltnp "sport = :{port}"`; show_pid
+`ps -p {pid} -o pid,ppid,stat,%cpu,%mem,args`. top_by_* default count = 10.
+
+**Decisions (interpreted).**
+- *kill/pkill/killall → abstain.* Destructive, out of Tier-1 scope. The
+  processes parser returns `_ABSTAIN` on a kill verb — which also stops
+  "kill python" leaking to file_discovery (where "python" → `.py`). Verified
+  `parse("kill python") is None`.
+- *process_on_port's filter* `sport = :8080` is intentionally ONE argv element
+  with spaces; the renderer quotes it (`ss -ltnp 'sport = :8080'`). A
+  round-trip test asserts it.
+- Router order is file_inspection → text_and_logs → processes →
+  file_discovery, so process vocabulary wins before a bare word could look
+  like an extension.
+
+**Deferred (documented):** kill/pkill (destructive); `top -b -n 1`, `free -h`,
+`nproc`, `watch`, `jobs -l`, and all `/proc/<pid>/*` inspection (lstart, nlwp,
+fd, limits, io, status, meminfo, pressure) — compound/interactive or
+file-reads, later tiers.
+
+**Tests.** `tests/test_processes.py` — the task table, the pipe round-trip
+(each stage re-tokenizes to its own argv), the quoted-filter round-trip, and a
+prior-domains regression. **79 passed** (was 66).
+
+**Maze verification (Done when; `runtime_setup.sh` sourced for $PID/$PORT).**
+`lb what's using port <PORT>` → `ss -ltnp 'sport = :45739'` → shows the
+http.server (python3 listening). `lb show the process with pid <PID>` →
+`ps -p <PID> -o ...` → shows `sleep 300`. The pipe intent `lb what's using the
+most cpu` → `ps -eo pid,comm,%cpu --sort=-%cpu | head -n 10` runs and lists top
+CPU. ✓
+
+**Pass rate vs the 40 Processes scenarios.** 7 of 40 map to the 6 intents by
+command shape (PROC-001/004/007/008/009/022/027). The other 33 are the deferred
+/proc/top/free/nproc/watch/jobs/kill rows.

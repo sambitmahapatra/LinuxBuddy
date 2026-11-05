@@ -3,7 +3,7 @@
 > The single source of truth for where the project is NOW. Overwrite this
 > after every task. Keep it short. Next session reads this first.
 
-**Last updated:** 2026-11-05 (after Task 09 / Tier 1 — text_and_logs)
+**Last updated:** 2026-11-05 (after Task 10 / Tier 1 — processes)
 **Current phase:** Phase 2 — widen domains (Tier 1 batch, tasks 08–11)
 **Branch:** v1-file-discovery
 
@@ -32,16 +32,20 @@
   - **Task 09 — `text_and_logs` DONE:** 5 intents (search_in_file,
     search_recursive, count_matches, sort_lines, unique_lines),
     `kb/commands/text.yaml`. grep flags carried as one combined `gflags` token.
-    Verified vs the maze. **66 tests pass.**
+  - **Task 10 — `processes` DONE:** 6 read-only intents (list_processes,
+    top_by_cpu, top_by_mem, find_process, process_on_port, show_pid),
+    `kb/commands/process.yaml`. Added **2-stage pipe support** to planner +
+    render (pipeline = list of argv lists; `|` compiler-inserted) and
+    quote-aware flow-list comma splitting in the KB loader. kill/pkill abstain.
+    Verified vs the maze (live PID/PORT). **79 tests pass.**
 
 ## In progress
 
-- **Tier 1 batch:** 08, 09 done. Next: 10 processes (read-only; needs 2-stage
-  pipe support for top_by_cpu/mem), 11 filesystem (read-only).
+- **Tier 1 batch:** 08, 09, 10 done. Next and last: 11 filesystem (read-only).
 
 ## Next (in order)
 
-1. Task 10 `processes`, then 11 `filesystem` (read).
+1. Task 11 `filesystem` (read-only intents).
 2. (Later / optional) Resolve the **3 genuine remaining FAILs** (dangling
    `$TARGET_FILE`) and decide whether to make the 13 ACCEPTED_EMPTY scenarios
    literal via small `build_maze.sh` additions — see below.
@@ -74,8 +78,9 @@
 - **Task 07 fixes are CSV-only; the maze (`build_maze.sh`) was NOT changed**,
   to keep the fixture stable. PY-003/018/024/036/037 + WORK-039 were repointed
   from `good_script.sh` to `scripts/train_stub.py` (`$TRAIN_SCRIPT`).
-- Built domains: `file_discovery`, `file_inspection`, `text_and_logs`.
-  6 domains still to go.
+- Built domains: `file_discovery`, `file_inspection`, `text_and_logs`,
+  `processes` (read-only). Planner/render now support 2-stage pipes.
+  5 domains still to go (+ destructive intents gated at P2.0).
 - `lb` lives in a uv venv; destructive-intent gate not built until P2.0.
 - Owner is on bash; only the zsh widget exists.
 - Verification host gaps (not dataset bugs): no `pandas`, no `python3-venv`,

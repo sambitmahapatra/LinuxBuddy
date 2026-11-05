@@ -568,10 +568,78 @@ def _parse_text_and_logs(text: str, low: str):
     return Frame("search_in_file", slots)
 
 
+# --------------------------------------------------------------------------
+# Domain: processes (Task 10) — read-only intents. kill/pkill abstain.
+# --------------------------------------------------------------------------
+
+_KILL_RE = re.compile(r"\b(?:kill|pkill|killall)\b", re.IGNORECASE)
+_PORT_RE = re.compile(r"\bport\s+#?(\d{1,5})\b", re.IGNORECASE)
+_PID_RE = re.compile(r"\b(?:pid|process id|process)\s+#?(\d{1,7})\b", re.IGNORECASE)
+_TOPN_RE = re.compile(
+    r"\btop\s+(\d+)\b|\b(\d+)\s+(?:processes|consumers|results)\b", re.IGNORECASE
+)
+_CPU_RE = re.compile(r"\b(?:cpu|processor)\b", re.IGNORECASE)
+_MEM_RE = re.compile(r"\b(?:memory|ram|rss|mem)\b", re.IGNORECASE)
+_MOST_RE = re.compile(
+    r"\b(?:most|highest|biggest|top|heaviest|eating|hog|hogs|consumers?|heavy)\b",
+    re.IGNORECASE,
+)
+_RUNNING_RE = re.compile(
+    r"\b(?:what'?s running|whats running|what is running|everything running"
+    r"|all (?:the )?processes|running processes|list (?:the )?processes"
+    r"|show (?:me )?(?:all )?(?:the )?(?:running )?processes)\b",
+    re.IGNORECASE,
+)
+_FIND_PROC_RE = re.compile(
+    r"\bis\s+(?:the\s+)?([\w.+-]+)\s+(?:process\s+)?(?:running|up|alive|active)\b"
+    r"|\bfind\s+(?:the\s+)?([\w.+-]+)\s+process\b"
+    r"|\b(?:process|pgrep)\s+(?:named|called|matching|for)\s+([\w.+-]+)\b",
+    re.IGNORECASE,
+)
+
+
+def _top_count(low: str) -> int:
+    m = _TOPN_RE.search(low)
+    if m:
+        return int(m.group(1) or m.group(2))
+    return 10
+
+
+def _parse_processes(text: str, low: str):
+    # Destructive verbs are out of scope for Tier 1 → abstain (and, crucially,
+    # do not let "kill python" fall through to file_discovery's python→py).
+    if _KILL_RE.search(low):
+        return _ABSTAIN
+
+    m = _PORT_RE.search(low)
+    if m:
+        return Frame("process_on_port", {"port": int(m.group(1))})
+
+    m = _PID_RE.search(low)
+    if m:
+        return Frame("show_pid", {"pid": int(m.group(1))})
+
+    if _MOST_RE.search(low) and _CPU_RE.search(low):
+        return Frame("top_by_cpu", {"count": _top_count(low)})
+    if _MOST_RE.search(low) and _MEM_RE.search(low):
+        return Frame("top_by_mem", {"count": _top_count(low)})
+
+    m = _FIND_PROC_RE.search(text)
+    if m:
+        pat = next(g for g in m.groups() if g)
+        return Frame("find_process", {"pattern": pat})
+
+    if _RUNNING_RE.search(low):
+        return Frame("list_processes", {})
+
+    return None
+
+
 # Router order: specific domains first, file_discovery last (see parse()).
 _ROUTER = (
     _parse_file_inspection,
     _parse_text_and_logs,
+    _parse_processes,
     _parse_file_discovery,
 )
 

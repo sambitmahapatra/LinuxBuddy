@@ -69,7 +69,10 @@ domains:
 
   - id: processes               # 40 rows
     priority: 3
-    intents: [list_processes, find_process, process_on_port, kill_process]
+    capability: inspect_process  # kb/commands/process.yaml (Task 10)
+    # Built Task 10 (Tier 1, read-only). kill_process deferred (destructive,
+    # needs the P2.0 gate). top_by_cpu/mem use a 2-stage pipe (ps | head).
+    intents: [list_processes, top_by_cpu, top_by_mem, find_process, process_on_port, show_pid]
     lead_utilities: [ps, pgrep, ss, kill]
     note: WSL has no systemd — use ps/pgrep/pkill, never systemctl
 
