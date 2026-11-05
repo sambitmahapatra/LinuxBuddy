@@ -499,3 +499,49 @@ file_discovery (bare-extension fallback). Planner/renderer gained safe 2-stage
 scenario-coverage is modest by design because Tier 1 is single-command-only and
 the dataset's inspection/processes/filesystem rows are largely compound,
 `/proc`-based, or destructive (all deferred to later tiers).
+
+## 2026-11-05 — Task 12 (P2.0): destructive-containment gate
+
+**What I did.** Built the containment gate that every write/delete/chmod intent
+will pass through — infrastructure before the first write domain (Tier 2). TDD.
+
+**New modules.**
+- `src/linuxbuddy/config.py` — one place for the two env vars. `mode()` →
+  "prototype" (default) | "prod" (anything not exactly "prod" is prototype —
+  fail safe toward containment). `maze_root()` → `LINUXBUDDY_MAZE_ROOT`
+  (default `~/linuxbuddy/testlinuxbuddy`) resolved to a **real absolute path**
+  (symlinks + `..` collapsed). Read live so tests/callers can set env per call.
+- `src/linuxbuddy/gate.py` — `check(risk_ops, cwd) -> None | message`. A plan
+  is destructive if its `risk_ops` include any of write/delete/privilege.
+  prod → allow; prototype + read-only → allow; prototype + destructive + cwd
+  under maze root → allow; otherwise abstain with
+  `LinuxBuddy (prototype): destructive commands only run inside the test maze.
+  cd into <MAZE_ROOT> first.` The under-root test resolves BOTH cwd and root
+  with `realpath` then uses `os.path.commonpath`, so a `..` path or a symlink
+  pointing out of the maze is correctly treated as outside.
+
+**Design choice (interpreted).** The task wrote `check(plan, cwd)`. I made the
+first argument the plan's **risk_ops list** itself — that *is* "a plan's risk"
+per the task, it decouples the gate from the plan's argv representation, and it
+makes the stub "fake write plan" in tests simply `["write"]`. The CLI gets the
+real risk_ops from the KB via a new `planner.risk_ops(intent)` helper.
+
+**Wiring (`cli.py`).** Pipeline is now parse → compile → **gate.check** →
+render → print. The gate runs after compile and before render/print, so a
+destructive command never reaches stdout from the wrong directory. Read intents
+are unaffected (risk_ops `[read]` → allowed everywhere).
+
+**Tests (`tests/test_gate.py`).** All five required cases plus two extra:
+prototype-write-outside → abstain; prototype-write-inside (and root itself) →
+allow; prototype-read-anywhere → allow; prod-write-anywhere → allow; **path
+traversal** (`maze/project/../../outside`) → abstain; **symlink out of maze** →
+abstain; mixed `["read","write"]` → destructive. **99 passed** (was 92).
+
+**Manual gate check (Done when).** No destructive intent exists yet, so I
+exercised it two ways: (a) read intents still emit from `/tmp` (outside the
+maze) — `lb show errors in train.log` works there, confirming reads aren't
+gated; (b) a stub `["write"]` plan through `gate.check` abstains from `/tmp`
+with the maze message and returns `None` from
+`testlinuxbuddy/project`. The default root resolved to
+`/home/sambi/linuxbuddy/testlinuxbuddy`. The full CLI write-path is exercised
+end-to-end by Task 13's `create_archive`.

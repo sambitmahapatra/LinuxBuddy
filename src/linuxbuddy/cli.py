@@ -12,10 +12,12 @@ Nothing is executed. LinuxBuddy only prints a command for the user to run.
 """
 from __future__ import annotations
 
+import os
 import sys
 
+from . import gate
 from .nlu import parse, abstain_hint
-from .planner import compile, PlanError
+from .planner import compile, risk_ops, PlanError
 from .render import to_shell, RenderError
 
 __all__ = ["main"]
@@ -36,10 +38,22 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         argv_plan = compile(frame)
+    except PlanError:
+        print(_ABSTAIN_MSG, file=sys.stderr)
+        return 1
+
+    # Destructive-containment gate (P2.0): a write/delete/chmod plan may only
+    # be emitted when cwd is inside the maze (prototype mode). Checked AFTER
+    # compile, BEFORE rendering/printing — so nothing destructive reaches
+    # stdout from the wrong place.
+    denied = gate.check(risk_ops(frame.intent), os.getcwd())
+    if denied:
+        print(denied, file=sys.stderr)
+        return 1
+
+    try:
         command = to_shell(argv_plan)
-    except (PlanError, RenderError):
-        # Any planning/rendering failure is treated as "not sure": never
-        # emit a partial or unsafe command to stdout.
+    except RenderError:
         print(_ABSTAIN_MSG, file=sys.stderr)
         return 1
 

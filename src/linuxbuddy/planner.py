@@ -17,7 +17,7 @@ from .kb import load_kb
 from .nlu import Frame
 from .render import Stages
 
-__all__ = ["compile", "PlanError"]
+__all__ = ["compile", "PlanError", "risk_ops"]
 
 _PLACEHOLDER_RE = re.compile(r"\{[^{}]+\}")
 
@@ -51,6 +51,12 @@ def _lookup(intent: str) -> dict:
         if intent in intents:
             return intents[intent]
     raise PlanError(f"no capability provides intent {intent!r}")
+
+
+def risk_ops(intent: str) -> list[str]:
+    """The declared ``risk_ops`` for an intent (from the KB), for the gate.
+    Empty list if the intent declares none (treated as read-only)."""
+    return list(_lookup(intent).get("risk_ops", []))
 
 
 def _resolved_slots(frame: Frame) -> dict[str, str]:
