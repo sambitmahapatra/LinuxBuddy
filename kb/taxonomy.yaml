@@ -51,7 +51,9 @@ domains:
 
   - id: text_and_logs           # 40 rows, 25 grep
     priority: 2
-    intents: [search_in_files, filter_log, sort_unique, extract_column]
+    capability: search_text      # kb/commands/text.yaml (Task 09)
+    # Built Task 09 (Tier 1). grep flags carried as one combined token slot.
+    intents: [search_in_file, search_recursive, count_matches, sort_lines, unique_lines]
     lead_utilities: [grep, sort, uniq, cut, tail]
 
   - id: workspace_and_shell     # 40 rows

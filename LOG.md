@@ -319,3 +319,59 @@ compound/multi-command or use utilities deferred for Tier 1 (od, nl, cat -A,
 sha256sum, cmp, diff, sed, less, python one-liners). Low coverage is expected:
 this domain is mostly compound in the dataset. The six intents themselves are
 correct end-to-end against the maze.
+
+## 2026-11-05 — Task 09 (Tier 1): domain text_and_logs
+
+**What I did.** Built `text_and_logs`: 5 read-only intents (grep + sort),
+plugged a `_parse_text_and_logs` parser into the router between
+file_inspection and file_discovery. TDD.
+
+**Intents → commands** (`kb/commands/text.yaml`, capability `search_text`):
+search_in_file `grep {gflags} -- {pattern} {path}`, search_recursive (same with
+`-R`), count_matches (`-c`), sort_lines `sort -- {path}`, unique_lines
+`sort -u -- {path}`.
+
+**Key design decision — grep flags as ONE combined token.** The planner only
+*appends* optional fragments, but grep flags must sit *before* the `--`.
+Rather than teach the planner to position flags, the NLU computes a single
+`gflags` token (e.g. `-nF`, `-niF`, `-RnF`, `-ciF`) and the KB puts it in one
+argv element. This keeps "one placeholder per element", keeps `--`
+compiler-inserted (so a pattern starting with `-` is still the pattern — an
+injection guard), and keeps flag order deterministic. A hostile-pattern
+round-trip test proves a `;rm -rf /` pattern stays one element.
+
+**Pattern & flag rules (interpreted).**
+- Pattern sources, in order: a quoted string; "the word/string/phrase X"; an
+  explicit search verb ("search for/grep/look for/locate X", excluding vague
+  tokens like "stuff"); an ALL-CAPS identifier (TODO, FIXME, API_URL); a
+  log-level word (errors→error, warnings→warning, …). Plain "find X" is NOT a
+  pattern source — that stays file_discovery's `find_by_name`.
+- `-i` defaults ON for log-level words (error/warning/exception/…) and when the
+  request asks to ignore case; otherwise OFF. `-F` (literal) and `-n` (on the
+  show intents) are always set, per the task.
+- recursive when the request says across/recursively/"in the project|src|
+  configs"; the directory is taken from "<name> folder" or an "across/in <dir>"
+  preposition.
+- "find stuff" → no concrete pattern → abstain. A pattern with no concrete file
+  ("how many warnings in the log") still yields the frame; the CLI abstains at
+  planning (no path), as with file_inspection.
+
+**Deferred (documented):** `tail -f` (watch) — mapping it would need the CLI to
+print a "runs until Ctrl-C" note, but the CLI contract is "stdout is exactly
+one command or empty", so I deferred it rather than break that contract.
+Also deferred: `-v` invert, `-w`/`-x` word/whole-line, `-C` context, blank-line
+regex, redirect-to-file, and sed/cut/comm/awk — Tier 2 / mini-language work.
+
+**Tests.** `tests/test_text_and_logs.py` — the task table, hostile-pattern
+round-trip, compile checks, and a prior-domains regression. **66 passed**
+(was 53).
+
+**Maze verification (Done when).** `lb show errors in train.log` →
+`grep -niF -- error train.log` → 26 matching lines; `lb how many warnings in
+train.log` → `grep -ciF -- warning train.log` → 39; `lb find TODO across src`
+→ `grep -RnF -- TODO src` → lists the TODO hits in src/. ✓
+
+**Pass rate vs the 40 Text-&-logs scenarios.** 8 of 40 map to the 5 intents by
+command shape (TEXT-001/004/005/006/007/009/010/016). The other 32 use deferred
+features above. NLU pattern extraction is reliable for quoted / "word X" /
+log-keyword / ALL-CAPS patterns; arbitrary multi-word phrases need quoting.

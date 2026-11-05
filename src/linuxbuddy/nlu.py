@@ -432,9 +432,146 @@ def _parse_file_inspection(text: str, low: str):
     return Frame("preview_tail" if is_tail and not is_head else "preview_head", slots)
 
 
+# --------------------------------------------------------------------------
+# Domain: text_and_logs (Task 09) — grep + sort, read-only.
+# --------------------------------------------------------------------------
+
+# Log-level / marker words; a bare mention implies a case-insensitive search
+# for the canonical form. "errors" -> "error", "warnings" -> "warning".
+_LOG_WORD_RE = re.compile(
+    r"\b(errors?|warnings?|exceptions?|traceback|failed|failure|timeouts?"
+    r"|critical|deprecated)\b", re.IGNORECASE,
+)
+_LOG_CANON = {
+    "error": "error", "errors": "error", "warning": "warning",
+    "warnings": "warning", "exception": "exception", "exceptions": "exception",
+    "traceback": "Traceback", "failed": "failed", "failure": "failed",
+    "timeout": "timeout", "timeouts": "timeout", "critical": "critical",
+    "deprecated": "deprecated",
+}
+_CASE_WORDS = {"error", "warning", "exception", "failed", "timeout", "critical"}
+
+_IGNORE_CASE_RE = re.compile(
+    r"\b(?:ignore case|case[- ]insensitive|regardless of (?:capitalization|case)"
+    r"|any case|whatever the case)\b", re.IGNORECASE,
+)
+_DISTINCT_RE = re.compile(
+    r"\b(?:distinct|unique|dedupe|deduplicate|duplicates removed|without duplicates)\b",
+    re.IGNORECASE,
+)
+_SORT_RE = re.compile(r"\b(?:sort|alphabetical(?:ly)?|in order|ascending)\b", re.IGNORECASE)
+_RECURSIVE_RE = re.compile(
+    r"\b(?:across|recursiv\w*|everywhere|throughout|in all"
+    r"|(?:in|within|under) the (?:project|repo|codebase|source|src|configs?))\b",
+    re.IGNORECASE,
+)
+_COUNT_MATCH_RE = re.compile(r"\b(?:how many|how often|count|number of times)\b", re.IGNORECASE)
+
+_ALLCAPS_RE = re.compile(r"\b([A-Z][A-Z0-9_]{2,})\b")
+_WORD_PAT_RE = re.compile(
+    r"\b(?:the\s+)?(?:word|string|phrase|token|term)\s+['\"]?([A-Za-z0-9_./+-]+)",
+    re.IGNORECASE,
+)
+_SEARCHVERB_RE = re.compile(
+    r"\b(?:search for|grep(?:\s+for)?|look for|locate)\s+['\"]?([A-Za-z0-9_./+-]+)",
+    re.IGNORECASE,
+)
+_VAGUE_PAT = {"stuff", "things", "thing", "something", "anything", "it", "them", "that"}
+
+_DIR_NOUN_RE = re.compile(r"\b([\w./-]+)\s+(?:folder|directory|dir|tree)\b", re.IGNORECASE)
+_PREP_DIR_RE = re.compile(
+    r"\b(?:across|in|within|under|throughout)\s+(?:the\s+|all\s+(?:the\s+)?)?([\w./-]+)",
+    re.IGNORECASE,
+)
+_KNOWN_DIRS = {
+    "src", "source", "configs", "config", "logs", "project", "tests",
+    "data", "scripts", "exports", "runs", "repo", "codebase",
+}
+
+
+def _grep_pattern(text: str, low: str) -> str | None:
+    m = _QUOTED_RE.search(text)
+    if m:
+        return m.group(1)
+    m = _WORD_PAT_RE.search(text)
+    if m:
+        return m.group(1).strip(".,!?;:")
+    m = _SEARCHVERB_RE.search(text)
+    if m:
+        tok = m.group(1).strip(".,!?;:")
+        if tok.lower() not in _VAGUE_PAT:
+            return tok
+    m = _ALLCAPS_RE.search(text)   # TODO, FIXME, API_URL, SUCCESS
+    if m:
+        return m.group(1)
+    m = _LOG_WORD_RE.search(low)
+    if m:
+        return _LOG_CANON[m.group(1).lower()]
+    return None
+
+
+def _grep_dir(text: str, low: str) -> str | None:
+    m = _DIR_NOUN_RE.search(text)
+    if m:
+        return m.group(1)
+    m = _PREP_DIR_RE.search(text)
+    if m:
+        cand = m.group(1)
+        if cand.lower() in _KNOWN_DIRS or "." not in cand:
+            return cand
+    return None
+
+
+def _parse_text_and_logs(text: str, low: str):
+    is_distinct = bool(_DISTINCT_RE.search(low))
+    is_sort = bool(_SORT_RE.search(low))
+    pattern = _grep_pattern(text, low)
+
+    # sort / unique family (no grep pattern dominating)
+    if is_distinct:
+        slots: dict = {}
+        p = _detect_path_arg(text, low)
+        if p is not None:
+            slots["path"] = p
+        return Frame("unique_lines", slots)
+    if is_sort and pattern is None:
+        slots = {}
+        p = _detect_path_arg(text, low)
+        if p is not None:
+            slots["path"] = p
+        return Frame("sort_lines", slots)
+
+    if pattern is None:
+        return None  # not a text-search request — let the next domain try
+
+    ic = bool(_IGNORE_CASE_RE.search(low)) or (pattern.lower() in _CASE_WORDS)
+    i = "i" if ic else ""
+
+    if _RECURSIVE_RE.search(low):
+        slots = {"gflags": "-Rn" + i + "F", "pattern": pattern}
+        d = _grep_dir(text, low) or _detect_path_arg(text, low)
+        if d is not None:
+            slots["path"] = d
+        return Frame("search_recursive", slots)
+
+    if _COUNT_MATCH_RE.search(low):
+        slots = {"gflags": "-c" + i + "F", "pattern": pattern}
+        p = _detect_path_arg(text, low)
+        if p is not None:
+            slots["path"] = p
+        return Frame("count_matches", slots)
+
+    slots = {"gflags": "-n" + i + "F", "pattern": pattern}
+    p = _detect_path_arg(text, low)
+    if p is not None:
+        slots["path"] = p
+    return Frame("search_in_file", slots)
+
+
 # Router order: specific domains first, file_discovery last (see parse()).
 _ROUTER = (
     _parse_file_inspection,
+    _parse_text_and_logs,
     _parse_file_discovery,
 )
 

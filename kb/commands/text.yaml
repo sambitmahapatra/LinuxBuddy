@@ -1,0 +1,33 @@
+# text.yaml — capability spec for text_and_logs (Task 09): grep + sort.
+#
+# Same contract as find.yaml / inspect.yaml. Placeholder names are Frame slot
+# keys: gflags, pattern, path.
+#
+# grep flags are a SINGLE combined token (gflags, e.g. "-nF" / "-niF" /
+# "-RnF" / "-ciF") computed by the NLU. Keeping them in one argv element (a)
+# preserves "one placeholder per element" and (b) keeps the order deterministic
+# without the planner having to position optional flags before the `--`. The
+# `--` ends option parsing so a pattern beginning with `-` is still treated as
+# the pattern, never as an option (also an injection guard).
+#
+# All read-only.
+
+capability: search_text
+utility: grep
+
+intents:
+  search_in_file:
+    base_argv: ["grep", "{gflags}", "--", "{pattern}", "{path}"]
+    risk_ops: ["read"]
+  search_recursive:
+    base_argv: ["grep", "{gflags}", "--", "{pattern}", "{path}"]
+    risk_ops: ["read"]
+  count_matches:
+    base_argv: ["grep", "{gflags}", "--", "{pattern}", "{path}"]
+    risk_ops: ["read"]
+  sort_lines:
+    base_argv: ["sort", "--", "{path}"]
+    risk_ops: ["read"]
+  unique_lines:
+    base_argv: ["sort", "-u", "--", "{path}"]
+    risk_ops: ["read"]

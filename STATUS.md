@@ -3,7 +3,7 @@
 > The single source of truth for where the project is NOW. Overwrite this
 > after every task. Keep it short. Next session reads this first.
 
-**Last updated:** 2026-11-05 (after Task 08 / Tier 1 — file_inspection)
+**Last updated:** 2026-11-05 (after Task 09 / Tier 1 — text_and_logs)
 **Current phase:** Phase 2 — widen domains (Tier 1 batch, tasks 08–11)
 **Branch:** v1-file-discovery
 
@@ -26,19 +26,22 @@
   accepted with reasons. See `LOG.md` for the full breakdown.
 - **Tier 1 batch (tasks 08–11) IN PROGRESS.** Introduced the Phase-2 **NLU
   router** (`parse()` dispatches over domain parsers; `_ABSTAIN` sentinel;
-  file_discovery stays last). **Task 08 — `file_inspection` DONE:** 6
-  single-command read-only intents (preview_head/tail, count_lines, show_size,
-  detect_type, show_stat), `kb/commands/inspect.yaml`, verified vs the maze.
-  **53 tests pass.**
+  file_discovery stays last).
+  - **Task 08 — `file_inspection` DONE:** 6 intents (preview_head/tail,
+    count_lines, show_size, detect_type, show_stat), `kb/commands/inspect.yaml`.
+  - **Task 09 — `text_and_logs` DONE:** 5 intents (search_in_file,
+    search_recursive, count_matches, sort_lines, unique_lines),
+    `kb/commands/text.yaml`. grep flags carried as one combined `gflags` token.
+    Verified vs the maze. **66 tests pass.**
 
 ## In progress
 
-- **Tier 1 batch:** 08 done. Next in order: 09 text_and_logs, 10 processes
-  (read-only; will need 2-stage pipe support), 11 filesystem (read-only).
+- **Tier 1 batch:** 08, 09 done. Next: 10 processes (read-only; needs 2-stage
+  pipe support for top_by_cpu/mem), 11 filesystem (read-only).
 
 ## Next (in order)
 
-1. Task 09 `text_and_logs`, then 10 `processes`, then 11 `filesystem` (read).
+1. Task 10 `processes`, then 11 `filesystem` (read).
 2. (Later / optional) Resolve the **3 genuine remaining FAILs** (dangling
    `$TARGET_FILE`) and decide whether to make the 13 ACCEPTED_EMPTY scenarios
    literal via small `build_maze.sh` additions — see below.
@@ -71,7 +74,8 @@
 - **Task 07 fixes are CSV-only; the maze (`build_maze.sh`) was NOT changed**,
   to keep the fixture stable. PY-003/018/024/036/037 + WORK-039 were repointed
   from `good_script.sh` to `scripts/train_stub.py` (`$TRAIN_SCRIPT`).
-- Built domains: `file_discovery`, `file_inspection`. 7 domains still to go.
+- Built domains: `file_discovery`, `file_inspection`, `text_and_logs`.
+  6 domains still to go.
 - `lb` lives in a uv venv; destructive-intent gate not built until P2.0.
 - Owner is on bash; only the zsh widget exists.
 - Verification host gaps (not dataset bugs): no `pandas`, no `python3-venv`,
