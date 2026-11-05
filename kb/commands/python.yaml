@@ -1,0 +1,46 @@
+# python.yaml — capability spec for python_environments (Task 14).
+#
+# Placeholder names are Frame slot keys: path (a script), pkg (a package name).
+#
+# Read intents work anywhere; run_script/check_syntax WRITE (run_script can do
+# anything the script does; py_compile writes a .pyc) and are gated to the maze.
+#
+# python_version is a 2-stage `&&` chain (version, then where it lives); the
+# `&&` is renderer-inserted. where_python / python_version use the shell
+# builtin `command -v`, which is why the emitted string is meant to be run in a
+# shell (as all LinuxBuddy output is), not exec'd directly.
+#
+# check_package runs a tiny probe via `python3 -c`. The {pkg} value is spliced
+# into the -c PYTHON code (one argv element, quoted whole by the renderer so it
+# never re-splits in the shell). The NLU restricts pkg to a package-name token
+# ([A-Za-z0-9._-]), so it cannot carry a quote and break out of the Python
+# string — no shell or Python injection is possible.
+#
+# Deferred (NOT built — see the NLU, which abstains): venv create, pip
+# install/upgrade/download (network); venv activate/deactivate (shell state,
+# can't be a subprocess); http.server (long-running); compileall / unittest
+# discovery / cd-&&-run (compound); the interactive REPL.
+
+capability: python_env
+utility: python3
+
+intents:
+  # --- read-only (work anywhere) ---
+  python_version:
+    base_argv: ["python3", "--version"]
+    and_argv: ["command", "-v", "python3"]
+    risk_ops: ["read"]
+  where_python:
+    base_argv: ["command", "-v", "python3"]
+    risk_ops: ["read"]
+  check_package:
+    base_argv: ["python3", "-c", 'import importlib.util as u; print(u.find_spec("{pkg}") is not None)']
+    risk_ops: ["read"]
+
+  # --- write (gated to the maze) ---
+  run_script:
+    base_argv: ["python3", "--", "{path}"]
+    risk_ops: ["write"]
+  check_syntax:
+    base_argv: ["python3", "-m", "py_compile", "--", "{path}"]
+    risk_ops: ["write"]

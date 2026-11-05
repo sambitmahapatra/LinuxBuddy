@@ -3,8 +3,8 @@
 > The single source of truth for where the project is NOW. Overwrite this
 > after every task. Keep it short. Next session reads this first.
 
-**Last updated:** 2026-11-05 (after Task 13 / archives_backup)
-**Current phase:** Phase 2 — Tier 2 (gate + write-capable domains)
+**Last updated:** 2026-11-05 (after Task 14 / Tier 2 batch COMPLETE)
+**Current phase:** Phase 2 — Tier 2 done; 2 domains remain
 **Branch:** v1-file-discovery
 
 ---
@@ -55,18 +55,25 @@
     `extract_archive`(mkdir && tar -xf), `compress_file`(gzip -k).
     `kb/commands/archive.yaml`, capability `manage_archives`. Verified vs the
     maze — create/extract/compress run inside, abstain outside. **108 pass.**
+  - **Task 14 — `python_environments` DONE.** 5 intents: read `python_version`
+    (python3 --version && command -v), `where_python` (command -v),
+    `check_package` (importlib find_spec probe); write (gated) `run_script`
+    (python3 -- path), `check_syntax` (py_compile). `kb/commands/python.yaml`,
+    capability `python_env`. Router: python before text (so "...syntax errors"
+    isn't grabbed as a grep). pip/venv/activate/server deferred (abstain).
+    Verified vs the maze. **119 pass. Tier 2 batch COMPLETE.**
 
 ## In progress
 
-- **Tier 2 batch:** 12, 13 done. Next and last: 14 python_environments.
+- Nothing. Tier 2 batch (12–14) complete.
 
 ## Next (in order)
 
-1. Task 14 `python_environments`.
-2. Quick follow-on (optional): the gate now makes the Tier-1-deferred
-   destructive intents cheap — `chmod` (filesystem) and `kill`/`pkill`
-   (processes).
-3. Last/hardest: `workspace_and_shell` (multi-step), `wsl_interop` (GUI).
+1. Quick follow-on (optional, now cheap — gate exists): `chmod`
+   (filesystem_permissions) and `kill`/`pkill` (processes) complete those two
+   Tier-1 domains.
+2. Last/hardest two domains: `workspace_and_shell` (multi-step) and
+   `wsl_interop` (GUI).
 2. (Later / optional) Resolve the **3 genuine remaining FAILs** (dangling
    `$TARGET_FILE`) and decide whether to make the 13 ACCEPTED_EMPTY scenarios
    literal via small `build_maze.sh` additions — see below.
@@ -99,14 +106,15 @@
 - **Task 07 fixes are CSV-only; the maze (`build_maze.sh`) was NOT changed**,
   to keep the fixture stable. PY-003/018/024/036/037 + WORK-039 were repointed
   from `good_script.sh` to `scripts/train_stub.py` (`$TRAIN_SCRIPT`).
-- Built domains: `file_discovery`, `file_inspection`, `text_and_logs`,
-  `processes`, `filesystem_permissions` (all read-only). Planner/render support
-  safe 2-stage `|` and `&&` composition (`Stages` container). 4 domains to go
-  (+ destructive intents gated at P2.0).
-- Tier 1 scope was single-command read-only; compound, `/proc`-based, and
-  destructive maze scenarios were deferred by design — hence modest per-domain
-  maze coverage (inspection 5/40, text 8/40, processes 7/40, filesystem 1/40).
-  The built intents are each verified correct end-to-end against the maze.
+- Built domains (7): `file_discovery`, `file_inspection`, `text_and_logs`,
+  `processes`, `filesystem_permissions` (read-only), `archives_backup`,
+  `python_environments` (read + GATED writes). Planner/render support safe
+  2-stage `|` and `&&` composition (`Stages` container). 2 domains to go.
+- Single-command-only scope by design; compound, `/proc`-based, redirect,
+  network, shell-state and (for Tier 1) destructive maze scenarios are
+  deferred — hence modest per-domain maze coverage (inspection 5/40, text 8/40,
+  processes 7/40, filesystem 1/40, archives 7/40, python ~6/40). Every built
+  intent is verified correct end-to-end against the maze.
 - `lb` lives in a uv venv. **Destructive-containment gate (P2.0) is now built**
   (`gate.py`/`config.py`); prototype mode is the default, maze root defaults to
   `~/linuxbuddy/testlinuxbuddy`.

@@ -95,7 +95,12 @@ domains:
 
   - id: python_environments     # 40 rows, 31 python3
     priority: 4
-    intents: [create_venv, inspect_python, run_tests, list_packages]
+    capability: python_env  # kb/commands/python.yaml (Task 14)
+    # Built Task 14 (Tier 2). Reads work anywhere; writes gated to maze (P2.0).
+    # Deferred (network/shell-state/long-running/compound): venv create,
+    # pip install/upgrade/download/freeze, venv activate/deactivate, http.server,
+    # compileall, module run, REPL, list_packages/package_version.
+    intents: [python_version, where_python, check_package, run_script, check_syntax]
     lead_utilities: [python3, pip]
 
 deferred:

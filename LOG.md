@@ -611,3 +611,79 @@ redirects, folder copies, member-filtered/deterministic tar, and locate-archive
 finds — all deferred as above; 18 rows are multi-command. `extract_archive` has
 no exact single-command maze row (ARCH-010 is a *zip* extract), but it's
 grounded in the task table and verified end-to-end.
+
+## 2026-11-05 — Task 14 (Tier 2): domain python_environments
+
+**What I did.** Built `python_environments` as 5 intents (3 read, 2 gated
+writes), closing the Tier 2 batch. `kb/commands/python.yaml`, capability
+`python_env`. This domain is mostly network / shell-state / long-running, so
+the disciplined move was to build the small clean core and abstain on the rest.
+
+**Intents → commands.**
+- Read (anywhere): `python_version` → `python3 --version && command -v python3`
+  (2-stage `&&`); `where_python` → `command -v python3`; `check_package` →
+  `python3 -c 'import importlib.util as u; print(u.find_spec("{pkg}") is not None)'`.
+- Write (gated): `run_script` → `python3 -- {path}`; `check_syntax` →
+  `python3 -m py_compile -- {path}` (writes a .pyc).
+
+**Slot/injection notes.** The script slot is keyed `path` (not the task's
+`{script}`) so the planner resolves `~`/`$HOME` for it like every other path.
+`check_package` splices `{pkg}` into the `python3 -c` **Python** code — one
+argv element, quoted whole by the renderer so it never re-splits in the shell.
+The NLU restricts `pkg` to `[A-Za-z0-9._-]`, so it can't carry a quote to break
+out of the Python string; a test asserts the rendered `-c` string round-trips
+through `shlex.split` unchanged. The KB's stdlib YAML-subset parser handled the
+single-quoted `-c` scalar (quotes/parens/`;`/spaces, no comma, no colon) fine.
+
+**Routing — python before text (important).** "check main.py for syntax
+errors" contains "errors", which the text domain would otherwise grab as a grep
+pattern. Placing `_parse_python` before `_parse_text_and_logs` makes it
+`check_syntax` instead. The python parser only fires on specific cues
+(version / where / package-probe / run-a-.py / syntax), so it doesn't steal
+genuine text/other queries — the full suite confirms no regression.
+
+**Deferred → abstain (documented).** pip install/upgrade/download and venv
+*create* (network); venv activate/deactivate (shell state — can't be a
+subprocess); `http.server` (long-running); `compileall`/`cd && run`/module run
+(compound); the bare `python3` REPL. The parser returns the abstain sentinel
+for the pip/venv/server families so a fragment can't fall through to another
+domain.
+
+**Tests (`tests/test_python_env.py`).** The task table, the `&&` chain, the
+`-c` round-trip, pip/venv abstention, risk_ops per intent + gate refusal from
+`/tmp`, and a prior-domains regression. **119 passed** (was 108).
+
+**Maze verification (Done when).** `lb what python version do i have` →
+`python3 --version && command -v python3` → `Python 3.14.4` + `/usr/bin/python3`.
+`lb is numpy available` → the importlib probe → `False` (numpy isn't installed
+on this host — the probe correctly returns False, not an error; same for
+pandas). `lb check src/pipeline.py for syntax errors` →
+`python3 -m py_compile -- src/pipeline.py`, exit 0 inside the maze. `lb run
+train.py` from `/tmp` abstains via the gate (exit 1, empty stdout). ✓
+
+**Pass rate vs the 40 Python scenarios.** 6 of 22 single-command rows share the
+command shape; of those, `where_python` (PY-002), `check_package` (PY-005,
+PY-014) and `check_syntax` (PY-024) are exact-intent matches. PY-020/PY-023 use
+the same `python3 -c` shape but are really *list-packages* / *package-version*
+intents (via importlib.metadata) that I did NOT build. `python_version` and
+`run_script` are grounded in the task table but have no plain single-command
+maze row — the maze's run rows all carry env-vars/`-u`/`-X`/redirects, and its
+version rows are the metadata intents above. The rest (REPL, venv
+activate/deactivate, pip install/upgrade/download/freeze, compileall, venv-python
+invocations, module run, env-var/redirect script runs, package-file location)
+are all deferred per the task; 18 rows are multi-command. Low single-command
+coverage here is expected and correct, exactly as the task noted.
+
+## Tier 2 batch — summary
+
+Gate + two write-capable domains, each tested and committed separately; no push.
+**119 tests pass**, no regression across the six built domains. The P2.0
+containment gate (`config.py`/`gate.py`) now guards every write intent: in
+prototype mode a `risk_ops`-destructive plan is refused unless cwd is under the
+maze root, verified live for archives (create/extract/compress) and python
+(run/py_compile) — emits inside the maze, abstains outside. Router now:
+file_inspection → python → text_and_logs → processes → archives → filesystem →
+file_discovery. Seven domains built (file_discovery + Tier 1's four + Tier 2's
+two); remaining: workspace_and_shell (multi-step) and wsl_interop (GUI), plus
+the optional cheap follow-on now that the gate exists — chmod (filesystem) and
+kill/pkill (processes).

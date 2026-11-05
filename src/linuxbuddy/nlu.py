@@ -809,11 +809,98 @@ def _parse_archives(text: str, low: str):
     return None
 
 
+# --------------------------------------------------------------------------
+# Domain: python_environments (Task 14). Few clean single-command intents;
+# most of the domain (venv/pip/activate/server) is deferred — see the abstains.
+# Read intents work anywhere; run_script/check_syntax write and are gated.
+# --------------------------------------------------------------------------
+
+# Deferred families → abstain (do NOT let a fragment fall to another domain).
+_PY_INSTALL_RE = re.compile(
+    r"\b(?:pip3?\b|install\s+(?:the\s+)?(?:requirements?|packages?|dependenc\w+|deps|modules?)"
+    r"|upgrade\s+\S+\s+package|pip\s+install|download\s+\S+\s+package)\b",
+    re.IGNORECASE,
+)
+_PY_VENV_RE = re.compile(
+    r"\b(?:activate|deactivate|virtual\s*env\w*|\bvenv\b|create\s+(?:a\s+)?(?:venv|virtualenv))\b",
+    re.IGNORECASE,
+)
+_PY_SERVER_RE = re.compile(
+    r"\bhttp\.server\b|\b(?:start|spin up|serve|launch)\b[^.]*\b(?:server|http)\b",
+    re.IGNORECASE,
+)
+
+# Built intents.
+_PY_SYNTAX_RE = re.compile(
+    r"\b(?:syntax\s+errors?|syntax\s+check|py_?compile"
+    r"|check\s+\S+\s+for\s+(?:syntax\s+)?errors?"
+    r"|does\s+\S+\s+compile|compile\s+check)\b",
+    re.IGNORECASE,
+)
+_PY_RUN_RE = re.compile(
+    r"\brun\s+(?:this\s+|the\s+|my\s+)?(?:script\b|analysis\b|training\b|pipeline\b"
+    r"|[\w./-]+\.py\b)|\brun\b[^.]*\.py\b",
+    re.IGNORECASE,
+)
+_PY_PKG_RE = re.compile(
+    r"\bis\s+([\w.-]+)\s+(?:available|installed|importable|a\s+(?:module|package))\b"
+    r"|\bdoes\s+([\w.-]+)\s+(?:import|load)\b"
+    r"|\bcan\s+i\s+import\s+([\w.-]+)\b"
+    r"|\bcheck\s+(?:if|whether)\s+([\w.-]+)\s+(?:is\s+)?(?:available|installed|imports?)\b",
+    re.IGNORECASE,
+)
+_PY_VERSION_RE = re.compile(
+    r"\bpython\s*(?:--?)?version\b|\bversion\s+of\s+python\b"
+    r"|\bwhat\s+python\s+version\b|\bpython\b[^.]*\bversion\b",
+    re.IGNORECASE,
+)
+_PY_WHERE_RE = re.compile(
+    r"\bwhere\b[^.]*\bpython\b|\bwhich\s+python\b"
+    r"|\bpython\b[^.]*\b(?:located|live|lives|installed)\b|\blocation\s+of\s+python\b",
+    re.IGNORECASE,
+)
+
+
+def _parse_python(text: str, low: str):
+    # Deferred families abstain (network / shell-state / long-running). Checked
+    # first so "run setup in the venv" doesn't slip through as run_script.
+    if _PY_INSTALL_RE.search(low) or _PY_VENV_RE.search(low) or _PY_SERVER_RE.search(low):
+        return _ABSTAIN
+
+    if _PY_SYNTAX_RE.search(low):
+        slots: dict = {}
+        p = _detect_path_arg(text, low)
+        if p is not None:
+            slots["path"] = p
+        return Frame("check_syntax", slots)
+
+    if _PY_RUN_RE.search(low):
+        slots = {}
+        p = _detect_path_arg(text, low)
+        if p is not None:
+            slots["path"] = p
+        return Frame("run_script", slots)
+
+    m = _PY_PKG_RE.search(text)
+    if m:
+        pkg = next(g for g in m.groups() if g)
+        return Frame("check_package", {"pkg": pkg})
+
+    if _PY_VERSION_RE.search(low):
+        return Frame("python_version", {})
+    if _PY_WHERE_RE.search(low):
+        return Frame("where_python", {})
+
+    return None
+
+
 # Router order: specific domains first, file_discovery last (see parse()).
-# archives sits before filesystem so "how big is <archive>.tar.gz" routes to
-# archive_size rather than the folder-oriented disk_usage.
+# python sits before text so "check X.py for syntax errors" is check_syntax,
+# not a grep for "errors". archives sits before filesystem so
+# "how big is <archive>.tar.gz" routes to archive_size, not disk_usage.
 _ROUTER = (
     _parse_file_inspection,
+    _parse_python,
     _parse_text_and_logs,
     _parse_processes,
     _parse_archives,
