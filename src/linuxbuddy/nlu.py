@@ -718,11 +718,105 @@ def _parse_filesystem(text: str, low: str):
     return None
 
 
+# --------------------------------------------------------------------------
+# Domain: archives_backup (Task 13). Read intents (list/integrity/size) work
+# anywhere; write intents (create/extract/compress) are gated to the maze.
+# Single-command only — compound audits / redirects are deferred.
+# --------------------------------------------------------------------------
+
+# A named archive file: backup.tar.gz, data.gz, release.zip, src.tar.bz2.
+# Longest extensions first so the whole "name.tar.gz" is captured.
+_ARCHIVE_FILE_RE = re.compile(
+    r"\b([\w][\w./-]*\.(?:tar\.gz|tar\.bz2|tgz|tbz2|tbz|tar|zip|gz|bz2|xz))\b",
+    re.IGNORECASE,
+)
+# Verb cues. extract is checked before create; create before a bare "compress".
+_ARC_EXTRACT_RE = re.compile(
+    r"\b(?:unpack|unzip|untar|extract|decompress)\b", re.IGNORECASE
+)
+_ARC_CREATE_RE = re.compile(
+    r"\b(?:package|tar up|zip up|bundle|make (?:a |an )?(?:archive|tarball|backup)"
+    r"|create (?:a |an )?(?:archive|tarball|backup)|archive (?:the|this|my|up)"
+    r"|compress\b[^.]*\binto\b)\b",
+    re.IGNORECASE,
+)
+_ARC_LIST_RE = re.compile(
+    r"\b(?:what'?s (?:inside|in)|list(?:\s+the)?\s+contents|show (?:me )?(?:the )?"
+    r"(?:files|contents)|what(?:'s| is| files are)\s+(?:inside|in|packed)"
+    r"|members of|contents of)\b",
+    re.IGNORECASE,
+)
+_ARC_INTEGRITY_RE = re.compile(
+    r"\b(?:integrity|intact|corrupt\w*|pass(?:es)?[^.]{0,20}check|verify|not damaged)\b",
+    re.IGNORECASE,
+)
+_ARC_COMPRESS_RE = re.compile(r"\b(?:compress|gzip)\b", re.IGNORECASE)
+_ARC_SIZE_RE = re.compile(r"\bhow big\b|\bsize of\b", re.IGNORECASE)
+_ARC_INTO_RE = re.compile(
+    r"\binto\s+(?:the\s+)?([\w./-]+)|\bto\s+(?:the\s+)?([\w./-]+)\s+(?:folder|dir)\b",
+    re.IGNORECASE,
+)
+
+
+def _arc_is_zip(archive: str) -> bool:
+    return archive.lower().endswith(".zip")
+
+
+def _parse_archives(text: str, low: str):
+    archive = _ARCHIVE_FILE_RE.search(text)
+    archive = archive.group(1) if archive else None
+
+    # 1. extract: unpack <archive> into <dir> → mkdir && tar (2-stage).
+    if _ARC_EXTRACT_RE.search(low) and archive is not None:
+        m = _ARC_INTO_RE.search(text)
+        dest = (m.group(1) or m.group(2)) if m else None
+        slots = {"archive": archive}
+        if dest is not None:
+            slots["path"] = dest
+        return Frame("extract_archive", slots)
+
+    # 2. create: package the <name> folder into <archive> (output is .tar.gz).
+    if _ARC_CREATE_RE.search(low):
+        slots = {"parent": "."}
+        if archive is not None:
+            slots["archive"] = archive
+        m = _FOLDER_NAME_RE.search(low)
+        if m and m.group(1).lower() not in _ARTICLES:
+            slots["name"] = m.group(1)
+        return Frame("create_archive", slots)
+
+    # 3. list contents: tar -tf (or zipfile -l for .zip).
+    if _ARC_LIST_RE.search(low) and archive is not None:
+        intent = "list_zip" if _arc_is_zip(archive) else "list_archive"
+        return Frame(intent, {"archive": archive})
+
+    # 4. integrity check: gzip -t.
+    if _ARC_INTEGRITY_RE.search(low) and archive is not None:
+        return Frame("archive_integrity", {"archive": archive})
+
+    # 5. single-file compress: gzip -k (no "into <archive>" — that was create).
+    if _ARC_COMPRESS_RE.search(low):
+        slots = {}
+        p = _detect_path_arg(text, low)
+        if p is not None:
+            slots["path"] = p
+        return Frame("compress_file", slots)
+
+    # 6. size of a named archive: du -h.
+    if _ARC_SIZE_RE.search(low) and archive is not None:
+        return Frame("archive_size", {"archive": archive})
+
+    return None
+
+
 # Router order: specific domains first, file_discovery last (see parse()).
+# archives sits before filesystem so "how big is <archive>.tar.gz" routes to
+# archive_size rather than the folder-oriented disk_usage.
 _ROUTER = (
     _parse_file_inspection,
     _parse_text_and_logs,
     _parse_processes,
+    _parse_archives,
     _parse_filesystem,
     _parse_file_discovery,
 )

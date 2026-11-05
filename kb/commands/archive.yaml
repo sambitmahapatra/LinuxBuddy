@@ -1,0 +1,52 @@
+# archive.yaml — capability spec for archives_backup (Task 13).
+#
+# Placeholder names are Frame slot keys: archive, path, parent, name.
+#
+# Read intents (list/integrity/size) carry risk_ops [read] and work anywhere.
+# Write intents (create/extract/compress) carry risk_ops [write] and are gated
+# to the maze by the P2.0 gate (gate.py reads these risk_ops).
+#
+# tar is used for .tar/.tar.gz; python3 -m zipfile for .zip (portable, no `zip`
+# binary dependency). The NLU picks list_archive vs list_zip by extension.
+#
+# extract_archive is a 2-stage `&&` chain: mkdir -p the destination, then
+# tar -xf into it. The `&&` is renderer-inserted, never a slot/argv element.
+#
+# NOTE on `--`: `tar -f` consumes the IMMEDIATELY following token as the
+# archive name, so a `--` placed right after `-tf`/`-xf` would be taken as the
+# filename, not an option terminator. Hence list_archive/extract place the
+# archive right after `-f` with no `--` (matching the dataset). create's `-czf`
+# puts {archive} right after `-f` too, and its `-- {name}` terminator is valid
+# because it precedes the file *operand* (as in dataset ARCH-001). gzip, du and
+# zipfile take the file directly; list_zip omits `--` (zipfile -l rejects it).
+# Every archive/path value is still quoted to exactly one argv element.
+
+capability: manage_archives
+utility: tar/gzip/zipfile
+
+intents:
+  # --- read-only (work anywhere) ---
+  list_archive:
+    base_argv: ["tar", "-tf", "{archive}"]
+    risk_ops: ["read"]
+  list_zip:
+    base_argv: ["python3", "-m", "zipfile", "-l", "{archive}"]
+    risk_ops: ["read"]
+  archive_integrity:
+    base_argv: ["gzip", "-t", "--", "{archive}"]
+    risk_ops: ["read"]
+  archive_size:
+    base_argv: ["du", "-h", "--", "{archive}"]
+    risk_ops: ["read"]
+
+  # --- write (gated to the maze) ---
+  create_archive:
+    base_argv: ["tar", "-czf", "{archive}", "-C", "{parent}", "--", "{name}"]
+    risk_ops: ["write"]
+  extract_archive:
+    base_argv: ["mkdir", "-p", "--", "{path}"]
+    and_argv: ["tar", "-xf", "{archive}", "-C", "{path}"]
+    risk_ops: ["write"]
+  compress_file:
+    base_argv: ["gzip", "-k", "--", "{path}"]
+    risk_ops: ["write"]

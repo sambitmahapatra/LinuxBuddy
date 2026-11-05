@@ -86,7 +86,11 @@ domains:
 
   - id: archives_backup         # 40 rows, 15 tar
     priority: 4
-    intents: [create_archive, extract_archive, list_archive, checksum]
+    capability: manage_archives  # kb/commands/archive.yaml (Task 13)
+    # Built Task 13 (Tier 2). Reads work anywhere; writes gated to maze (P2.0).
+    # Deferred: zip create/extract (zipfile -c/-e), redirects (gzip -dc/-xOf),
+    # cp folder copies, gzip -l, member-filtered/deterministic tar, checksum.
+    intents: [list_archive, list_zip, archive_integrity, archive_size, create_archive, extract_archive, compress_file]
     lead_utilities: [tar, gzip, sha256sum, zip]
 
   - id: python_environments     # 40 rows, 31 python3

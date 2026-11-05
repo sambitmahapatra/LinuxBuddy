@@ -3,7 +3,7 @@
 > The single source of truth for where the project is NOW. Overwrite this
 > after every task. Keep it short. Next session reads this first.
 
-**Last updated:** 2026-11-05 (after Task 12 / P2.0 gate)
+**Last updated:** 2026-11-05 (after Task 13 / archives_backup)
 **Current phase:** Phase 2 — Tier 2 (gate + write-capable domains)
 **Branch:** v1-file-discovery
 
@@ -49,14 +49,20 @@
     write/delete/privilege) abstain unless cwd is under the maze root
     (prototype mode); reads work anywhere; prod lifts the gate. realpath +
     commonpath defeat `..`/symlink traversal. **99 tests pass.**
+  - **Task 13 — `archives_backup` DONE (first write domain).** 7 intents:
+    read `list_archive`(tar -tf)/`list_zip`(zipfile -l)/`archive_integrity`
+    (gzip -t)/`archive_size`(du -h); write (gated) `create_archive`(tar -czf),
+    `extract_archive`(mkdir && tar -xf), `compress_file`(gzip -k).
+    `kb/commands/archive.yaml`, capability `manage_archives`. Verified vs the
+    maze — create/extract/compress run inside, abstain outside. **108 pass.**
 
 ## In progress
 
-- **Tier 2 batch:** 12 done. Next: 13 archives_backup, 14 python_environments.
+- **Tier 2 batch:** 12, 13 done. Next and last: 14 python_environments.
 
 ## Next (in order)
 
-1. Task 13 `archives_backup`, then 14 `python_environments`.
+1. Task 14 `python_environments`.
 2. Quick follow-on (optional): the gate now makes the Tier-1-deferred
    destructive intents cheap — `chmod` (filesystem) and `kill`/`pkill`
    (processes).

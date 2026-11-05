@@ -545,3 +545,69 @@ with the maze message and returns `None` from
 `testlinuxbuddy/project`. The default root resolved to
 `/home/sambi/linuxbuddy/testlinuxbuddy`. The full CLI write-path is exercised
 end-to-end by Task 13's `create_archive`.
+
+## 2026-11-05 — Task 13 (Tier 2): domain archives_backup
+
+**What I did.** Built `archives_backup` as 7 intents (3 read-only, 4 gated
+writes) — the first domain to WRITE files, so the P2.0 gate (Task 12) now does
+real work. `kb/commands/archive.yaml`, capability `manage_archives`. TDD.
+
+**Intents → commands.**
+- Read (anywhere): `list_archive` → `tar -tf {archive}`; `list_zip` →
+  `python3 -m zipfile -l {archive}` (chosen by a `.zip` extension);
+  `archive_integrity` → `gzip -t -- {archive}`; `archive_size` →
+  `du -h -- {archive}`.
+- Write (gated to the maze): `create_archive` →
+  `tar -czf {archive} -C {parent} -- {name}` (parent defaults to `.`, name is
+  the "<x> folder" being packaged); `extract_archive` →
+  `mkdir -p -- {path} && tar -xf {archive} -C {path}` (the 2-stage `&&` chain);
+  `compress_file` → `gzip -k -- {path}` (`-k` keeps the original).
+
+**The `--` / tar bug (caught in maze verification, not by the unit test).** My
+first cut emitted `tar -tf -- backup.tar.gz` and the unit test asserted it. But
+`tar -f` takes the *immediately following* token as the archive name, so tar
+read `--` as the filename and failed ("Cannot open --"). The dataset's
+reference (`tar -tf "$ARCHIVE_FILE"`) correctly omits `--`. Fixed
+`list_archive` to `tar -tf {archive}` and corrected the test to match the real
+command. `create`'s `-czf {archive}` is fine ({archive} follows `-f`), and its
+`-- {name}` terminator is valid because it precedes a file *operand* (exactly
+dataset ARCH-001). This is a good example of why maze verification is required
+even when unit tests pass — the test had encoded my wrong assumption.
+
+**Routing.** `_parse_archives` sits before `_parse_filesystem` so
+"how big is <archive>.tar.gz" → `archive_size` rather than the folder-oriented
+`disk_usage`, and before `file_discovery` so a `.tar.gz`/`.zip` token isn't
+swallowed as a `find -name` type query. Verb precedence inside the parser:
+extract → create → list → integrity → bare-compress → size. A bare "compress
+X" is `compress_file`; "compress X **into** Y.tar.gz" is `create_archive`
+(the "into <archive>" cue).
+
+**Deferred (documented, abstain or skip).** zip create (`zipfile -c`) and zip
+extract (`zipfile -e`) — built the tar equivalents only; `gzip -dc > file` and
+`tar -xOf … > file` (redirects can't round-trip); `cp -a`/`cp -n` folder copies
+(writes, but a plain copy, not an archive op); `gzip -l` (original-size report,
+a distinct intent); `tar --exclude …` / `--sort` / `--wildcards` member filters
+(compound/specialised); locate-archives `find -name '*.tar.gz'` (that's
+file_discovery). All deferred cleanly; none hacked in.
+
+**Tests (`tests/test_archives.py`).** The task's example table, the zip-list
+variant, the extract `&&` round-trip, risk_ops read/write per intent, and that
+each write intent is refused by the gate from `/tmp`. Plus a prior-domains
+regression. **108 passed** (was 99).
+
+**Maze verification (Done when; run inside the maze).**
+`lb what's inside backup_2026-01.tar.gz` → `tar -tf backup_2026-01.tar.gz` →
+lists README.md/a.txt/b.txt/c.txt. `lb package the src folder into test.tar.gz`
+→ `tar -czf test.tar.gz -C . -- src` → **created** test.tar.gz (members
+`src/…`). From `/tmp` the same request **abstains** with the gate message
+(exit 1, empty stdout). Extract and compress both execute end-to-end inside the
+maze (`gzip -k` confirmed to keep the original). ✓
+
+**Pass rate vs the 40 Archives scenarios.** 7 of the 22 single-command rows are
+produced exactly (ARCH-001/002/004/008/009/012/013). ARCH-022 shares the
+`tar -tf` prefix but adds a `--wildcards '*.txt'` member filter I don't emit, so
+it is NOT counted. The remaining single-command rows are zip create/extract,
+redirects, folder copies, member-filtered/deterministic tar, and locate-archive
+finds — all deferred as above; 18 rows are multi-command. `extract_archive` has
+no exact single-command maze row (ARCH-010 is a *zip* extract), but it's
+grounded in the task table and verified end-to-end.
