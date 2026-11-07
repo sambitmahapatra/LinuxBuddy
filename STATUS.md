@@ -22,7 +22,16 @@ tiered risk confirm. **190 tests pass.**
 - **Task 18** bash widget (`bind -x`, Ctrl-G) + zsh parity + lb exit-code risk
   signaling (0 read / 3 destructive / 1 abstain).
 
+## Systematic sweep (Task 24)
+`data/eval/sweep_results.csv` — 139 scenarios routed + (safe ones) executed in
+the maze. Integrity PASS (canonical maze unchanged). COMMAND 93 / ABSTAIN 46;
+read-row exec ok 42 / nonzero 36. **Top finding surfaced for review:** "take me
+to the logs folder" emits `cd -- *.log` (Task-22 definite-glob leaks into the
+`goto` target — should be `cd logs`). Full findings in LOG.md. Capture only.
+
 ## Open / next
+- **Fix the `cd -- *.log` goto leak** surfaced by the sweep (navigation `goto`
+  should not pull the definite-reference glob; use the folder name).
 - **Manual widget check in a REAL interactive bash** (I verified the function
   non-interactively; a human should source it in an interactive shell and press
   Ctrl-G to confirm Readline redraw feels right).
