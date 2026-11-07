@@ -58,9 +58,13 @@ domains:
 
   - id: workspace_and_shell     # 40 rows
     priority: 3
-    intents: [navigate, make_dir, scaffold_project, shell_history, which_tool]
+    capability: workspace  # kb/commands/workspace.yaml (Task 16)
+    # Built Task 16 (Tier 3). Navigation/shell reads anywhere; make_dir +
+    # setup_project (the ONE scoped multi-step recipe: mkdir dirs && cd) gated.
+    # Arbitrary "do A then B" compound deferred to V1.1 (abstain).
+    intents: [where_am_i, go_home, go_back, goto, list_all, who_am_i, which_shell, show_history, clear_screen, check_installed, make_dir, setup_project]
     lead_utilities: [cd, mkdir, pwd, git, history, command]
-    note: multi-step scaffolding lives here (mkdir + cd + git init)
+    note: scoped multi-step only (setup_project = mkdir dirs && cd); general compound is V1.1
 
   - id: filesystem_permissions  # 40 rows
     priority: 3

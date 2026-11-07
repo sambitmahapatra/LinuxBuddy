@@ -30,6 +30,22 @@ def _home() -> str:
     return os.environ.get("HOME") or os.path.expanduser("~")
 
 
+def _resolve_literal(elem: str) -> str:
+    """Resolve a WHOLE argv element that is a bare home/env reference, so the
+    rendered command never relies on the shell to expand ~/$HOME/$SHELL/$USER
+    (CLAUDE.md invariant #5). Only exact-match elements are resolved — a '$' as
+    a substring of some other token is left untouched, so this can't corrupt a
+    pattern. Used for KB base_argv literals like ``cd ~`` and ``printf $SHELL``.
+    """
+    if elem in ("~", "$HOME"):
+        return _home()
+    if elem == "$SHELL":
+        return os.environ.get("SHELL", "/bin/sh")
+    if elem == "$USER":
+        return os.environ.get("USER") or os.environ.get("LOGNAME", "")
+    return elem
+
+
 def _resolve_path(value: str) -> str:
     """Resolve $HOME / leading ~ to an absolute path. '.' and others pass
     through unchanged (so a plain cwd search stays '.')."""
@@ -76,7 +92,7 @@ def _substitute(element: str, slots: dict[str, str]) -> str:
 
 
 def _build_stage(base: list, optional: dict, frame: Frame, slots: dict) -> list[str]:
-    argv: list[str] = [_substitute(elem, slots) for elem in base]
+    argv: list[str] = [_resolve_literal(_substitute(elem, slots)) for elem in base]
     # Append optional fragments in KB-declared order, only for slots present.
     # Iterating the KB (not the frame) fixes the flag order deterministically.
     for slot_key, fragment in optional.items():

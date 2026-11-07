@@ -1,0 +1,62 @@
+# workspace.yaml — capability spec for workspace_and_shell (Task 16).
+#
+# Placeholder names are Frame slot keys: path, tool, name.
+#
+# cd / export go into the user's shell buffer and the user's own shell runs
+# them (that's the point of buffer injection) — the CLI only emits the string.
+#
+# `cd ~` and `printf $SHELL` resolve ~ / $SHELL at COMPILE time (planner's
+# _resolve_literal), so the emitted command never relies on the shell to expand
+# them (CLAUDE.md invariant #5). who_am_i is a 2-stage `&&` chain.
+#
+# setup_project is the ONE scoped multi-step recipe: it emits a FIXED
+# mkdir+cd sequence (data + reports subfolders) — NOT arbitrary "do A then B"
+# decomposition, which is V1.1. The folders are fixed defaults for V1.
+
+capability: workspace
+utility: coreutils/shell
+
+intents:
+  # --- read-only (work anywhere) ---
+  where_am_i:
+    base_argv: ["pwd"]
+    risk_ops: ["read"]
+  go_home:
+    base_argv: ["cd", "~"]
+    risk_ops: ["read"]
+  go_back:
+    base_argv: ["cd", "-"]
+    risk_ops: ["read"]
+  goto:
+    base_argv: ["cd", "--", "{path}"]
+    risk_ops: ["read"]
+  list_all:
+    base_argv: ["ls", "-la"]
+    risk_ops: ["read"]
+  who_am_i:
+    base_argv: ["whoami"]
+    and_argv: ["id", "-nG"]
+    risk_ops: ["read"]
+  which_shell:
+    base_argv: ["printf", "%s\n", "$SHELL"]
+    risk_ops: ["read"]
+  show_history:
+    base_argv: ["history"]
+    risk_ops: ["read"]
+  clear_screen:
+    base_argv: ["clear"]
+    risk_ops: ["read"]
+  check_installed:
+    base_argv: ["command", "-v", "--", "{tool}"]
+    risk_ops: ["read"]
+
+  # --- write (gated to the maze) ---
+  make_dir:
+    base_argv: ["mkdir", "-p", "--", "{path}"]
+    risk_ops: ["write"]
+
+  # --- scoped multi-step recipe (gated) ---
+  setup_project:
+    base_argv: ["mkdir", "-p", "--", "{name}/data", "{name}/reports"]
+    and_argv: ["cd", "--", "{name}"]
+    risk_ops: ["write"]

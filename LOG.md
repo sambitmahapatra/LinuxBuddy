@@ -734,3 +734,61 @@ broad `pkill`. ✓
 
 **filesystem_permissions and processes are now COMPLETE domains.** Only
 dir_empty remains deferred in filesystem (needs `$(...)`).
+
+## 2026-11-07 — Task 16 (Tier 3): domain workspace_and_shell (scoped multi-step)
+
+**What I did.** Built `workspace_and_shell`: 10 read intents, 1 gated write
+(make_dir), and the first **scoped multi-step recipe** (setup_project).
+`kb/commands/workspace.yaml`, capability `workspace`. TDD.
+
+**Intents → commands.** where_am_i `pwd`; go_home `cd ~`; go_back `cd -`; goto
+`cd -- {path}`; list_all `ls -la`; who_am_i `whoami && id -nG` (2-stage `&&`);
+which_shell `printf "%s\n" "$SHELL"`; show_history `history`; clear_screen
+`clear`; check_installed `command -v -- {tool}`; make_dir (gated)
+`mkdir -p -- {path}`; setup_project (gated) `mkdir -p -- {name}/data
+{name}/reports && cd -- {name}`.
+
+**Scoped multi-step — deliberately ONE fixed recipe.** setup_project emits a
+fixed mkdir+cd sequence via the existing `&&` Stages composition; the subfolders
+are fixed defaults (data, reports) for V1. It is NOT general "do A then B"
+decomposition (that's V1.1): a workspace verb combined with a compound marker
+("then"/"&&"/"after that") returns the abstain sentinel, and "export … then cd …"
+abstains.
+
+**Planner: compile-time ~/$SHELL resolution (invariant #5).** Added
+`_resolve_literal` so a whole argv element that is `~`/`$HOME`/`$SHELL`/`$USER`
+is resolved at compile — `cd ~` emits `cd /home/sambi`, `printf … "$SHELL"`
+emits the resolved shell path. Only exact-match whole elements are resolved
+(never a `$` substring), so it can't corrupt a pattern; existing argv is
+unaffected.
+
+**Two routing disambiguations (and a latent bug fixed).**
+- *"installed" vs "available".* Moved "installed"/"do I have" OUT of the python
+  and filesystem parsers: a *tool* is "installed" / "do I have X" →
+  check_installed (`command -v`), a *package* is "available"/"importable" →
+  python check_package. So "is docker installed" (tool) and "is pandas
+  available" (package) now route correctly.
+- *Latent substring bug.* file_inspection tested `"count" in low`, which fired
+  on "ac**count**" — so "what account am I using" was mis-read as count_lines.
+  Fixed that and the sibling checks ("size"/"bytes"/"preview"/"format") to use
+  word boundaries. (Good catch from a workspace test; it affected any phrase
+  containing those substrings.)
+
+**Router.** workspace sits after filesystem (file-ish queries stay with
+filesystem) and before file_discovery (it catches navigation/shell verbs that
+file_discovery would otherwise abstain on).
+
+**Tests (`tests/test_workspace.py`).** where_am_i, go_home (~ resolved, no bare
+~ emitted), goto, check_installed, who_am_i `&&`, which_shell ($SHELL resolved),
+make_dir (gated), the setup_project recipe (gated), compound abstention, and a
+prior-domains regression. **139 passed** (was 129).
+
+**Maze verification (Done when).** `lb where am I` → `pwd`; `lb do I have git
+installed` → `command -v -- git` → `/usr/bin/git` (the `--` works); `lb set up a
+project folder called demo` → `mkdir -p -- demo/data demo/reports && cd -- demo`
+— ran in a subshell, created demo/ + demo/data + demo/reports. make_dir and
+setup_project both abstain from `/tmp`. Also confirmed `take me home` →
+`cd /home/sambi` (no ~) and `which shell is this` → `printf '%s\n' /bin/bash`. ✓
+
+**workspace_and_shell is a complete domain** (multi-step scoped to the named
+recipe; general compound is V1.1).

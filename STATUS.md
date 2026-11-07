@@ -3,7 +3,7 @@
 > The single source of truth for where the project is NOW. Overwrite this
 > after every task. Keep it short. Next session reads this first.
 
-**Last updated:** 2026-11-07 (after Task 15 / chmod + kill)
+**Last updated:** 2026-11-07 (after Task 16 / workspace_and_shell)
 **Current phase:** Phase 2 — Tier 3 (final domains)
 **Branch:** v1-file-discovery
 
@@ -68,15 +68,21 @@
     kill_process (pkill -f)/kill_pid (kill), gated. Old kill/chmod abstains
     replaced by real intents. Both domains now COMPLETE (only dir_empty
     deferred). Verified vs the maze. **129 pass.**
+  - **Task 16 — `workspace_and_shell` DONE.** 10 reads (where_am_i, go_home,
+    go_back, goto, list_all, who_am_i, which_shell, show_history, clear_screen,
+    check_installed), make_dir (gated), and setup_project — the ONE scoped
+    multi-step recipe (mkdir dirs && cd). `kb/commands/workspace.yaml`. Planner
+    now resolves ~/$SHELL whole-element literals at compile. Fixed a latent
+    substring bug ("account"→count). Verified vs the maze. **139 pass.**
 
 ## In progress
 
-- **Tier 3 batch:** 15 done. Next: 16 workspace_and_shell, 17 wsl_interop.
+- **Tier 3 batch:** 15, 16 done. Next and last: 17 wsl_interop.
 
 ## Next (in order)
 
-1. Task 16 `workspace_and_shell` (scoped multi-step), then 17 `wsl_interop`
-   (GUI, hand-tested) — completes all 9 domains / Phase 2.
+1. Task 17 `wsl_interop` (GUI/interop, hand-tested) — completes all 9 domains /
+   Phase 2. Then install + dogfood.
 2. (Later / optional) Resolve the **3 genuine remaining FAILs** (dangling
    `$TARGET_FILE`) and decide whether to make the 13 ACCEPTED_EMPTY scenarios
    literal via small `build_maze.sh` additions — see below.

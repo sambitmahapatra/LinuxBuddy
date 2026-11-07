@@ -384,18 +384,20 @@ def _parse_file_inspection(text: str, low: str):
     is_count = bool(_COUNT_LINES_RE.search(low))
     is_head = bool(_HEAD_RE.search(low))
     is_tail = bool(_TAIL_RE.search(low))
-    is_type = bool(_TYPE_RE.search(low)) or "format" in low
+    is_type = bool(_TYPE_RE.search(low)) or bool(re.search(r"\bformat\b", low))
     is_stat = bool(_STAT_RE.search(low))
     # size of a FILE (in bytes); a folder/disk "size" belongs to filesystem.
-    is_size = (("size" in low or "bytes" in low) and not folder)
+    # Word-boundaried so "account", "resize" etc. don't false-trigger.
+    is_size = (bool(re.search(r"\b(?:size|bytes)\b", low)) and not folder)
 
     # Broad action categories, used ONLY to spot a compound request. The
     # literal nouns catch "preview, count and size ..." even though no single
-    # precise intent cue fires for all three.
+    # precise intent cue fires for all three. Word-boundaried — "account" must
+    # not read as "count".
     broad = set()
-    if "preview" in low or is_head or is_tail:
+    if re.search(r"\bpreview\b", low) or is_head or is_tail:
         broad.add("preview")
-    if "count" in low or is_count:
+    if re.search(r"\bcount\b", low) or is_count:
         broad.add("count")
     if is_size:
         broad.add("size")
@@ -702,8 +704,11 @@ _FS_WRITABLE_RE = re.compile(
 _FS_READABLE_RE = re.compile(
     r"\b(?:can i read|readable|read access|able to read|i can read)\b", re.IGNORECASE
 )
+# "do i have" is intentionally NOT here — it belongs to workspace's
+# check_installed ("do I have git"). File existence is "does X exist" / "is
+# there a X" / "is X present".
 _FS_EXISTS_RE = re.compile(
-    r"\b(?:exists?|is there|is it there|does .* exist|is present|do i have)\b",
+    r"\b(?:exists?|is there|is it there|does .* exist|is present)\b",
     re.IGNORECASE,
 )
 _FS_PERMS_RE = re.compile(
@@ -935,11 +940,15 @@ _PY_RUN_RE = re.compile(
     r"|[\w./-]+\.py\b)|\brun\b[^.]*\.py\b",
     re.IGNORECASE,
 )
+# "installed" is intentionally NOT here — it belongs to workspace's
+# check_installed (a system tool: `command -v`), while a *package* is
+# "available/importable". This keeps "is docker installed" (tool) distinct from
+# "is pandas available" (package).
 _PY_PKG_RE = re.compile(
-    r"\bis\s+([\w.-]+)\s+(?:available|installed|importable|a\s+(?:module|package))\b"
+    r"\bis\s+([\w.-]+)\s+(?:available|importable|a\s+(?:module|package))\b"
     r"|\bdoes\s+([\w.-]+)\s+(?:import|load)\b"
     r"|\bcan\s+i\s+import\s+([\w.-]+)\b"
-    r"|\bcheck\s+(?:if|whether)\s+([\w.-]+)\s+(?:is\s+)?(?:available|installed|imports?)\b",
+    r"|\bcheck\s+(?:if|whether)\s+([\w.-]+)\s+(?:is\s+)?(?:available|imports?)\b",
     re.IGNORECASE,
 )
 _PY_VERSION_RE = re.compile(
@@ -987,10 +996,142 @@ def _parse_python(text: str, low: str):
     return None
 
 
+# --------------------------------------------------------------------------
+# Domain: workspace_and_shell (Task 16). Navigation + shell reads (anywhere);
+# make_dir + the scoped setup_project recipe write (gated). setup_project is
+# ONE fixed recipe, not arbitrary compound decomposition (that is V1.1).
+# --------------------------------------------------------------------------
+
+_WS_COMPOUND_RE = re.compile(r"\bthen\b|\band then\b|\bafter that\b|&&", re.IGNORECASE)
+_WS_SETUP_RE = re.compile(
+    r"\b(?:set\s*up|setup|create|make|start)\s+(?:a\s+|an\s+|my\s+)?(?:new\s+)?"
+    r"(?:project|workspace)\b", re.IGNORECASE,
+)
+_WS_NAME_CALLED_RE = re.compile(r"\b(?:called|named)\s+([\w.-]+)", re.IGNORECASE)
+_WS_NAME_FALLBACK_RE = re.compile(
+    r"\b(?:project|workspace)\s+(?:folder\s+|dir\s+|directory\s+)?([\w.-]+)\b",
+    re.IGNORECASE,
+)
+_WS_NAME_STOP = {"folder", "dir", "directory", "called", "named", "with", "and"}
+_WS_MKDIR_RE = re.compile(
+    r"\b(?:make|create|new|add)\s+(?:a\s+|an\s+|the\s+)?([\w./-]+?)\s+(?:folder|dir|directory)\b"
+    r"|\bmkdir\s+(?:-p\s+)?([\w./-]+)",
+    re.IGNORECASE,
+)
+_WS_WHICH_SHELL_RE = re.compile(
+    r"\bwhich\s+shell\b|\bwhat\s+shell\b|\bcurrent\s+shell\b|\bmy\s+shell\b"
+    r"|\bwhat(?:'s| is)\s+my\s+shell\b", re.IGNORECASE,
+)
+_WS_INSTALLED_RE = re.compile(
+    r"\bdo\s+i\s+have\s+([\w.+-]+)(?:\s+installed)?\b"
+    r"|\bis\s+([\w.+-]+)\s+installed\b"
+    r"|\b(?:command\s+-v|which)\s+([\w.+-]+)\b",
+    re.IGNORECASE,
+)
+_WS_GO_HOME_RE = re.compile(
+    r"\bgo\s+home\b|\btake\s+me\s+home\b|\bback\s+to\s+(?:my\s+)?home\b"
+    r"|\bhome\s+(?:folder|directory)\b|\bcd\s+~\b|\bto\s+my\s+home\b", re.IGNORECASE,
+)
+_WS_GO_BACK_RE = re.compile(
+    r"\bgo\s+back\b|\bcd\s+-\b|\b(?:previous|last)\s+(?:folder|directory|dir)\b"
+    r"|\bfolder\s+i\s+was\s+in\b|\bwhere\s+i\s+was\b", re.IGNORECASE,
+)
+_WS_GOTO_RE = re.compile(
+    r"\b(?:go\s+to|goto|take\s+me\s+(?:to|into)|navigate\s+to|move\s+to"
+    r"|change\s+to|cd\s+(?:to|into))\s+(?:the\s+)?([\w./-]+?)(?:\s+(?:folder|dir|directory))?\b",
+    re.IGNORECASE,
+)
+_WS_WHERE_RE = re.compile(
+    r"\bwhere\s+am\s+i\b|\bwhat\s+(?:folder|directory|dir)\s+am\s+i\s+in\b"
+    r"|\bcurrent\s+(?:folder|directory|path|working\s+directory)\b"
+    r"|\b(?:present|print)\s+working\s+directory\b|\bpwd\b", re.IGNORECASE,
+)
+_WS_LIST_ALL_RE = re.compile(
+    r"\blist\s+all\b|\ball\s+files\s+including\s+hidden\b|\bincluding\s+hidden\b"
+    r"|\bshow\s+(?:all\s+)?hidden\b|\bshow\s+all\s+files\b|\bls\s+-l?al?\b", re.IGNORECASE,
+)
+_WS_WHO_RE = re.compile(
+    r"\bwho\s+am\s+i\b|\bwhat\s+(?:account|user)\b|\bwhat(?:'s| is)\s+my\s+(?:user|username|account)\b"
+    r"|\bwhoami\b|\bwhat\s+groups\b|\bmy\s+groups\b", re.IGNORECASE,
+)
+_WS_HISTORY_RE = re.compile(
+    r"\bcommand\s+history\b|\bshow\s+(?:me\s+)?(?:the\s+)?history\b|\bhistory\s+of\s+commands\b"
+    r"|\bcommands\s+i\s+(?:used|ran|typed)\b|\b(?:earlier|previous)\s+commands\b", re.IGNORECASE,
+)
+_WS_CLEAR_RE = re.compile(
+    r"\bclear\s+(?:the\s+)?(?:screen|terminal)\b|\bclear\s+my\s+screen\b"
+    r"|\bwipe\s+the\s+screen\b|\bcls\b", re.IGNORECASE,
+)
+
+
+def _parse_workspace(text: str, low: str):
+    # scoped recipe first (it contains "make/create ... project")
+    if _WS_SETUP_RE.search(low):
+        if _WS_COMPOUND_RE.search(low):
+            return _ABSTAIN  # compound beyond the fixed recipe is V1.1
+        # Prefer an explicit "called/named X"; else the word after
+        # "project/workspace" if it isn't a stopword; else a default name.
+        name = None
+        m = _WS_NAME_CALLED_RE.search(text)
+        if m:
+            name = m.group(1)
+        else:
+            m = _WS_NAME_FALLBACK_RE.search(text)
+            if m and m.group(1).lower() not in _WS_NAME_STOP:
+                name = m.group(1)
+        return Frame("setup_project", {"name": name or "project"})
+
+    if _WS_MKDIR_RE.search(low):
+        m = _WS_MKDIR_RE.search(text)
+        path = (m.group(1) or m.group(2)) if m else None
+        slots = {}
+        if path is not None:
+            slots["path"] = path
+        return Frame("make_dir", slots)
+
+    if _WS_WHICH_SHELL_RE.search(low):
+        return Frame("which_shell", {})
+
+    m = _WS_INSTALLED_RE.search(text)
+    if m:
+        tool = next(g for g in m.groups() if g)
+        return Frame("check_installed", {"tool": tool})
+
+    if _WS_GO_HOME_RE.search(low):
+        return Frame("go_home", {})
+    if _WS_GO_BACK_RE.search(low):
+        return Frame("go_back", {})
+    m = _WS_GOTO_RE.search(text)
+    if m:
+        path = _detect_path_arg(text, low) or m.group(1)
+        return Frame("goto", {"path": path})
+
+    if _WS_WHERE_RE.search(low):
+        return Frame("where_am_i", {})
+    if _WS_LIST_ALL_RE.search(low):
+        return Frame("list_all", {})
+    if _WS_WHO_RE.search(low):
+        return Frame("who_am_i", {})
+    if _WS_HISTORY_RE.search(low):
+        return Frame("show_history", {})
+    if _WS_CLEAR_RE.search(low):
+        return Frame("clear_screen", {})
+
+    # An "export ... && cd ..." compound names a workspace verb but is beyond
+    # V1's scoped recipes → abstain rather than let a fragment leak.
+    if _WS_COMPOUND_RE.search(low) and re.search(r"\b(?:cd|export|pwd)\b", low):
+        return _ABSTAIN
+
+    return None
+
+
 # Router order: specific domains first, file_discovery last (see parse()).
 # python sits before text so "check X.py for syntax errors" is check_syntax,
 # not a grep for "errors". archives sits before filesystem so
 # "how big is <archive>.tar.gz" routes to archive_size, not disk_usage.
+# workspace sits after filesystem (file-ish queries stay with filesystem) and
+# before file_discovery (it catches navigation/shell verbs file_discovery
+# would otherwise abstain on).
 _ROUTER = (
     _parse_file_inspection,
     _parse_python,
@@ -998,6 +1139,7 @@ _ROUTER = (
     _parse_processes,
     _parse_archives,
     _parse_filesystem,
+    _parse_workspace,
     _parse_file_discovery,
 )
 
