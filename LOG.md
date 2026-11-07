@@ -1076,3 +1076,40 @@ rows are intentional v1 residual (not counted as wrong), and 13 are correct by
 design. The ~9 near-misses are candidate v1 synonym patches but are OUT OF SCOPE
 for the named Task-23 rows — left as documented follow-ups rather than chased
 here (one-task-per-session discipline).
+
+## 2026-11-07 — Task 18 (v1-finish): bash widget + exit-code risk signaling
+
+**Why.** The #1 dogfooding finding: a printed command a Linux-new user must
+retype is useless. The command must land IN the shell buffer, ready for Enter.
+
+**lb risk signaling (cli.py).** stdout stays EXACTLY the command; risk is now in
+the exit code: 0 = read-only, 3 = destructive (write/delete/privilege, via the
+existing `gate.is_destructive`), 1 = abstain (unchanged). A destructive plan
+denied by the containment gate still returns 1 (nothing on stdout).
+
+**shell/linuxbuddy.bash (new).** A `bind -x` Ctrl-G widget: reads
+`READLINE_LINE`, runs `lb` (only lb — never its output), and tiers on the exit
+code — read → replace buffer, cursor to end; destructive → replace buffer AND
+print "⚠ destructive — review, then press Enter" above the prompt; abstain →
+leave the typed line untouched and show the hint. Install comment included.
+
+**shell/linuxbuddy.zsh (updated to parity).** Same three tiers (it previously
+only replaced the buffer on exit 0 and showed stderr otherwise) — added the
+destructive warning path and kept the abstain-hint path.
+
+**Tests.** `tests/test_cli_exit_codes.py`: read → 0, destructive (prod mode) →
+3 with `chmod u+x -- run.sh` on stdout, destructive denied outside maze → 1 +
+empty stdout, abstain → 1. Full suite **190 passed**.
+
+**Manual check (bash, sourced widget, invoked non-interactively from the maze):**
+1. "find big csv files" → buffer = `find … | sort -rn | head -n 10`, no warning.
+2. "make run.sh executable" → buffer = `chmod u+x -- run.sh`, warning printed
+   above the prompt.
+3. "fix this" → buffer UNCHANGED, hint "not sure what you mean" below.
+4. "go home" → buffer = `cd /home/sambi` (lands in the buffer; the user's own
+   shell runs the cd — the reason for buffer injection over a subprocess).
+
+**Report (read vs destructive buffer):** a read request fills the buffer silently
+with the command; a destructive request fills the buffer with the real command
+(`chmod u+x -- run.sh`) AND surfaces the ⚠ warning — the command is editable and
+never auto-runs. This is the task that turns "built" into "usable".

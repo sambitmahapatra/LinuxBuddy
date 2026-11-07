@@ -2,8 +2,12 @@
 
 Pipeline: nlu.parse -> planner.compile -> render.to_shell.
 
-Contract (so a caller can trust stdout):
-  * success           -> print the command to stdout, exit 0.
+Contract (so a caller — including the shell widget — can trust stdout AND the
+exit code signals risk):
+  * read-only command -> print the command to stdout, exit 0.
+  * destructive command (write/delete/privilege) -> print the command to
+    stdout, exit 3. The widget shows a warning; stdout is still exactly the
+    command and nothing else.
   * abstain / failure -> print a short message to stderr, exit 1, and print
     NOTHING to stdout. stdout is therefore always either empty or a single
     runnable command.
@@ -58,7 +62,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(command)
-    return 0
+    # Exit code signals risk to the shell widget: 3 = destructive (it warns),
+    # 0 = read-only. (A denied destructive plan already returned 1 above.)
+    return 3 if gate.is_destructive(risk_ops(frame.intent)) else 0
 
 
 if __name__ == "__main__":  # pragma: no cover
