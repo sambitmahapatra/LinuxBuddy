@@ -8,6 +8,8 @@ from linuxbuddy.kb import load_kb, get_capability
 
 
 FOUR_INTENTS = {"find_by_size", "find_by_time", "find_by_name", "find_by_type"}
+# find_largest added in Task 19.
+SEARCH_INTENTS = FOUR_INTENTS | {"find_largest"}
 
 
 def test_find_yaml_loads():
@@ -17,7 +19,7 @@ def test_find_yaml_loads():
 
 def test_four_intents_present():
     cap = get_capability("search_files")
-    assert set(cap["intents"]) == FOUR_INTENTS
+    assert set(cap["intents"]) == SEARCH_INTENTS
 
 
 def test_every_base_argv_is_list_of_strings():

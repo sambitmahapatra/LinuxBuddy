@@ -40,3 +40,12 @@ intents:
       ftype: ["-type", "{ftype}"]
       ext: ["-name", "*.{ext}"]
     risk_ops: ["read"]
+  # find_largest (Task 19): "biggest/largest/top N files". No size threshold —
+  # sort by size, show the top. A 3-stage pipe: find | sort | head. The `-printf`
+  # format keeps literal \t and \n (find expands them at runtime); each stage is
+  # rendered and round-tripped on its own and the `|` is compiler-inserted.
+  find_largest:
+    base_argv: ["find", "{path}", "-type", "f", "-printf", "%s\t%p\n"]
+    pipe_argv: ["sort", "-rn"]
+    pipe2_argv: ["head", "-n", "{count}"]
+    risk_ops: ["read"]

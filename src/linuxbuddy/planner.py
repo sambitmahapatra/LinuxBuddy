@@ -121,14 +121,24 @@ def compile(frame: Frame) -> list[str] | list[list[str]]:
         intent_spec["base_argv"], intent_spec.get("optional_args", {}), frame, slots
     )
 
-    # A second stage is declared as either `pipe_argv` (joined with `|`) or
-    # `and_argv` (joined with `&&`). The operator is fixed by the KB spec here,
-    # never by a slot value.
-    for key, op in (("pipe_argv", "|"), ("and_argv", "&&")):
-        second = intent_spec.get(key)
-        if second is not None:
-            opt_key = key.replace("_argv", "_optional_args")
-            stage2 = _build_stage(second, intent_spec.get(opt_key, {}), frame, slots)
-            return Stages([stage1, stage2], op)
+    # Extra stages are declared as a `|` pipe chain (`pipe_argv`, `pipe2_argv`,
+    # `pipe3_argv` in order) OR a single `&&` stage (`and_argv`). The operator
+    # is fixed by the KB spec here, never by a slot value. Each stage is built
+    # independently so it round-trips and no slot can inject a `|`/`&&`.
+    pipe_stages: list[list[str]] = []
+    for key in ("pipe_argv", "pipe2_argv", "pipe3_argv"):
+        spec = intent_spec.get(key)
+        if spec is not None:
+            opt = intent_spec.get(key.replace("_argv", "_optional_args"), {})
+            pipe_stages.append(_build_stage(spec, opt, frame, slots))
+    if pipe_stages:
+        return Stages([stage1, *pipe_stages], "|")
+
+    and_spec = intent_spec.get("and_argv")
+    if and_spec is not None:
+        stage2 = _build_stage(
+            and_spec, intent_spec.get("and_optional_args", {}), frame, slots
+        )
+        return Stages([stage1, stage2], "&&")
 
     return stage1

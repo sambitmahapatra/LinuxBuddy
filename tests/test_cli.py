@@ -28,14 +28,14 @@ def test_single_string_arg_from_widget(capsys):
 
 # --- Task 05 -------------------------------------------------------------
 
-def test_superlative_abstains_with_size_hint(capsys):
+def test_superlative_emits_find_largest(capsys):
+    # Task 19/20: a size superlative now emits a command (find | sort | head),
+    # not a hint — help on reads.
     code = main(["show", "me", "the", "biggest", "files", "here"])
     captured = capsys.readouterr()
-    assert code == 1
-    assert captured.out == ""
-    # A specific hint, not the generic "not sure" message.
-    assert "how big" in captured.err
-    assert "LinuxBuddy:" in captured.err
+    assert code == 0
+    assert captured.out.strip().startswith("find")
+    assert " | sort -rn | head -n 10" in captured.out
 
 
 def test_plural_csvs_includes_name_filter(capsys):

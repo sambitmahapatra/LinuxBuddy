@@ -243,6 +243,49 @@ def _detect_path(text: str, low: str) -> str:
 # --------------------------------------------------------------------------
 
 
+# find_largest (Task 19): superlative size, no threshold. "biggest/largest/top
+# N files / most space / by size". The large-direction size cues (big/huge/...)
+# with no numeric threshold are superlatives too → find_largest, not an abstain.
+_FLARGE_RE = re.compile(
+    r"\btop\s+\d+\b|\b\d+\s+(?:largest|biggest)\b|\bmost\s+space\b"
+    r"|\btaking\s+up\s+(?:the\s+)?most\b|\bmost\s+disk\b|\bby\s+size\b",
+    re.IGNORECASE,
+)
+_LARGE_DIR_RE = re.compile(
+    r"\b(?:big|bigger|biggest|large|larger|largest|huge|enormous|massive)\b",
+    re.IGNORECASE,
+)
+_FLARGE_COUNT_RE = re.compile(
+    r"\btop\s+(\d+)\b|\bbiggest\s+(\d+)\b|\blargest\s+(\d+)\b"
+    r"|\b(\d+)\s+(?:largest|biggest)\b", re.IGNORECASE,
+)
+_COMMON_DIRS = {
+    "data", "src", "source", "logs", "log", "downloads", "documents", "desktop",
+    "exports", "results", "configs", "config", "tests", "scripts", "build",
+    "backups", "archives", "project", "runs", "notebooks", "tmp", "home",
+}
+
+
+def _flarge_count(low: str) -> int:
+    m = _FLARGE_COUNT_RE.search(low)
+    if m:
+        return int(next(g for g in m.groups() if g))
+    return 10
+
+
+def _largest_path(text: str, low: str) -> str:
+    m = re.search(r"\b([\w.-]+)\s+(?:folder|directory|dir)\b", low)
+    if m and m.group(1).lower() not in _ARTICLES:
+        return m.group(1)
+    p = _detect_path_arg(text, low)
+    if p is not None:
+        return p
+    m = re.search(r"\b(?:in|under|inside|within)\s+(?:the\s+)?([\w./-]+)", low)
+    if m and m.group(1).lower() in _COMMON_DIRS:
+        return m.group(1)
+    return "."
+
+
 def _parse_file_discovery(text: str, low: str) -> Frame | None:
     ext = _detect_ext(low)
     size_bytes, size_cue = _detect_size(low)
@@ -253,6 +296,16 @@ def _parse_file_discovery(text: str, low: str) -> Frame | None:
     slots: dict = {"path": path}
     if ext is not None:
         slots["ext"] = ext
+
+    # find_largest: an explicit superlative cue, OR a large-direction size cue
+    # with no numeric threshold ("biggest files", "which files are huge").
+    # A real threshold ("over 100mb") sets size_bytes → stays find_by_size.
+    if _FLARGE_RE.search(low) or (
+        size_cue and size_bytes is None and _LARGE_DIR_RE.search(low)
+        and re.search(r"\bfiles\b|\bspace\b|\bdisk\b", low)
+    ):
+        return Frame("find_largest",
+                     {"path": _largest_path(text, low), "count": _flarge_count(low)})
 
     # Intent precedence: size -> time -> name -> type -> abstain.
     #
@@ -380,6 +433,9 @@ def _stat_fmt(low: str) -> str:
 
 
 def _parse_file_inspection(text: str, low: str):
+    # A superlative "top N … by size" belongs to find_largest, not show_size.
+    if _FLARGE_RE.search(low):
+        return None
     folder = bool(_FOLDER_RE.search(low))
     is_count = bool(_COUNT_LINES_RE.search(low))
     is_head = bool(_HEAD_RE.search(low))

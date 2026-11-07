@@ -34,27 +34,36 @@ def test_type_expression_log_files_here():
     assert f.slots["path"] == "."
 
 
-def test_vague_big_in_downloads_now_abstains():
-    # CHANGED by Task 05 (P1.1). A bare magnitude word with no numeric
-    # threshold used to resolve to find_by_size WITHOUT size_bytes. That is
-    # the silent-slot-dropping bug: it compiles to a match-everything
-    # `find . -type f`. Per CLAUDE.md invariant #6 (abstain over guess) and
-    # Task 05, find_by_size with no size_bytes now abstains.
-    assert parse("big files in downloads") is None
+def test_big_files_now_find_largest():
+    # Task 05 made a thresholdless size cue abstain (avoid match-everything
+    # `find . -type f`). Task 19/20 supersede that: a size SUPERLATIVE on a read
+    # ("big files") now routes to find_largest (find | sort | head — bounded by
+    # head, not match-everything), a reasonable command the user can tweak.
+    f = parse("big files in downloads")
+    assert f.intent == "find_largest"
+    assert f.slots["path"] == "downloads"
 
 
 def test_abstain_on_vague_input():
     assert parse("clean up my mess") is None
 
 
-# --- Task 05: abstain on size-intent with no numeric threshold ------------
+# --- Task 19/20: size superlatives now emit find_largest (not abstain) ------
 
-def test_abstain_biggest_files_here():
-    assert parse("show me the biggest files here") is None
+def test_biggest_files_here_now_find_largest():
+    f = parse("show me the biggest files here")
+    assert f.intent == "find_largest"
+    assert f.slots["path"] == "."
 
 
-def test_abstain_largest_files():
-    assert parse("largest files") is None
+def test_largest_files_now_find_largest():
+    assert parse("largest files").intent == "find_largest"
+
+
+def test_still_abstain_on_genuinely_vague():
+    # the asymmetry: no operation named at all → still abstain
+    assert parse("clean up my mess") is None
+    assert parse("fix this") is None
 
 
 # --- Task 05: plural / possessive file-type words normalize to the ext ----

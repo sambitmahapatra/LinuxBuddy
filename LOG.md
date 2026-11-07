@@ -871,3 +871,38 @@ not present, so destructive commands emitted inside the maze show exit 0. The
 high-ABSTAIN domains (text_and_logs 13, archives 8, edge_cases 7) are where the
 human should look first; e.g. phrasings like "terminate the sleep process" (vs
 "kill") abstain. All raw rows are in the CSV for review.
+
+## 2026-11-07 — Task 19 (v1-finish): find_largest intent
+
+**What I did.** Added `find_largest` to file_discovery — "biggest/largest/top N
+files", a top dogfooding gap that used to abstain. Read-only, no threshold:
+`find {path} -type f -printf '%s\t%p\n' | sort -rn | head -n {count}`. TDD.
+
+**N-stage pipe.** Generalised the planner's composition from 2 stages to an
+arbitrary `|` chain: a spec may declare `pipe_argv`, `pipe2_argv`, `pipe3_argv`
+(all `|`) → `Stages([base, …], "|")`. `&&` stays a single `and_argv`. render's
+`Stages` already joined N stages, so no render change. Chose the `find -printf`
+form (files-only, exact) over `du -ah` (includes dirs); `%s\t%p\n` keeps literal
+\t/\n (find expands them), each stage round-trips, `|` is compiler-inserted.
+
+**Routing.** find_largest fires on an explicit superlative (`top N`, `N
+largest`, `by size`, `most space`) OR a large-direction cue (big/huge/largest…)
+with a plural/space context and no numeric threshold — so "biggest files",
+"which files are huge", "largest files in data" all emit, while "how big is this
+file" (singular, no "files") still abstains and "files over 100mb" stays
+find_by_size. count: "top N"/"N largest" → N, else 10. path: a "X folder" noun,
+an explicit path, or "in <known-dir>", else `.`. Added an `_FLARGE_RE` guard to
+file_inspection so "top N files by size" isn't grabbed as show_size.
+
+**Superseded old tests.** Task 05 had enforced abstain-on-thresholdless-size
+(to avoid match-everything `find . -type f`). find_largest is bounded by
+`head`, so that concern is moot; updated 4 tests (test_nlu×3, test_cli×1) and
+the find.yaml intent-count test to the new emit-a-command behavior.
+
+**Tests.** `tests/test_find_largest.py` (incl. the 3-stage pipe round-trip).
+**156 passed.**
+
+**Maze verification (Done when).** `lb show me the biggest files here` →
+`find . -type f -printf '%s\t%p\n' | sort -rn | head -n 10`, which lists
+`./data/raw/huge_dataset.csv` (120MB) at the top. `lb top 3 files by size` →
+count=3. `lb files over 100mb` → unchanged `find … -size +104857600c`. ✓
