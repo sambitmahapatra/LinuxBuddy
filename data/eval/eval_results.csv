@@ -1,0 +1,131 @@
+id,domain,goal,request,lb_stdout,lb_stderr,exit_code,outcome
+E001,file_discovery,find large files,show me the biggest files here,,"LinuxBuddy: how big? try ""over 100MB""",1,ABSTAIN
+E002,file_discovery,find large files,what are the largest files,,"LinuxBuddy: how big? try ""over 100MB""",1,ABSTAIN
+E003,file_discovery,find large files,find big files,,"LinuxBuddy: how big? try ""over 100MB""",1,ABSTAIN
+E004,file_discovery,find large files,which files are huge,command -v -- files,,0,COMMAND
+E005,file_discovery,find large files,biggest files in the data folder,,"LinuxBuddy: how big? try ""over 100MB""",1,ABSTAIN
+E006,file_discovery,find large files,top 5 files by size,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E007,file_discovery,find large files,what's taking up the most space here,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E008,file_discovery,find by size threshold,files over 100mb,find . -type f -size +104857600c,,0,COMMAND
+E009,file_discovery,find by size threshold,anything bigger than 50 megs,find . -type f -size +52428800c,,0,COMMAND
+E010,file_discovery,find by size threshold,csvs larger than 10mb,find . -type f -name '*.csv' -size +10485760c,,0,COMMAND
+E011,file_discovery,find by size threshold,find files above 1gb,find . -type f -size +1073741824c,,0,COMMAND
+E012,file_discovery,find by type/time,all the python files,find . -name '*.py',,0,COMMAND
+E013,file_discovery,find by type/time,find csv files,find . -name '*.csv',,0,COMMAND
+E014,file_discovery,find by type/time,files changed today,find . -type f -mtime -1,,0,COMMAND
+E015,file_discovery,find by type/time,what changed in the last 3 days,find . -type f -mtime -3,,0,COMMAND
+E016,file_discovery,find by type/time,recently modified logs,find . -name '*.log',,0,COMMAND
+E017,file_discovery,find by name,find the file called config,find . -name config,,0,COMMAND
+E018,file_discovery,find by name,where is settings.json,find . -name '*.json',,0,COMMAND
+E019,file_discovery,find by name,locate anything named readme,find . -name readme,,0,COMMAND
+E020,file_inspection,preview a file,show me the first 20 lines of the log,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E021,file_inspection,preview a file,head of train.log,head -n 10 -- train.log,,0,COMMAND
+E022,file_inspection,preview a file,last 50 lines of the log,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E023,file_inspection,preview a file,tail the app log,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E024,file_inspection,preview a file,print config.yaml,find . -name '*.yaml',,0,COMMAND
+E025,file_inspection,preview a file,show me the top of the file,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E026,file_inspection,count / size / type,how many lines in the log,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E027,file_inspection,count / size / type,line count of access.log,wc -l -- access.log,,0,COMMAND
+E028,file_inspection,count / size / type,how big is config.yaml,du -sh -- config.yaml,,0,COMMAND
+E029,file_inspection,count / size / type,what kind of file is data.bin,file -- data.bin,,0,COMMAND
+E030,file_inspection,count / size / type,what format is this download,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E031,file_inspection,when modified,when was the model last changed,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E032,file_inspection,when modified,show the timestamp of train.log,stat -c '%y %n' -- train.log,,0,COMMAND
+E033,text_and_logs,search in file,show me the errors in the log,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E034,text_and_logs,search in file,find the word convergence in the report,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E035,text_and_logs,search in file,grep for timeout in train.log,grep -niF -- timeout train.log,,0,COMMAND
+E036,text_and_logs,search in file,where does it say failed,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E037,text_and_logs,search in file,look for TODO in this file,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E038,text_and_logs,search in file,search for the API key,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E039,text_and_logs,count / recursive,how many warnings in the log,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E040,text_and_logs,count / recursive,count the errors,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E041,text_and_logs,count / recursive,find TODO across the source,grep -RnF -- TODO source,,0,COMMAND
+E042,text_and_logs,count / recursive,search the whole project for deprecated,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E043,text_and_logs,count / recursive,where is the function defined in src,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E044,text_and_logs,sort / unique,sort this list,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E045,text_and_logs,sort / unique,put these names in order,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E046,text_and_logs,sort / unique,show distinct rows,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E047,text_and_logs,sort / unique,dedupe this file,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E048,processes,list / top,what's running,ps aux,,0,COMMAND
+E049,processes,list / top,show running processes,ps aux,,0,COMMAND
+E050,processes,list / top,what's using the most cpu,"ps -eo pid,comm,%cpu --sort=-%cpu | head -n 10",,0,COMMAND
+E051,processes,list / top,biggest memory hogs,"ps -eo pid,comm,rss --sort=-rss | head -n 10",,0,COMMAND
+E052,processes,list / top,top processes by ram,"ps -eo pid,comm,rss --sort=-rss | head -n 10",,0,COMMAND
+E053,processes,find / port / pid,is python running,pgrep -af python,,0,COMMAND
+E054,processes,find / port / pid,find the jupyter process,pgrep -af jupyter,,0,COMMAND
+E055,processes,find / port / pid,what's using port 8080,ss -ltnp 'sport = :8080',,0,COMMAND
+E056,processes,find / port / pid,what's on my port,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E057,processes,find / port / pid,show the process with pid 1234,"ps -p 1234 -o pid,ppid,stat,%cpu,%mem,args",,0,COMMAND
+E058,processes,find / port / pid,what's listening,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E059,processes,kill,kill the stuck process,pkill -f -- stuck,,0,COMMAND
+E060,processes,kill,stop the training process,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E061,processes,kill,kill process 4821,kill -- 4821,,0,COMMAND
+E062,processes,kill,terminate the sleep process,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E063,filesystem,permissions / owner,who owns the config file,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E064,filesystem,permissions / owner,who owns train.log,stat -c %U:%G -- train.log,,0,COMMAND
+E065,filesystem,permissions / owner,show permissions for the logs folder,ls -ld -- logs,,0,COMMAND
+E066,filesystem,permissions / owner,what are the permissions on this file,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E067,filesystem,permissions / owner,can I write to the output folder,test -w output && printf 'writable\n',,0,COMMAND
+E068,filesystem,permissions / owner,is the data folder readable,test -r data && printf 'readable\n',,0,COMMAND
+E069,filesystem,exists / size / empty,does config.yaml exist,test -e config.yaml && printf 'found\n',,0,COMMAND
+E070,filesystem,exists / size / empty,is there a results folder,test -e results && printf 'found\n',,0,COMMAND
+E071,filesystem,exists / size / empty,how big is the data directory,du -sh -- data,,0,COMMAND
+E072,filesystem,exists / size / empty,how much space is the data folder using,du -sh -- data,,0,COMMAND
+E073,filesystem,exists / size / empty,is the output folder empty,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E074,filesystem,chmod,make deploy.sh executable,chmod u+x -- deploy.sh,,0,COMMAND
+E075,filesystem,chmod,this script needs to be executable,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E076,filesystem,chmod,set config to 600,chmod 600 -- config,,0,COMMAND
+E077,filesystem,chmod,make this file private,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E078,filesystem,chmod,only I should be able to read this,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E079,archives,inspect archive,what's inside the backup tarball,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E080,archives,inspect archive,show me the files in the archive,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E081,archives,inspect archive,does the gzip pass its integrity check,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E082,archives,inspect archive,how big is the backup,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E083,archives,create / extract / compress,package the src folder into an archive,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E084,archives,create / extract / compress,zip up the project,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E085,archives,create / extract / compress,unpack the tarball into output,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E086,archives,create / extract / compress,extract the backup,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E087,archives,create / extract / compress,compress train.log,gzip -k -- train.log,,0,COMMAND
+E088,python_env,inspect python,what python version do I have,python3 --version && command -v python3,,0,COMMAND
+E089,python_env,inspect python,where does python live,command -v python3,,0,COMMAND
+E090,python_env,inspect python,is numpy installed,command -v -- numpy,,0,COMMAND
+E091,python_env,inspect python,is pandas available,"python3 -c 'import importlib.util as u; print(u.find_spec(""pandas"") is not None)'",,0,COMMAND
+E092,python_env,inspect python,does requests import,"python3 -c 'import importlib.util as u; print(u.find_spec(""requests"") is not None)'",,0,COMMAND
+E093,python_env,run / syntax,run train.py,python3 -- train.py,,0,COMMAND
+E094,python_env,run / syntax,execute the analysis script,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E095,python_env,run / syntax,check main.py for syntax errors,python3 -m py_compile -- main.py,,0,COMMAND
+E096,python_env,run / syntax,does this script compile,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E097,python_env,deferred (expect abstain),install the requirements,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E098,python_env,deferred (expect abstain),activate the venv,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E099,python_env,deferred (expect abstain),start a jupyter server,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E100,python_env,deferred (expect abstain),pip install pandas,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E101,workspace,navigate / info,where am I,pwd,,0,COMMAND
+E102,workspace,navigate / info,take me home,cd /home/sambi,,0,COMMAND
+E103,workspace,navigate / info,go to the src folder,cd -- src,,0,COMMAND
+E104,workspace,navigate / info,go back,cd -,,0,COMMAND
+E105,workspace,navigate / info,show all files including hidden,ls -la,,0,COMMAND
+E106,workspace,navigate / info,what account am I using,whoami && id -nG,,0,COMMAND
+E107,workspace,navigate / info,which shell am I in,printf '%s\n' /bin/bash,,0,COMMAND
+E108,workspace,setup / make / check,set up a new project folder,mkdir -p -- project/data project/reports && cd -- project,,0,COMMAND
+E109,workspace,setup / make / check,make a project called demo,mkdir -p -- demo/data demo/reports && cd -- demo,,0,COMMAND
+E110,workspace,setup / make / check,create an outputs folder,mkdir -p -- outputs,,0,COMMAND
+E111,workspace,setup / make / check,check if git is installed,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E112,workspace,setup / make / check,do I have docker,command -v -- docker,,0,COMMAND
+E113,workspace,setup / make / check,is node installed,command -v -- node,,0,COMMAND
+E114,wsl_interop,windows bridge,open this folder in explorer,explorer.exe .,,0,COMMAND
+E115,wsl_interop,windows bridge,take me to the C drive,cd /mnt/c,,0,COMMAND
+E116,wsl_interop,windows bridge,how do I get to my windows files,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E117,wsl_interop,windows bridge,put my path on the windows clipboard,pwd | clip.exe,,0,COMMAND
+E118,wsl_interop,windows bridge,free space on the C drive,df -h /mnt/c,,0,COMMAND
+E119,wsl_interop,windows bridge,how much room is left on ubuntu,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E120,wsl_interop,windows bridge,convert this windows path to linux,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E121,wsl_interop,deferred nested (expect abstain),take me to my windows downloads,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E122,wsl_interop,deferred nested (expect abstain),open my windows documents,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E123,wsl_interop,deferred nested (expect abstain),send this file to windows downloads,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E124,edge_cases,vague / out of scope,fix this,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E125,edge_cases,vague / out of scope,clean up my mess,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E126,edge_cases,vague / out of scope,do the thing,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E127,edge_cases,vague / out of scope,optimize everything,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E128,edge_cases,vague / out of scope,make it faster,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E129,edge_cases,vague / out of scope,help,,LinuxBuddy: not sure what you mean,1,ABSTAIN
+E130,edge_cases,vague / out of scope,what should I do,,LinuxBuddy: not sure what you mean,1,ABSTAIN

@@ -849,3 +849,25 @@ every write/destructive intent (archives create/extract/compress, python
 run/compile, chmod, kill, mkdir, setup_project) is gated to the maze by the P2.0
 containment gate. **Next: install + dogfood, then decide Phase 3 (the LinearSVC
 intent model) and generalized multi-step from real use — not speculatively.**
+
+## 2026-11-07 — Task 21: evaluation sweep (raw capture, no execution)
+
+**What I did.** Ran `lb` on all 130 requests in
+`data/eval/eval_requests.csv` from a fixed cwd (`testlinuxbuddy/project`, with
+`bindings.env` + `runtime_setup.sh` sourced, torn down after), capturing
+stdout/stderr/exit/outcome into `data/eval/eval_results.csv`. The harness runs
+`lb` only — it NEVER executes what lb prints (several requests are destructive).
+Capture only; no correctness judgment (that's the human's step).
+
+**Mechanical tally (COMMAND = stdout non-empty, ABSTAIN = empty):** 66 COMMAND,
+64 ABSTAIN across 130. Per domain — archives 1/8, edge_cases 0/7,
+file_discovery 13/6, file_inspection 6/7, filesystem 10/6, processes 11/4,
+python_env 7/6, text_and_logs 2/13, workspace 12/1, wsl_interop 4/6
+(COMMAND/ABSTAIN).
+
+**Notes for the human's analysis (mechanical, not verdicts).** exit codes are
+0 (command) / 1 (abstain) only — the Task-18 exit-3-for-destructive scheme is
+not present, so destructive commands emitted inside the maze show exit 0. The
+high-ABSTAIN domains (text_and_logs 13, archives 8, edge_cases 7) are where the
+human should look first; e.g. phrasings like "terminate the sleep process" (vs
+"kill") abstain. All raw rows are in the CSV for review.
