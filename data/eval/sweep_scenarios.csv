@@ -1,0 +1,140 @@
+id,domain,intent,variant,risk,cwd,request,expected_shape,notes
+E001,navigation,cd_child,canonical,read,project,take me to the logs folder,cd -- logs,
+E002,navigation,cd_child,synonym,read,project,go into src,cd -- src,
+E003,navigation,cd_child,synonym,read,project,enter the data directory,cd -- data,
+E004,navigation,cd_child,synonym,read,project,open the src folder,cd -- src,'open <folder>' should mean cd
+E005,navigation,cd_child,edge,read,project,move into data,cd -- data,
+E006,navigation,cd_parent,canonical,read,project/logs,take me back,cd ..,
+E007,navigation,cd_parent,synonym,read,project/logs,go up,cd ..,
+E008,navigation,cd_parent,synonym,read,project/logs,up a level,cd ..,
+E009,navigation,cd_parent,synonym,read,project/logs,take me to the parent folder,cd ..,
+E010,navigation,cd_parent,synonym,read,project/logs,go back up one directory,cd ..,
+E011,navigation,cd_parent,edge,read,project/src,up two levels,cd ../..,
+E012,navigation,cd_home,canonical,read,project/logs,take me home,cd ~,
+E013,navigation,cd_home,synonym,read,project/logs,go to my home directory,cd ~,
+E014,navigation,cd_home,edge,read,project/logs,home,cd ~,single word
+E015,navigation,cd_ancestor,canonical,read,project/logs,take me to project,cd .. (project is ancestor),resolve ancestor from $PWD
+E016,navigation,cd_ancestor,synonym,read,project/src,go back to the project root,cd to project ancestor,
+E017,navigation,cd_ancestor,edge,read,project/logs,take me to testlinuxbuddy,cd to testlinuxbuddy ancestor,the maze root is an ancestor
+E018,navigation,cd_absolute,canonical,read,project,go to /tmp,cd -- /tmp,
+E019,navigation,cd_absolute,edge,read,project,take me to /mnt/c/Users,cd -- /mnt/c/Users,
+E020,navigation,cd_previous,edge,read,project/src,go back to where i was,cd -,previous dir
+E021,navigation,pwd,canonical,read,project/src,where am i,pwd,
+E022,navigation,pwd,synonym,read,project/src,what folder am i in,pwd,
+E023,navigation,pwd,synonym,read,project/src,show my current directory,pwd,
+E024,file_discovery,find_by_ext,canonical,read,project,find all csv files,find . -name '*.csv',
+E025,file_discovery,find_by_ext,synonym,read,project,list every python file,find . -name '*.py',
+E026,file_discovery,find_by_ext,synonym,read,project,where are the json files,find . -name '*.json',
+E027,file_discovery,find_by_ext,edge,read,project,show me all the log files,find . -name '*.log',
+E028,file_discovery,find_largest,canonical,read,project,which files are the biggest,find ... | sort -rn | head,
+E029,file_discovery,find_largest,synonym,read,project,show me the largest files,find ... | sort -rn | head,
+E030,file_discovery,find_largest,synonym,read,project,what's taking up the most space,du/find sorted,
+E031,file_discovery,find_largest,synonym,read,project,which files are huge,find largest,must NOT be command -v
+E032,file_discovery,find_largest,edge,read,project,biggest files here,find largest in cwd,
+E033,file_discovery,find_by_name,canonical,read,project,where is settings.json,find -name settings.json,"exact name, not globbed"
+E034,file_discovery,find_by_name,synonym,read,project,find a file called config.yaml,find -name config.yaml,
+E035,file_discovery,find_by_name,synonym,read,project,locate train.py,find -name train.py,
+E036,file_discovery,find_recent,canonical,read,project,what changed recently,find -mtime -1,
+E037,file_discovery,find_recent,synonym,read,project,files modified today,find -mtime -1,
+E038,file_discovery,find_recent,synonym,read,project,recently modified logs,find -name '*.log' -mtime -N,keep the time part
+E039,file_discovery,find_recent,edge,read,project,what did i touch in the last hour,find -mmin -60,
+E040,file_discovery,find_by_size,canonical,read,project,files bigger than 100mb,find -size +100M,
+E041,file_discovery,find_by_size,synonym,read,project,anything over 1 gig,find -size +1G,
+E042,file_discovery,find_by_size,edge,read,project,small files under 1kb,find -size -1k,
+E043,file_discovery,find_empty,canonical,read,project,find empty files,find -empty -type f,
+E044,file_discovery,find_empty,synonym,read,project,any empty folders,find -empty -type d,
+E045,file_discovery,count_files,canonical,read,project,how many csv files are there,find ... | wc -l,
+E046,file_discovery,count_files,synonym,read,project,count the python files,find ... | wc -l,
+E047,file_inspection,cat,canonical,read,project,show me config.yaml,cat -- config.yaml,
+E048,file_inspection,cat,synonym,read,project,print the readme,cat -- README*,
+E049,file_inspection,cat,synonym,read,project,display requirements.txt,cat -- requirements.txt,
+E050,file_inspection,cat,generic,read,project/logs,what's in the log,cat/preview *.log,definite ref -> *.log
+E051,file_inspection,head,canonical,read,project/logs,first 10 lines of train.log,head -n 10 train.log,
+E052,file_inspection,head,synonym,read,project/data,peek at data.csv,head data.csv,
+E053,file_inspection,head,edge,read,project/data,top of the csv,head *.csv,definite ref
+E054,file_inspection,tail,canonical,read,project/logs,last lines of the log,tail *.log,definite ref
+E055,file_inspection,tail,synonym,read,project/logs,show the end of error.log,tail error.log,
+E056,file_inspection,tail,edge,read,project/logs,tail the output,tail *.log/out,ambiguous target
+E057,file_inspection,wc,canonical,read,project/data,how many lines in data.csv,wc -l data.csv,
+E058,file_inspection,wc,synonym,read,project/logs,count the lines in the log,wc -l *.log,definite ref
+E059,file_inspection,file_type,canonical,read,project,what kind of file is model.pkl,file -- model.pkl,
+E060,file_inspection,file_type,generic,read,project,what is this file,file FILE,generic ref - may abstain
+E061,file_inspection,stat,canonical,read,project,who owns config.yaml,stat/ls -l config.yaml,
+E062,file_inspection,stat,synonym,read,project/logs,when was the log last modified,stat *.log,definite ref
+E063,file_inspection,stat,synonym,read,project,how big is config.yaml,stat/ls -l config.yaml,
+E064,text_and_logs,grep,canonical,read,project/logs,find error in train.log,grep -n error train.log,
+E065,text_and_logs,grep,synonym,read,project/src,search for TODO in the code,grep -rn TODO,
+E066,text_and_logs,grep,synonym,read,project/logs,which lines mention warning,grep -n warning *.log,
+E067,text_and_logs,grep,generic,read,project/logs,show errors in the log,grep error *.log,definite ref -> *.log
+E068,text_and_logs,grep_count,canonical,read,project/logs,how many errors in the log,grep -c error *.log,definite ref
+E069,text_and_logs,grep_count,synonym,read,project/logs,count the warnings in train.log,grep -c warning train.log,
+E070,text_and_logs,grep_recursive,canonical,read,project,search all files for API_KEY,grep -rn API_KEY,
+E071,text_and_logs,grep_recursive,synonym,read,project,find 'deprecated' everywhere,grep -rn deprecated,
+E072,text_and_logs,sort,canonical,read,project/data,sort names.txt,sort names.txt,
+E073,text_and_logs,sort,generic,read,project/data,sort this list,sort FILE,generic ref - documented behavior
+E074,text_and_logs,unique,canonical,read,project/data,show unique lines in list.txt,sort -u list.txt,
+E075,text_and_logs,unique,synonym,read,project/data,remove duplicate lines from names.txt,sort -u / uniq,
+E076,workspace_and_shell,env_var,canonical,read,project,what's my PATH,echo $PATH,
+E077,workspace_and_shell,env_var,synonym,read,project,show the PORT variable,echo $PORT,
+E078,workspace_and_shell,env_var,edge,read,project,print the home variable,echo $HOME,
+E079,workspace_and_shell,disk_space,canonical,read,project,how much space is left,df -h,
+E080,workspace_and_shell,disk_space,synonym,read,project,how much room is left on ubuntu,df -h,'room' synonym for space
+E081,workspace_and_shell,disk_space,edge,read,project,am i running out of disk,df -h,
+E082,workspace_and_shell,dir_size,canonical,read,project,how big is this folder,du -sh .,
+E083,workspace_and_shell,dir_size,synonym,read,project,size of the project directory,du -sh,
+E084,workspace_and_shell,which,canonical,read,project,where is python,command -v python / which,
+E085,workspace_and_shell,which,synonym,read,project,which pip am i using,command -v pip,
+E086,workspace_and_shell,history,canonical,read,project,what commands did i run recently,history,
+E087,workspace_and_shell,date_time,canonical,read,project,what time is it,date,
+E088,workspace_and_shell,date_time,synonym,read,project,what's today's date,date,
+E089,filesystem_permissions,chmod_exec,canonical,destructive,project,make run.sh executable,chmod u+x run.sh,
+E090,filesystem_permissions,chmod_exec,synonym,destructive,project,run.sh needs to be executable,chmod u+x run.sh,
+E091,filesystem_permissions,chmod_exec,synonym,destructive,project,this script should be executable,chmod u+x *.sh,definite ref
+E092,filesystem_permissions,chmod_private,canonical,destructive,project,make config.yaml private,chmod 600 config.yaml,
+E093,filesystem_permissions,chmod_private,synonym,destructive,project,only i should be able to read the secrets file,chmod 600,
+E094,filesystem_permissions,chmod_private,synonym,destructive,project,lock down the key file,chmod 600,
+E095,filesystem_permissions,ls_perms,canonical,read,project,show the permissions here,ls -l,
+E096,filesystem_permissions,ls_perms,synonym,read,project,who can read config.yaml,ls -l / stat config.yaml,
+E097,filesystem_permissions,find_perms,canonical,read,project,find world-writable files,find -perm -002,
+E098,filesystem_permissions,find_perms,synonym,read,project,anything readable by everyone,find -perm -004,
+E099,processes,list_proc,canonical,read,project,what's running,ps aux,
+E100,processes,list_proc,synonym,read,project,show my processes,ps -u,
+E101,processes,list_proc,synonym,read,project,list the python processes,ps ... grep python,
+E102,processes,find_port,canonical,read,project,who's using port 8000,ss -ltnp ... :8000,
+E103,processes,find_port,generic,read,project,what's on my port,ss -ltnp,no port -> default list all
+E104,processes,find_port,generic,read,project,what's listening,ss -ltnp,default list all
+E105,processes,resource,canonical,read,project,what's using the most memory,ps sorted by mem,
+E106,processes,resource,synonym,read,project,top cpu processes,ps sorted by cpu / top,
+E107,processes,kill,canonical,destructive,project,kill process 4321,kill 4321,use a fake PID
+E108,processes,kill,synonym,destructive,project,stop the python process,pkill python,'stop' verb
+E109,processes,kill,synonym,destructive,project,terminate the server process,pkill/kill,'terminate' verb
+E110,processes,kill,edge,destructive,project,stop whatever's on port 8000,kill by port,
+E111,wsl_interop,open_explorer,canonical,read,project,open this folder in windows explorer,explorer.exe .,"GUI - capture, do NOT execute"
+E112,wsl_interop,open_explorer,synonym,read,project,show this in the file explorer,explorer.exe .,GUI - do NOT execute
+E113,wsl_interop,win_path,canonical,read,project,what's the windows path for this folder,wslpath -w .,
+E114,wsl_interop,win_path,synonym,read,project,convert this path to a windows path,wslpath -w,
+E115,wsl_interop,clip,canonical,read,project,copy this path to the clipboard,... | clip.exe,
+E116,wsl_interop,open_vscode,canonical,read,project,open this in vs code,code .,"GUI - capture, do NOT execute"
+E117,wsl_interop,access_cdrive,canonical,read,project,take me to my windows downloads,cd /mnt/c/Users/*/Downloads,
+E118,wsl_interop,access_cdrive,synonym,read,project,where are my windows documents,/mnt/c/Users/.../Documents,
+E119,archives_backup,create_archive,canonical,destructive,project,zip up the logs folder,tar czf logs.tar.gz logs,'zip up' -> archive
+E120,archives_backup,create_archive,synonym,destructive,project,make a backup of the project,tar czf backup ...,
+E121,archives_backup,create_archive,synonym,destructive,project,bundle the data folder,tar czf data.tar.gz data,'bundle' verb
+E122,archives_backup,create_archive,edge,destructive,project,compress the results,tar/gzip,
+E123,archives_backup,extract,canonical,destructive,project,extract the tarball,tar xzf *.tar.gz,definite ref
+E124,archives_backup,extract,synonym,destructive,project,unzip the archive,unzip *.zip,definite ref
+E125,archives_backup,list_archive,canonical,read,project,what's inside the backup tarball,tar -tzf *.tar.gz,"definite ref, no -- bug"
+E126,archives_backup,list_archive,synonym,read,project,list the contents of the zip,unzip -l *.zip,definite ref
+E127,archives_backup,backup_copy,canonical,destructive,project,make a copy of config.yaml,cp config.yaml config.yaml.bak,
+E128,python_environments,check_package,canonical,read,project,is numpy installed,python -c import importlib numpy,package not CLI
+E129,python_environments,check_package,synonym,read,project,do i have pandas,importlib check pandas,
+E130,python_environments,check_package,synonym,read,project,check if torch is there,importlib check torch,
+E131,python_environments,check_installed_cli,canonical,read,project,is git installed,command -v git,CLI not package
+E132,python_environments,check_installed_cli,synonym,read,project,check if docker is there,command -v docker,
+E133,python_environments,check_installed_cli,synonym,read,project,do i have node,command -v node,
+E134,python_environments,pip_list,canonical,read,project,what packages are installed,pip list,
+E135,python_environments,pip_list,synonym,read,project,list my pip packages,pip list,
+E136,python_environments,venv,canonical,read,project,which python am i using,command -v python / which,
+E137,python_environments,run_script,canonical,read,project,run train.py,python train.py,emit; do NOT execute (side effects)
+E138,python_environments,pip_install,canonical,destructive,project,install the requests package,pip install requests,write op
+E139,python_environments,pip_install,synonym,destructive,project,add pandas to my environment,pip install pandas,

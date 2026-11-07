@@ -1113,3 +1113,50 @@ empty stdout, abstain → 1. Full suite **190 passed**.
 with the command; a destructive request fills the buffer with the real command
 (`chmod u+x -- run.sh`) AND surfaces the ⚠ warning — the command is editable and
 never auto-runs. This is the task that turns "built" into "usable".
+
+## 2026-11-07 — Task 24: full scenario sweep (route + execute) → sweep_results.csv
+
+**What I did.** Ran the 139-row `data/eval/sweep_scenarios.csv` through `lb` from
+inside the maze, capturing BOTH routing (what lb says) and executability (does
+the emitted read command actually run clean). Capture only — no correctness
+judgment; the human reviews `data/eval/sweep_results.csv`.
+
+**Phase-2 path taken: throwaway copy** (`cp -a testlinuxbuddy
+/tmp/maze_destructive_run`). Destructive ROUTING captured against the canonical
+maze (confirms exit 3); destructive EXECUTION run against the copy, then the copy
+deleted.
+
+**Harness safety fix (paid for on the first run).** The first run was killed
+mid-sweep (exit 144): executing E108 "stop the python process" ran
+`pkill -f python`, which scans the WHOLE SYSTEM and killed the harness itself —
+the maze copy does not sandbox pkill. Fix: never EXECUTE kill-family commands
+(`pkill`/`killall`/`kill <pid>`); their routing is still captured, execution is
+marked `skipped-kill-unsafe` (3 rows: E107/E108/E109). Canonical maze was
+verified intact after that aborted run before continuing. Filesystem/archive
+destructive commands (chmod/tar/cp) ARE cwd-contained and were executed in the
+copy safely.
+
+**Integrity re-check: PASS.** My content snapshot of the canonical maze
+(path/type/mode/size over 2323 entries, volatile runtime files excluded) was
+identical before and after: `06ecdaa3…` → `06ecdaa3…`. MANIFEST.txt sha
+`89ba5fc4…` unchanged. NOTE: the prompt referenced `5af914bd…` as the expected
+MANIFEST sha; the actual committed MANIFEST.txt hashes to `89ba5fc4…`, so the
+prompt value appears stale — I used an unchanged-before/after content snapshot as
+the real integrity signal rather than a hard-coded constant.
+
+**Tallies.** COMMAND 93 / ABSTAIN 46. Read-row executability: ok 42, nonzero 36,
+skipped-abstain 39, skipped-gui 3. exit-code↔risk mismatches: 10.
+
+**Signals for the human (NOT fixed here — capture only):**
+- `cd -- *.log` for E001 "take me to the logs folder" and similar: Task 22's
+  definite-reference glob leaks into the navigation `goto` target (should be
+  `cd logs`). A real routing finding the sweep caught — candidate follow-up task.
+- Many `nonzero` read rows are benign: `find` prints "Permission denied" on the
+  intentional chmod-000 `project/perms/noaccess_dir` (exits 1 but lists the rest);
+  a grep with no match exits 1.
+- The 10 mismatches are mostly destructive intents lb ABSTAINS on (pip_install
+  E138/E139; some archive/chmod rows → exit 1), plus E137 "run train.py"
+  (run_script is a gated write → exit 3 though the scenario labels it read) and
+  E110/E127 routed to reads. All expected signals, left for human analysis.
+
+Committed `sweep_results.csv` + `sweep_scenarios.csv`. Not pushed.
