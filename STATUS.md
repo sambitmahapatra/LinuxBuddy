@@ -3,8 +3,8 @@
 > The single source of truth for where the project is NOW. Overwrite this
 > after every task. Keep it short. Next session reads this first.
 
-**Last updated:** 2026-11-07 (after Task 16 / workspace_and_shell)
-**Current phase:** Phase 2 — Tier 3 (final domains)
+**Last updated:** 2026-11-07 (after Task 17 — ALL 9 DOMAINS COMPLETE)
+**Current phase:** Phase 2 COMPLETE — next is install + dogfood
 **Branch:** v1-file-discovery
 
 ---
@@ -74,15 +74,26 @@
     multi-step recipe (mkdir dirs && cd). `kb/commands/workspace.yaml`. Planner
     now resolves ~/$SHELL whole-element literals at compile. Fixed a latent
     substring bug ("account"→count). Verified vs the maze. **139 pass.**
+  - **Task 17 — `wsl_interop` DONE.** 8 read-only intents: open_explorer,
+    goto_cdrive, goto_home, path_to_linux (wslpath -u), path_to_windows
+    (wslpath -w), copy_to_clipboard (pwd | clip.exe), cdrive_space,
+    home_space. `kb/commands/wsl.yaml`. Nested $(...) navigation deferred
+    (abstain). Script-verified wslpath/df; hand-verified explorer/clip.
+    **148 pass. ALL 9 DOMAINS COMPLETE — Phase 2 done.**
 
 ## In progress
 
-- **Tier 3 batch:** 15, 16 done. Next and last: 17 wsl_interop.
+- Nothing. **Phase 2 complete (all 9 domains built, 148 tests pass).**
 
 ## Next (in order)
 
-1. Task 17 `wsl_interop` (GUI/interop, hand-tested) — completes all 9 domains /
-   Phase 2. Then install + dogfood.
+1. **Install + dogfood** — use `lb` for real daily WSL work and learn from what
+   breaks (the ROADMAP philosophy). Set up the shell widget / `lb` on PATH.
+2. From real use, decide **Phase 3** (the LinearSVC intent-only model) and
+   **generalized multi-step** (V1.1) — driven by friction, not speculation.
+3. Deferred, when motivated by use: dir_empty (filesystem), zip create/extract
+   & gzip -l (archives), list_packages/venv helpers (python), nested-$() WSL
+   path resolver (wsl_interop), general "do A then B" compound.
 2. (Later / optional) Resolve the **3 genuine remaining FAILs** (dangling
    `$TARGET_FILE`) and decide whether to make the 13 ACCEPTED_EMPTY scenarios
    literal via small `build_maze.sh` additions — see below.
@@ -115,15 +126,18 @@
 - **Task 07 fixes are CSV-only; the maze (`build_maze.sh`) was NOT changed**,
   to keep the fixture stable. PY-003/018/024/036/037 + WORK-039 were repointed
   from `good_script.sh` to `scripts/train_stub.py` (`$TRAIN_SCRIPT`).
-- Built domains (7): `file_discovery`, `file_inspection`, `text_and_logs`,
-  `processes`, `filesystem_permissions` (read-only), `archives_backup`,
-  `python_environments` (read + GATED writes). Planner/render support safe
-  2-stage `|` and `&&` composition (`Stages` container). 2 domains to go.
-- Single-command-only scope by design; compound, `/proc`-based, redirect,
-  network, shell-state and (for Tier 1) destructive maze scenarios are
-  deferred — hence modest per-domain maze coverage (inspection 5/40, text 8/40,
-  processes 7/40, filesystem 1/40, archives 7/40, python ~6/40). Every built
-  intent is verified correct end-to-end against the maze.
+- **All 9 domains built:** `file_discovery`, `file_inspection`, `text_and_logs`,
+  `processes` (+kill), `filesystem_permissions` (+chmod), `archives_backup`,
+  `python_environments`, `workspace_and_shell` (+ scoped multi-step),
+  `wsl_interop`. Reads work anywhere; all writes/destructive intents gated to
+  the maze (P2.0). Planner/render support safe 2-stage `|` and `&&` composition
+  (`Stages`) + compile-time ~/$HOME/$SHELL/$USER resolution.
+- Router order: file_inspection → python → text_and_logs → processes →
+  archives → wsl → filesystem → workspace → file_discovery.
+- Single-command-only scope by design (setup_project is the one scoped recipe);
+  compound/redirect/network/shell-state/nested-$() scenarios are deferred —
+  hence modest per-domain maze coverage. Every built intent is verified
+  end-to-end against the maze (or, for GUI/clipboard, by hand).
 - `lb` lives in a uv venv. **Destructive-containment gate (P2.0) is now built**
   (`gate.py`/`config.py`); prototype mode is the default, maze root defaults to
   `~/linuxbuddy/testlinuxbuddy`.

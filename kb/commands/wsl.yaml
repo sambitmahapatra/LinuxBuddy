@@ -1,0 +1,45 @@
+# wsl.yaml — capability spec for wsl_interop (Task 17), the differentiator.
+#
+# Placeholder names are Frame slot keys: winpath (a C:\... path), path.
+#
+# All intents are read-only. explorer.exe / clip.exe touch Windows (GUI /
+# clipboard) and CANNOT be verified headlessly — hand-tested only. The
+# wslpath / df intents ARE script-verifiable.
+#
+# `cd ~` resolves ~ at compile (planner _resolve_literal). copy_to_clipboard is
+# a 2-stage PIPE (pwd | clip.exe); the `|` is renderer-inserted.
+#
+# Nested command substitution — cd $(wslpath $(cmd.exe ...)), powershell.exe
+# lookups, cp to a $(wslpath ...) folder — is NOT built: the flat-argv /
+# round-trip model can't represent nested $() safely. The NLU abstains on those
+# (a known V1 limitation; candidate for a V1.1 WSL path-resolver helper).
+
+capability: wsl_interop
+utility: wslpath/explorer.exe/df
+
+intents:
+  open_explorer:
+    base_argv: ["explorer.exe", "."]
+    risk_ops: ["read"]
+  goto_cdrive:
+    base_argv: ["cd", "/mnt/c"]
+    risk_ops: ["read"]
+  goto_home:
+    base_argv: ["cd", "~"]
+    risk_ops: ["read"]
+  path_to_linux:
+    base_argv: ["wslpath", "-u", "--", "{winpath}"]
+    risk_ops: ["read"]
+  path_to_windows:
+    base_argv: ["wslpath", "-w", "--", "{path}"]
+    risk_ops: ["read"]
+  copy_to_clipboard:
+    base_argv: ["pwd"]
+    pipe_argv: ["clip.exe"]
+    risk_ops: ["read"]
+  cdrive_space:
+    base_argv: ["df", "-h", "/mnt/c"]
+    risk_ops: ["read"]
+  home_space:
+    base_argv: ["df", "-h", "~"]
+    risk_ops: ["read"]

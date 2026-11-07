@@ -1125,12 +1125,88 @@ def _parse_workspace(text: str, low: str):
     return None
 
 
+# --------------------------------------------------------------------------
+# Domain: wsl_interop (Task 17). All read-only. Clean single-level intents are
+# built; nested $(...) navigation (windows downloads/desktop/user folder, cp to
+# a windows folder) is DEFERRED — abstain. Fires only on WSL/Windows cues so it
+# doesn't steal generic navigation.
+# --------------------------------------------------------------------------
+
+_WSL_WINPATH_RE = re.compile(r"([A-Za-z]:\\[^\s'\"]*)")
+# nested $() — a named Windows special folder / user folder / cp to windows
+_WSL_NESTED_RE = re.compile(
+    r"\bwindows\s+(?:downloads|desktop|documents|home|user(?:\s+folder)?|profile)\b"
+    r"|\bmy\s+windows\s+(?:downloads|desktop|documents|user|profile|home)\b"
+    r"|\bwhere\s+my\s+windows\s+(?:user\s+)?(?:folder|profile)\b"
+    r"|\bcopy\b[^.]*\bto\s+(?:my\s+)?windows\b|\bcp\b[^.]*\bwindows\b",
+    re.IGNORECASE,
+)
+_WSL_TO_LINUX_RE = re.compile(
+    r"\b(?:to|into)\s+(?:a\s+|an\s+|the\s+)?(?:ubuntu|linux|wsl|unix)\s+path\b"
+    r"|\bwslpath\s+-u\b|\b(?:linux|ubuntu|unix)\s+(?:version|equivalent)\b", re.IGNORECASE,
+)
+_WSL_TO_WINDOWS_RE = re.compile(
+    r"\bon\s+windows\b|\blook\s+(?:like\s+)?on\s+windows\b|\bto\s+(?:a\s+)?windows\s+path\b"
+    r"|\bwindows\s+(?:version|equivalent|path\s+for)\b|\bwslpath\s+-w\b", re.IGNORECASE,
+)
+_WSL_CLIP_RE = re.compile(r"\bclip(?:board)?\b", re.IGNORECASE)
+_WSL_EXPLORER_RE = re.compile(
+    r"\bexplorer\b|\bfile\s+explorer\b|\bopen\b[^.]*\bin\s+windows\b", re.IGNORECASE
+)
+_WSL_CDRIVE_RE = re.compile(r"\bc\s*:?\s*drive\b|/mnt/c\b", re.IGNORECASE)
+_WSL_SPACE_RE = re.compile(r"\b(?:free\s+space|how\s+much\s+(?:free\s+)?space|disk\s+space|space\s+(?:on|left))\b", re.IGNORECASE)
+_WSL_UBUNTU_RE = re.compile(r"\b(?:ubuntu|linux\s+home|linux\s+side|wsl)\b", re.IGNORECASE)
+_WSL_HOME_RE = re.compile(r"\b(?:linux|ubuntu)\s+home\b|\bback\s+to\s+my\s+linux\b", re.IGNORECASE)
+
+
+def _parse_wsl(text: str, low: str):
+    # nested command substitution → deferred (abstain), checked first.
+    if _WSL_NESTED_RE.search(low):
+        return _ABSTAIN
+
+    win = _WSL_WINPATH_RE.search(text)
+
+    # path conversions
+    if _WSL_TO_LINUX_RE.search(low) or (win and ("linux" in low or "ubuntu" in low or "unix" in low)):
+        if win is not None:
+            return Frame("path_to_linux", {"winpath": win.group(1)})
+        return _ABSTAIN  # "to a linux path" but no C:\ path given
+    if _WSL_TO_WINDOWS_RE.search(low):
+        p = _detect_path_arg(text, low)
+        slots = {}
+        if p is not None:
+            slots["path"] = p
+        return Frame("path_to_windows", slots)
+
+    if _WSL_CLIP_RE.search(low):
+        return Frame("copy_to_clipboard", {})
+    if _WSL_EXPLORER_RE.search(low):
+        return Frame("open_explorer", {})
+
+    # C drive: space vs navigate
+    if _WSL_CDRIVE_RE.search(low):
+        if _WSL_SPACE_RE.search(low):
+            return Frame("cdrive_space", {})
+        return Frame("goto_cdrive", {})
+
+    # Ubuntu/linux side: space vs home
+    if _WSL_UBUNTU_RE.search(low):
+        if _WSL_SPACE_RE.search(low):
+            return Frame("home_space", {})
+        if _WSL_HOME_RE.search(low):
+            return Frame("goto_home", {})
+
+    return None
+
+
 # Router order: specific domains first, file_discovery last (see parse()).
 # python sits before text so "check X.py for syntax errors" is check_syntax,
 # not a grep for "errors". archives sits before filesystem so
 # "how big is <archive>.tar.gz" routes to archive_size, not disk_usage.
-# workspace sits after filesystem (file-ish queries stay with filesystem) and
-# before file_discovery (it catches navigation/shell verbs file_discovery
+# wsl sits before filesystem so "how much space does ubuntu have left" is
+# home_space, not a targetless disk_usage; it only fires on WSL/Windows/C-drive
+# cues. workspace sits after filesystem (file-ish queries stay with filesystem)
+# and before file_discovery (it catches navigation/shell verbs file_discovery
 # would otherwise abstain on).
 _ROUTER = (
     _parse_file_inspection,
@@ -1138,6 +1214,7 @@ _ROUTER = (
     _parse_text_and_logs,
     _parse_processes,
     _parse_archives,
+    _parse_wsl,
     _parse_filesystem,
     _parse_workspace,
     _parse_file_discovery,

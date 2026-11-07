@@ -792,3 +792,60 @@ setup_project both abstain from `/tmp`. Also confirmed `take me home` →
 
 **workspace_and_shell is a complete domain** (multi-step scoped to the named
 recipe; general compound is V1.1).
+
+## 2026-11-07 — Task 17 (Tier 3): domain wsl_interop — ALL 9 DOMAINS COMPLETE
+
+**What I did.** Built the final domain, `wsl_interop` — 8 read-only intents,
+the WSL/Windows bridge no other tool helps with. `kb/commands/wsl.yaml`,
+capability `wsl_interop`. TDD. This completes Phase 2 (all 9 domains).
+
+**Intents → commands.** open_explorer `explorer.exe .`; goto_cdrive `cd /mnt/c`;
+goto_home `cd ~`; path_to_linux `wslpath -u -- {winpath}`; path_to_windows
+`wslpath -w -- {path}`; copy_to_clipboard `pwd | clip.exe` (2-stage pipe);
+cdrive_space `df -h /mnt/c`; home_space `df -h ~`.
+
+**Deferred — nested `$(...)` (abstain).** "take me to my windows downloads/
+desktop/documents", "where my Windows user folder lives", and cp-to-windows all
+need `cd $(wslpath $(cmd.exe …))` / powershell lookups, which the flat-argv +
+round-trip model can't represent safely. The parser returns the abstain
+sentinel for those (a known V1 limit; candidate for a V1.1 WSL path resolver).
+
+**Routing.** wsl fires only on WSL/Windows/C-drive/clipboard/explorer/wslpath
+cues, so it never steals generic navigation. It sits BEFORE filesystem — "how
+much space does ubuntu have left" contains "how much space", which filesystem's
+disk_usage would otherwise grab (and then abstain, finding no folder target);
+putting wsl first routes it to home_space. It's also before workspace so
+"windows downloads" abstains instead of becoming a bad `goto`.
+
+**Tests (`tests/test_wsl_interop.py`).** open_explorer, goto_cdrive,
+path_to_linux (C:\ winpath extraction), path_to_windows, copy_to_clipboard pipe
+round-trip, cdrive_space, nested-$() abstention, all-read-only, and a
+prior-domains regression (confirms "take me home"/"go to src" still route to
+workspace, not wsl). **148 passed** (was 139).
+
+**Verification (Done when).** Script-verified against real WSL:
+`lb convert 'C:\Users\sambi' to a linux path` → `wslpath -u -- 'C:\Users\sambi'`
+→ `/mnt/c/Users/sambi`; `lb how would /home/sambi/linuxbuddy look on windows` →
+`wslpath -w` → `\\wsl.localhost\Ubuntu\…` (the `--` works with wslpath);
+`lb free space on C drive` → `df -h /mnt/c` (301G disk); `lb how much space does
+ubuntu have left` → `df -h /home/sambi`. **Hand-tested only (NOT executed by the
+script, per the task's explorer-cascade warning):** `open this folder in
+explorer` → `explorer.exe .`; `put my path on the windows clipboard` →
+`pwd | clip.exe`; `take me to the C drive` → `cd /mnt/c`. Nested
+"windows downloads" abstains. ✓
+
+## Tier 3 batch — summary / PHASE 2 COMPLETE
+
+All 9 domains are built. Tasks 15–17 each tested + verified + committed
+separately; no push. **148 tests pass**, no regression. Tier 3 added: the
+destructive chmod/kill intents (completing filesystem + processes), the
+workspace domain with the first scoped multi-step recipe (setup_project), and
+the wsl_interop bridge. The planner gained compile-time ~/$HOME/$SHELL/$USER
+whole-element resolution; a latent "account"→count substring bug was fixed.
+
+Final router order: file_inspection → python → text_and_logs → processes →
+archives → wsl → filesystem → workspace → file_discovery. Reads work anywhere;
+every write/destructive intent (archives create/extract/compress, python
+run/compile, chmod, kill, mkdir, setup_project) is gated to the maze by the P2.0
+containment gate. **Next: install + dogfood, then decide Phase 3 (the LinearSVC
+intent model) and generalized multi-step from real use — not speculatively.**

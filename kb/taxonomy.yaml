@@ -85,7 +85,11 @@ domains:
 
   - id: wsl_interop             # 40 rows — the differentiator, no prior corpus
     priority: 2
-    intents: [open_in_explorer, convert_path, reach_windows_files, clipboard, win_disk]
+    capability: wsl_interop  # kb/commands/wsl.yaml (Task 17)
+    # Built Task 17 (Tier 3), all read-only. Nested $(...) navigation (windows
+    # downloads/desktop/user folder, cp to windows) deferred to V1.1 (abstain).
+    # explorer/clip are hand-tested (GUI/clipboard); wslpath/df script-verified.
+    intents: [open_explorer, goto_cdrive, goto_home, path_to_linux, path_to_windows, copy_to_clipboard, cdrive_space, home_space]
     lead_utilities: [explorer.exe, wslpath, clip.exe, cd, df]
 
   - id: archives_backup         # 40 rows, 15 tar
