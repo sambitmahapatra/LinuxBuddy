@@ -1039,3 +1039,40 @@ prompt laid out. All verified end-to-end in the maze and covered by
 kill, can-i-read stays check_readable, unknown-tool stays command -v). Full
 suite **186 passed**. Maze: all 15 named rows now produce the intended command
 (or correct abstain); the 3 wrong-command rows no longer mislead.
+
+## 2026-11-07 — Re-run eval sweep → eval_results_v2.csv (after Tasks 19-23)
+
+Re-ran the Task-21 harness (same method: run `lb` per request from the maze cwd,
+CAPTURE only, never execute lb's output) to a NEW file so v1↔v2 can be compared.
+`data/eval/eval_results.csv` (Task 21 baseline) is kept; v2 is the new file.
+
+**Headline:** COMMAND 66 → **94**, ABSTAIN 64 → **36** (of 130). +28 requests now
+produce a command.
+
+Per-domain (COMMAND / ABSTAIN): archives 8/1, edge_cases 0/7, file_discovery
+19/0, file_inspection 9/4, filesystem 14/2, processes 15/0, python_env 7/6,
+text_and_logs 4/11, workspace 13/0, wsl_interop 5/5.
+
+**Wrong-abstain analysis (the number that matters).** Of the 36 abstains:
+- **Correct by design (13):** edge_cases E124-E130 (7 — "fix this", "help", …);
+  deferred python E097/E098/E099/E100 (network / venv shell-state / long-running
+  server); deferred filesystem E073 "is the output folder empty" (needs $());
+  E120 "convert this windows path to linux" (no C:\ path supplied).
+- **Generic-reference residual (~14) — the DOCUMENTED v2 motivation.** "this
+  file" / "this" / "it" / an untyped noun with no resolvable glob: E025, E030,
+  E031, E034, E036, E037, E038, E040, E043, E044, E045, E046, E047, E066. Task 22
+  deliberately keeps these abstaining; the v2 attention model is meant to resolve
+  the referent.
+- **Near-miss phrasing gaps where a clear command DID exist (~9):** E023 "tail
+  the app log" (word between "the"/"log" dodged the glob), E086 "extract the
+  backup" (no destination dir), E094 "execute the analysis script" ("execute"
+  not a run synonym + "analysis script"), E096 "does this script compile"
+  (phrasing), E042 "search the whole project for deprecated" (recursive grep),
+  E116/E121/E122/E123 windows-bridge phrasings.
+
+**Net "wrong abstain where a specific v1 command was available": ~9** (the
+near-miss group), down from ~45 at the Task-21 baseline. The ~14 generic-ref
+rows are intentional v1 residual (not counted as wrong), and 13 are correct by
+design. The ~9 near-misses are candidate v1 synonym patches but are OUT OF SCOPE
+for the named Task-23 rows — left as documented follow-ups rather than chased
+here (one-task-per-session discipline).
