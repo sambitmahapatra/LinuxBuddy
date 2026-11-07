@@ -49,3 +49,9 @@ intents:
     pipe_argv: ["sort", "-rn"]
     pipe2_argv: ["head", "-n", "{count}"]
     risk_ops: ["read"]
+  # find_smallest (Task 20): the ascending twin of find_largest.
+  find_smallest:
+    base_argv: ["find", "{path}", "-type", "f", "-printf", "%s\t%p\n"]
+    pipe_argv: ["sort", "-n"]
+    pipe2_argv: ["head", "-n", "{count}"]
+    risk_ops: ["read"]

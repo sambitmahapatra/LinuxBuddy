@@ -906,3 +906,40 @@ the find.yaml intent-count test to the new emit-a-command behavior.
 `find . -type f -printf '%s\t%p\n' | sort -rn | head -n 10`, which lists
 `./data/raw/huge_dataset.csv` (120MB) at the top. `lb top 3 files by size` →
 count=3. `lb files over 100mb` → unchanged `find … -size +104857600c`. ✓
+
+## 2026-11-07 — Task 20 (v1-finish): asymmetric abstain policy
+
+**What I did.** Made abstention asymmetric by risk, per dogfooding (the tool
+abstained too readily on SAFE requests — itself a failure for a Linux-new user).
+
+**Policy (CLAUDE.md invariant #6 rewritten, nlu docstring fixed).** Read-only +
+a reasonable interpretation → emit (use defaults, glob-resolve references); a
+wrong grep/find is cheap. Read-only + no operation named ("fix this", "do the
+thing") → abstain. Destructive + anything less than a confident parse → abstain
+(unclear target/mode still refuses). Updated invariant #6 and removed the stale
+"abstain over guess (universally)" framing from the nlu module docstring and the
+Task-05 gate note (the gate still governs find_by_size/time/name; superlatives
+are handled before it).
+
+**Concrete conversions.**
+- Size superlatives on a read now emit (Task 19 did biggest/largest;
+  this task adds `find_smallest` — the ascending twin, `sort -n`, for
+  "smallest/tiny files"). Dropped the stale `size_cue` gate (it didn't even list
+  "smallest") in favour of the direction cue + plural/space context + no
+  threshold.
+- **"open <file>" mis-route killed.** `lb open huge_dataset.csv` used to emit
+  `find . -name '*.csv'` (searched instead of acting). "open" is ambiguous on
+  WSL and a reliable action needs nested $() (deferred), so per the task's
+  fallback I abstain cleanly rather than emit a wrong command. ("open … in
+  explorer" still routes to wsl open_explorer, which is checked earlier.)
+
+**What still abstains (the safety asymmetry, unchanged).** chmod/kill/mkdir with
+an unclear target or mode, and genuinely vague reads.
+
+**Tests (`tests/test_asymmetric_abstain.py`).** reads emit (biggest/big,
+smallest→find_smallest), "open X" abstains, vague reads abstain, destructive-
+unclear abstains. **161 passed.**
+
+**Maze verification.** `open huge_dataset.csv` → abstain (no stray find);
+`smallest files` → `find … | sort -n | head`; `do the thing` → abstain;
+`make this executable` → abstain. ✓

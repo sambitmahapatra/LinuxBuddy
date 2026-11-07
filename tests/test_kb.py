@@ -8,8 +8,8 @@ from linuxbuddy.kb import load_kb, get_capability
 
 
 FOUR_INTENTS = {"find_by_size", "find_by_time", "find_by_name", "find_by_type"}
-# find_largest added in Task 19.
-SEARCH_INTENTS = FOUR_INTENTS | {"find_largest"}
+# find_largest added in Task 19; find_smallest in Task 20.
+SEARCH_INTENTS = FOUR_INTENTS | {"find_largest", "find_smallest"}
 
 
 def test_find_yaml_loads():

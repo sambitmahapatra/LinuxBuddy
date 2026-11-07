@@ -3,7 +3,7 @@
 > The single source of truth for where the project is NOW. Overwrite this
 > after every task. Keep it short. Next session reads this first.
 
-**Last updated:** 2026-11-07 (v1-finish batch: Task 19 done)
+**Last updated:** 2026-11-07 (v1-finish batch: Tasks 19-20 done)
 **Current phase:** Phase 2 COMPLETE — next is install + dogfood
 **Branch:** v1-file-discovery
 

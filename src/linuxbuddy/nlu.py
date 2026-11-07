@@ -4,8 +4,13 @@ Pure rules + regex. No machine learning, no network, no model (CLAUDE.md
 invariant). ``parse`` turns a natural-language request into a :class:`Frame`
 or returns ``None`` to abstain.
 
-Abstention is a feature: on vague input ("clean up my files") we return
-``None`` rather than guess a command.
+Abstention is ASYMMETRIC by risk (CLAUDE.md invariant #6, revised Task 20):
+read-only intents lean toward emitting a reasonable command (defaults, glob-
+resolved references) — a wrong `grep`/`find` is cheap and editable, and an
+abstain that sends a Linux-new user back to Google is itself a failure. We
+abstain on a read only when no operation is named at all ("clean up my files").
+Destructive intents keep the strict bar: an unclear target/mode refuses, because
+a wrong `rm`/`chmod`/`kill` is a disaster.
 
 ----------------------------------------------------------------------------
 Abstention gate (Task 05, P1.1) — supersedes the old vague-"big" rule
@@ -14,15 +19,12 @@ An intent is emitted ONLY when its defining slot is present:
   * ``find_by_size`` needs ``size_bytes``,
   * ``find_by_time`` needs ``days``,
   * ``find_by_name`` needs ``pattern``.
-A size cue with no number ("biggest files", "big files in downloads") names
-a *goal* but no threshold. Emitting ``find_by_size`` without ``size_bytes``
-compiles to a bare ``find . -type f`` — a match-everything command that looks
-like it worked while ignoring the request. Per CLAUDE.md invariant #6
-("abstain over guess"), we return ``None`` instead. :func:`abstain_hint` then
-lets the CLI say what was missing (e.g. 'how big? try "over 100MB"').
-
-(An earlier revision resolved "big ..." to a thresholdless ``find_by_size``.
-That was the silent-slot-dropping bug this task fixes.)
+A size cue with no number used to abstain to avoid a match-everything bare
+``find . -type f``. That rule still holds for ``find_by_size`` (a thresholdless
+``-size`` filter is meaningless), BUT a size SUPERLATIVE ("biggest files", "big
+files in downloads") now routes to ``find_largest`` (Task 19) — a BOUNDED
+``find | sort -rn | head`` — instead of abstaining. So the defining-slot gate
+below still governs find_by_size/time/name; superlatives are handled before it.
 """
 from __future__ import annotations
 
@@ -255,6 +257,9 @@ _LARGE_DIR_RE = re.compile(
     r"\b(?:big|bigger|biggest|large|larger|largest|huge|enormous|massive)\b",
     re.IGNORECASE,
 )
+_SMALL_DIR_RE = re.compile(
+    r"\b(?:small|smaller|smallest|tiny|tiniest|littlest)\b", re.IGNORECASE,
+)
 _FLARGE_COUNT_RE = re.compile(
     r"\btop\s+(\d+)\b|\bbiggest\s+(\d+)\b|\blargest\s+(\d+)\b"
     r"|\b(\d+)\s+(?:largest|biggest)\b", re.IGNORECASE,
@@ -300,12 +305,25 @@ def _parse_file_discovery(text: str, low: str) -> Frame | None:
     # find_largest: an explicit superlative cue, OR a large-direction size cue
     # with no numeric threshold ("biggest files", "which files are huge").
     # A real threshold ("over 100mb") sets size_bytes → stays find_by_size.
+    # Superlatives need NO numeric threshold (that's the point). Gate on the
+    # direction cue + a plural/space context, and only when no explicit
+    # threshold was given (a real "over 100mb" stays find_by_size below).
     if _FLARGE_RE.search(low) or (
-        size_cue and size_bytes is None and _LARGE_DIR_RE.search(low)
+        size_bytes is None and _LARGE_DIR_RE.search(low)
         and re.search(r"\bfiles\b|\bspace\b|\bdisk\b", low)
     ):
         return Frame("find_largest",
                      {"path": _largest_path(text, low), "count": _flarge_count(low)})
+    # Task 20: the smallest-direction twin → find_smallest (ascending sort).
+    if size_bytes is None and _SMALL_DIR_RE.search(low) and "files" in low:
+        return Frame("find_smallest",
+                     {"path": _largest_path(text, low), "count": _flarge_count(low)})
+    # Task 20: "open <file>" used to mis-route to a find-by-name/type (searched
+    # instead of acting on the named file). "open" is ambiguous on WSL and a
+    # reliable action needs nested $() (deferred), so abstain cleanly rather than
+    # emit a wrong command.
+    if re.search(r"\bopen\b", low):
+        return None
 
     # Intent precedence: size -> time -> name -> type -> abstain.
     #

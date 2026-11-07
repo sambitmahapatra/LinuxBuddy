@@ -42,9 +42,21 @@ Do the task named in the current session, nothing beyond it.
    presses Enter. Confirmation is always present.
 5. **Absolute paths in argv.** Resolve `$HOME`/`~` at compile time. Never emit
    `~` or `$HOME` and rely on the shell.
-6. **Abstain over guess.** If an intent is missing its defining slot, refuse
-   with a hint. A match-everything command (bare `find . -type f`) is worse
-   than a refusal. This is the root cause of both known bugs — honour it.
+6. **Abstain asymmetrically — by risk.** (Revised Task 20; supersedes the old
+   blanket "abstain over guess".) The cost of a wrong command is not symmetric,
+   so neither is the policy:
+   - **Read-only intent, a reasonable interpretation exists → emit it.** A wrong
+     `find`/`grep`/`ls` is cheap: the user sees the output and retries. For a
+     Linux-new user an abstain that sends them back to Google is itself a
+     failure. Use defaults (count, `path=.`) and glob-resolve definite
+     references rather than refusing. Lean toward helping.
+   - **Read-only, genuinely no operation named → abstain** ("fix this", "clean
+     up"). A wild guess the user can't judge is worse than a hint. And never a
+     match-everything placeholder like a thresholdless bare `find . -type f`
+     (bound it — e.g. `find_largest` pipes through `head`).
+   - **Destructive intent (write/delete/chmod/kill), anything less than a
+     confident parse → abstain.** A wrong `rm`/`chmod`/`kill` is a disaster.
+     Caution lives here, not on reads: an unclear target or mode still refuses.
 
 ## Settled design rules (do not re-litigate)
 
