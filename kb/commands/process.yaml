@@ -7,8 +7,9 @@
 # planner compiles each stage separately and returns a list of argv lists; the
 # renderer inserts the `|`. The `|` is never a slot and never an argv element.
 #
-# kill / pkill are destructive and NOT built here (later tier, needs the gate).
-# All intents below are read-only.
+# kill / pkill (Task 15) ARE built now that the P2.0 gate exists: they carry
+# risk_ops [write], so they only emit inside the maze in prototype mode. The
+# read intents above carry [read] and work anywhere.
 
 capability: inspect_process
 utility: ps
@@ -34,3 +35,11 @@ intents:
   show_pid:
     base_argv: ["ps", "-p", "{pid}", "-o", "pid,ppid,stat,%cpu,%mem,args"]
     risk_ops: ["read"]
+
+  # --- kill (Task 15): destructive, gated to the maze ---
+  kill_process:
+    base_argv: ["pkill", "-f", "--", "{pattern}"]
+    risk_ops: ["write"]
+  kill_pid:
+    base_argv: ["kill", "--", "{pid}"]
+    risk_ops: ["write"]

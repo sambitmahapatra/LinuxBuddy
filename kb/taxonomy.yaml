@@ -65,17 +65,17 @@ domains:
   - id: filesystem_permissions  # 40 rows
     priority: 3
     capability: inspect_filesystem  # kb/commands/fs.yaml (Task 11)
-    # Built Task 11 (Tier 1, read-only). change_permissions (chmod) deferred
-    # (destructive, P2.0 gate); dir_empty deferred (needs $(...) substitution).
-    intents: [check_writable, check_readable, check_exists, show_permissions, show_owner, disk_usage]
+    # Reads Task 11; chmod writes added Task 15 (gated, P2.0). COMPLETE except
+    # dir_empty (deferred — needs $(...) command substitution).
+    intents: [check_writable, check_readable, check_exists, show_permissions, show_owner, disk_usage, make_executable, remove_executable, set_permission]
     lead_utilities: [stat, chmod, test, find, du]
 
   - id: processes               # 40 rows
     priority: 3
     capability: inspect_process  # kb/commands/process.yaml (Task 10)
-    # Built Task 10 (Tier 1, read-only). kill_process deferred (destructive,
-    # needs the P2.0 gate). top_by_cpu/mem use a 2-stage pipe (ps | head).
-    intents: [list_processes, top_by_cpu, top_by_mem, find_process, process_on_port, show_pid]
+    # Reads Task 10; kill writes added Task 15 (gated, P2.0). COMPLETE.
+    # top_by_cpu/mem use a 2-stage pipe (ps | head).
+    intents: [list_processes, top_by_cpu, top_by_mem, find_process, process_on_port, show_pid, kill_process, kill_pid]
     lead_utilities: [ps, pgrep, ss, kill]
     note: WSL has no systemd — use ps/pgrep/pkill, never systemctl
 

@@ -598,6 +598,21 @@ _FIND_PROC_RE = re.compile(
 )
 
 
+# kill (Task 15): a PID directly after a kill/process word → kill_pid; else a
+# process name (named/called/matching X, "kill the X process", "kill X").
+_KILL_PID_RE = re.compile(
+    r"\b(?:kill|pid|process(?:\s+id)?|proc)\s+#?(\d{1,7})\b", re.IGNORECASE
+)
+_KILL_PAT_RE = re.compile(
+    r"(?:named|called|matching)\s+([\w.+-]+)"
+    r"|(?:kill|pkill|killall|stop|terminate|end)\s+(?:the\s+)?([\w.+-]+?)\s+process\b"
+    r"|(?:kill|pkill|killall|stop|terminate|end)\s+(?:the\s+|process\s+)?([\w.+-]+)",
+    re.IGNORECASE,
+)
+# generic words that must not become a pkill pattern (would match too much)
+_KILL_STOP = {"process", "processes", "the", "it", "this", "that", "them", "task"}
+
+
 def _top_count(low: str) -> int:
     m = _TOPN_RE.search(low)
     if m:
@@ -605,11 +620,26 @@ def _top_count(low: str) -> int:
     return 10
 
 
+def _kill_pattern(text: str, low: str) -> str | None:
+    m = _KILL_PAT_RE.search(text)
+    if not m:
+        return None
+    pat = next(g for g in m.groups() if g)
+    if pat.lower() in _KILL_STOP:
+        return None
+    return pat
+
+
 def _parse_processes(text: str, low: str):
-    # Destructive verbs are out of scope for Tier 1 → abstain (and, crucially,
-    # do not let "kill python" fall through to file_discovery's python→py).
+    # kill / pkill (Task 15): destructive, gated to the maze by the P2.0 gate.
     if _KILL_RE.search(low):
-        return _ABSTAIN
+        m = _KILL_PID_RE.search(low)
+        if m:
+            return Frame("kill_pid", {"pid": int(m.group(1))})
+        pat = _kill_pattern(text, low)
+        if pat is not None:
+            return Frame("kill_process", {"pattern": pat})
+        return _ABSTAIN  # "kill the process" with no name/pid → abstain
 
     m = _PORT_RE.search(low)
     if m:
@@ -640,12 +670,30 @@ def _parse_processes(text: str, low: str):
 # chmod abstains (destructive); dir_empty is deferred (command substitution).
 # --------------------------------------------------------------------------
 
-_CHMOD_RE = re.compile(
-    r"\b(?:chmod|make\s+(?:it|this|that|the\s+\w+)?\s*(?:executable|runnable|writable"
-    r"|read-?only|non-?executable)|set\s+(?:the\s+)?permissions?"
-    r"|change\s+(?:the\s+)?permissions?|give\s+.*permission)\b",
-    re.IGNORECASE,
+# chmod (Task 15): executable toggle, octal/intent mode. All gated writes.
+_EXEC_CUE_RE = re.compile(
+    r"\b(?:executable|runnable|chmod\s*\+?x|u\+x)\b", re.IGNORECASE
 )
+_NONEXEC_CUE_RE = re.compile(
+    r"\bnot\s+(?:be\s+)?(?:executable|runnable)\b|\bnon-?executable\b"
+    r"|\bremove\s+(?:the\s+)?execut\w+\b|\ba-x\b", re.IGNORECASE
+)
+_SETPERM_CUE_RE = re.compile(
+    r"\bchmod\b|\b(?:set|change)\s+(?:the\s+)?permissions?\b"
+    r"|\bpermissions?\s+to\b|\bset\s+\S+\s+to\s+[0-7]{3,4}\b", re.IGNORECASE
+)
+_OCTAL_RE = re.compile(r"\b([0-7]{3,4})\b")
+_PRIV_READ_RE = re.compile(
+    r"\bonly\s+i\s+(?:can|should)\s+(?:read|edit|see|read or edit)\b"
+    r"|\bprivate\b|\bonly\s+me\b|\bonly\s+my(?:self)?\b", re.IGNORECASE
+)
+_PRIV_ENTER_RE = re.compile(r"\bonly\s+i\s+(?:can|should)\s+enter\b", re.IGNORECASE)
+_CHMOD_OBJ_RE = re.compile(
+    r"\b(?:set|chmod|make)\s+(?:the\s+)?([\w.+-]+)"
+    r"|\b(?:read|edit|see|access)\s+(?:this|the|my)\s+([\w.+-]+)", re.IGNORECASE
+)
+_CHMOD_OBJ_STOP = {"the", "this", "that", "it", "permission", "permissions",
+                   "mode", "executable", "runnable", "to", "a", "an", "my"}
 _EMPTY_RE = re.compile(r"\bempty\b", re.IGNORECASE)
 _FS_WRITABLE_RE = re.compile(
     r"\b(?:can i write|writable|write to|write access|able to write|i can write)\b",
@@ -695,11 +743,56 @@ def _fs_frame(intent: str, text: str, low: str):
     return Frame(intent, slots)
 
 
+def _chmod_target(text: str, low: str) -> str | None:
+    t = _detect_fs_target(text, low)
+    if t is not None:
+        return t
+    m = _CHMOD_OBJ_RE.search(text)
+    if m:
+        obj = next(g for g in m.groups() if g)
+        if obj.lower() not in _CHMOD_OBJ_STOP:
+            return obj
+    return None
+
+
+def _parse_fs_chmod(text: str, low: str):
+    """chmod intents (Task 15), gated writes. Returns a Frame, ``_ABSTAIN``
+    (chmod intent but target/mode undeterminable), or ``None`` (not chmod)."""
+    nonexec = bool(_NONEXEC_CUE_RE.search(low))
+    execc = bool(_EXEC_CUE_RE.search(low)) and not nonexec
+    setperm = bool(_SETPERM_CUE_RE.search(low))
+    priv_read = bool(_PRIV_READ_RE.search(low))
+    priv_enter = bool(_PRIV_ENTER_RE.search(low))
+    if not (execc or nonexec or setperm or priv_read or priv_enter):
+        return None  # not a chmod request — let the read checks run
+
+    target = _chmod_target(text, low)
+    if execc or nonexec:
+        if target is None:
+            return _ABSTAIN  # "make this executable" — no file named
+        return Frame("make_executable" if execc else "remove_executable",
+                     {"path": target})
+
+    # set_permission: octal directly, else map an intent phrase to a mode.
+    mode = None
+    m = _OCTAL_RE.search(low)
+    if m:
+        mode = m.group(1)
+    elif priv_enter:
+        mode = "700"
+    elif priv_read:
+        mode = "600"
+    if mode is None or target is None:
+        return _ABSTAIN  # can't tell the mode or the file → abstain (hint)
+    return Frame("set_permission", {"mode": mode, "path": target})
+
+
 def _parse_filesystem(text: str, low: str):
-    # destructive / deferred first → abstain (this IS the fs domain, so stop;
-    # don't let e.g. "make this executable" fall through to another domain).
-    if _CHMOD_RE.search(low):
-        return _ABSTAIN
+    # chmod now builds real (gated) intents (Task 15); abstains only if the
+    # target/mode can't be determined.
+    chmod = _parse_fs_chmod(text, low)
+    if chmod is not None:
+        return chmod
     if _EMPTY_RE.search(low):
         return _ABSTAIN  # dir_empty deferred (needs $(...) command substitution)
 
@@ -925,4 +1018,9 @@ def abstain_hint(text: str) -> str | None:
         return 'LinuxBuddy: how big? try "over 100MB"'
     if _TIME_CUE_RE.search(low) and _detect_time(low) is None:
         return 'LinuxBuddy: how recent? try "in the last 7 days"'
+    # chmod with no determinable mode (e.g. "change the permissions on X")
+    if (_SETPERM_CUE_RE.search(low) and not _OCTAL_RE.search(low)
+            and not _PRIV_READ_RE.search(low) and not _PRIV_ENTER_RE.search(low)
+            and not _EXEC_CUE_RE.search(low) and not _NONEXEC_CUE_RE.search(low)):
+        return 'LinuxBuddy: what permissions? e.g. 600 for private'
     return None

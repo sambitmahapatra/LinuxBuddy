@@ -46,9 +46,38 @@ def test_show_pid():
     assert f.slots["pid"] == 1234
 
 
-def test_kill_abstains():
-    # destructive, not part of this task
-    assert parse("kill python") is None
+def test_kill_process_builds_gated_intent():
+    # Task 15: kill now builds a real (gated) intent instead of abstaining.
+    f = parse("kill python")
+    assert f.intent == "kill_process"
+    assert f.slots["pattern"] == "python"
+
+
+def test_kill_process_named():
+    f = parse("kill the training process")
+    assert f.intent == "kill_process"
+    assert f.slots["pattern"] == "training"
+    assert compile(f) == ["pkill", "-f", "--", "training"]
+
+
+def test_kill_pid():
+    f = parse("kill process 4821")
+    assert f.intent == "kill_pid"
+    assert f.slots["pid"] == 4821
+    assert compile(f) == ["kill", "--", "4821"]
+
+
+def test_kill_unspecified_abstains():
+    # "kill the process" with no name or pid → abstain, don't guess.
+    assert parse("kill the process") is None
+
+
+def test_kill_intents_gated():
+    from linuxbuddy.planner import risk_ops
+    from linuxbuddy import gate
+    for intent in ("kill_process", "kill_pid"):
+        assert risk_ops(intent) == ["write"]
+        assert gate.check(risk_ops(intent), "/tmp") is not None
 
 
 # --- pipe support (planner + render) ---------------------------------------

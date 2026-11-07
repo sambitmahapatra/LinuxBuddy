@@ -3,8 +3,8 @@
 > The single source of truth for where the project is NOW. Overwrite this
 > after every task. Keep it short. Next session reads this first.
 
-**Last updated:** 2026-11-05 (after Task 14 / Tier 2 batch COMPLETE)
-**Current phase:** Phase 2 — Tier 2 done; 2 domains remain
+**Last updated:** 2026-11-07 (after Task 15 / chmod + kill)
+**Current phase:** Phase 2 — Tier 3 (final domains)
 **Branch:** v1-file-discovery
 
 ---
@@ -62,18 +62,21 @@
     capability `python_env`. Router: python before text (so "...syntax errors"
     isn't grabbed as a grep). pip/venv/activate/server deferred (abstain).
     Verified vs the maze. **119 pass. Tier 2 batch COMPLETE.**
+  - **Tier 3 batch (tasks 15–17) IN PROGRESS.**
+  - **Task 15 — chmod + kill DONE.** filesystem gains make_executable/
+    remove_executable/set_permission (chmod, gated); processes gains
+    kill_process (pkill -f)/kill_pid (kill), gated. Old kill/chmod abstains
+    replaced by real intents. Both domains now COMPLETE (only dir_empty
+    deferred). Verified vs the maze. **129 pass.**
 
 ## In progress
 
-- Nothing. Tier 2 batch (12–14) complete.
+- **Tier 3 batch:** 15 done. Next: 16 workspace_and_shell, 17 wsl_interop.
 
 ## Next (in order)
 
-1. Quick follow-on (optional, now cheap — gate exists): `chmod`
-   (filesystem_permissions) and `kill`/`pkill` (processes) complete those two
-   Tier-1 domains.
-2. Last/hardest two domains: `workspace_and_shell` (multi-step) and
-   `wsl_interop` (GUI).
+1. Task 16 `workspace_and_shell` (scoped multi-step), then 17 `wsl_interop`
+   (GUI, hand-tested) — completes all 9 domains / Phase 2.
 2. (Later / optional) Resolve the **3 genuine remaining FAILs** (dangling
    `$TARGET_FILE`) and decide whether to make the 13 ACCEPTED_EMPTY scenarios
    literal via small `build_maze.sh` additions — see below.

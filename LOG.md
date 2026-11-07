@@ -687,3 +687,50 @@ file_discovery. Seven domains built (file_discovery + Tier 1's four + Tier 2's
 two); remaining: workspace_and_shell (multi-step) and wsl_interop (GUI), plus
 the optional cheap follow-on now that the gate exists — chmod (filesystem) and
 kill/pkill (processes).
+
+## 2026-11-07 — Task 15 (Tier 3): chmod (filesystem) + kill (processes)
+
+**What I did.** Completed two Tier-1 domains with their destructive intents,
+now that the P2.0 gate exists. No new gate logic — the intents carry
+`risk_ops: [write]` and the existing gate does the rest. TDD.
+
+**filesystem_permissions — chmod (3 intents, gated).** `make_executable` →
+`chmod u+x -- {path}`; `remove_executable` → `chmod a-x -- {path}`;
+`set_permission` → `chmod {mode} -- {path}`. Mode resolution: an octal
+(`600`/`644`/`700`) is used directly; else an intent phrase maps —
+"only I can read/edit"/"private"/"only me" → 600, "only I can enter" → 700.
+If neither the mode nor the target file can be determined, the parser abstains
+(and `abstain_hint` now says *"what permissions? e.g. 600 for private"*).
+Target extraction reuses the fs target finder, plus a chmod-object fallback
+(the noun after set/chmod/make, or the object of read/edit) so "set config.yaml
+to 600" and "only I should read secret.txt" resolve their file.
+
+**processes — kill (2 intents, gated).** `kill_process` → `pkill -f -- {pattern}`;
+`kill_pid` → `kill -- {pid}`. A digit right after a kill/process/pid word →
+`kill_pid`; otherwise a process name ("named/called/matching X", "kill the X
+process", "kill X") → `kill_process`. A bare "kill the process" (no name/pid)
+abstains rather than emit a match-everything `pkill`. Generic words
+(process/the/it/…) are blocked from becoming a pkill pattern.
+
+**Replaced the old abstains.** Task 10/11 returned `_ABSTAIN` on any kill/chmod
+verb; those sentinels are gone, replaced by the real intents. The two old tests
+were updated: `test_kill_abstains` → now asserts `kill_process`;
+`test_chmod_abstains` → kept as `test_chmod_no_target_abstains` ("make this
+executable" still abstains, now because no file is named, not because chmod is
+unsupported).
+
+**Tests.** Added to `tests/test_filesystem_read.py` (make/remove exec, octal,
+intent-word private, no-mode hint, gating) and `tests/test_processes.py` (named,
+pid, unspecified-abstain, gating). **129 passed** (was 119), no regression.
+
+**Maze verification (Done when).** Inside the maze: `lb make good_script.sh
+executable` → `chmod u+x -- good_script.sh` runs (exit 0); a fresh `644` file
+became `-rwxr--r--` after the emitted command, proving the bits change. From
+`/tmp` the same request abstains via the gate. `lb kill the sleep process` →
+`pkill -f -- sleep`; `lb kill process 4821` → `kill -- 4821`; both abstain from
+`/tmp`. The kill path was executed end-to-end against a process I spawned
+myself (`kill -- <pid>` genuinely terminated it) to avoid collateral from a
+broad `pkill`. ✓
+
+**filesystem_permissions and processes are now COMPLETE domains.** Only
+dir_empty remains deferred in filesystem (needs `$(...)`).

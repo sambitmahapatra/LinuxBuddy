@@ -54,8 +54,52 @@ def test_disk_usage():
     assert f.slots["path"] == "data"
 
 
-def test_chmod_abstains():
+def test_chmod_no_target_abstains():
+    # "make this executable" names no file → abstain (can't guess the target).
     assert parse("make this executable") is None
+
+
+# --- chmod (Task 15): gated write intents --------------------------------
+
+def test_make_executable():
+    f = parse("make deploy.sh executable")
+    assert f.intent == "make_executable"
+    assert f.slots["path"] == "deploy.sh"
+    assert compile(f) == ["chmod", "u+x", "--", "deploy.sh"]
+
+
+def test_remove_executable():
+    f = parse("secret.txt should not be executable")
+    assert f.intent == "remove_executable"
+    assert compile(f) == ["chmod", "a-x", "--", "secret.txt"]
+
+
+def test_set_permission_octal():
+    f = parse("set config.yaml to 600")
+    assert f.intent == "set_permission"
+    assert f.slots["mode"] == "600"
+    assert f.slots["path"] == "config.yaml"
+    assert compile(f) == ["chmod", "600", "--", "config.yaml"]
+
+
+def test_set_permission_intent_word_private():
+    f = parse("only I should read secret.txt")
+    assert f.intent == "set_permission"
+    assert f.slots["mode"] == "600"
+
+
+def test_chmod_no_mode_abstains_with_hint():
+    from linuxbuddy.nlu import abstain_hint
+    assert parse("change the permissions on config.yaml") is None
+    assert "permissions" in abstain_hint("change the permissions on config.yaml")
+
+
+def test_chmod_intents_gated():
+    from linuxbuddy.planner import risk_ops
+    from linuxbuddy import gate
+    for intent in ("make_executable", "remove_executable", "set_permission"):
+        assert risk_ops(intent) == ["write"]
+        assert gate.check(risk_ops(intent), "/tmp") is not None
 
 
 # --- planner + render ------------------------------------------------------

@@ -8,9 +8,11 @@
 # NOT support `--`, so check_* deliberately omit it (matching the dataset's
 # reference commands); the slot value is still quoted to one argv element.
 #
-# chmod (destructive) and dir_empty (needs a `$(...)` command substitution,
-# which the flat-argv/round-trip model can't represent safely) are NOT built —
-# see the NLU, which abstains on both.
+# chmod (Task 15) IS built now that the P2.0 gate exists: make_executable /
+# remove_executable / set_permission carry risk_ops [write], so they only emit
+# inside the maze in prototype mode. dir_empty is still NOT built (needs a
+# `$(...)` command substitution the flat-argv/round-trip model can't represent
+# safely) — the NLU still abstains on "is X empty".
 
 capability: inspect_filesystem
 utility: coreutils
@@ -37,3 +39,14 @@ intents:
   disk_usage:
     base_argv: ["du", "-sh", "--", "{path}"]
     risk_ops: ["read"]
+
+  # --- chmod (Task 15): destructive, gated to the maze ---
+  make_executable:
+    base_argv: ["chmod", "u+x", "--", "{path}"]
+    risk_ops: ["write"]
+  remove_executable:
+    base_argv: ["chmod", "a-x", "--", "{path}"]
+    risk_ops: ["write"]
+  set_permission:
+    base_argv: ["chmod", "{mode}", "--", "{path}"]
+    risk_ops: ["write"]
