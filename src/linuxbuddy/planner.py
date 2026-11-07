@@ -15,7 +15,7 @@ import re
 
 from .kb import load_kb
 from .nlu import Frame
-from .render import Stages
+from .render import Stages, Raw
 
 __all__ = ["compile", "PlanError", "risk_ops"]
 
@@ -78,7 +78,9 @@ def risk_ops(intent: str) -> list[str]:
 def _resolved_slots(frame: Frame) -> dict[str, str]:
     resolved: dict[str, str] = {}
     for key, val in frame.slots.items():
-        if key == "path":
+        if isinstance(val, Raw):
+            resolved[key] = val  # a trusted glob — no ~/$HOME resolution, keep Raw
+        elif key == "path":
             resolved[key] = _resolve_path(str(val))
         else:
             resolved[key] = str(val)
@@ -92,12 +94,21 @@ def _substitute(element: str, slots: dict[str, str]) -> str:
 
 
 def _build_stage(base: list, optional: dict, frame: Frame, slots: dict) -> list[str]:
-    argv: list[str] = [_resolve_literal(_substitute(elem, slots)) for elem in base]
+    # A whole element that resolves exactly to a Raw (glob) slot value stays Raw,
+    # so render emits it unquoted (and the shell expands it). A glob only ever
+    # occupies a whole element ("{path}"/"{archive}"), never a fragment.
+    raw_vals = {str(v) for v in slots.values() if isinstance(v, Raw)}
+
+    def _sub(elem: str) -> str:
+        out = _resolve_literal(_substitute(elem, slots))
+        return Raw(out) if out in raw_vals else out
+
+    argv: list[str] = [_sub(elem) for elem in base]
     # Append optional fragments in KB-declared order, only for slots present.
     # Iterating the KB (not the frame) fixes the flag order deterministically.
     for slot_key, fragment in optional.items():
         if slot_key in frame.slots:
-            argv.extend(_substitute(elem, slots) for elem in fragment)
+            argv.extend(_sub(elem) for elem in fragment)
     for elem in argv:
         if _PLACEHOLDER_RE.search(elem):
             raise PlanError(f"unresolved placeholder in argv element {elem!r}")

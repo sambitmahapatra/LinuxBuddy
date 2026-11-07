@@ -31,6 +31,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from .render import Raw
+
 __all__ = ["Frame", "parse", "abstain_hint"]
 
 
@@ -383,9 +385,49 @@ def parse(text: str) -> Frame | None:
 _FILE_TOKEN_RE = re.compile(r"\b([\w./+-]*\w\.[A-Za-z][A-Za-z0-9]{0,7})\b")
 
 
+# --------------------------------------------------------------------------
+# Definite-reference resolution (Task 22) — the #1 eval fix.
+#
+# Users say "the log", "the backup", "the config" — a definite reference, not a
+# filename. The intent is recognised but there's no path, so the planner used to
+# abstain. When the reference implies a FILE TYPE, resolve it to a GLOB
+# (returned as render.Raw so it's emitted UNQUOTED and the user's shell expands
+# it): "show errors in the log" → grep -niF -- error *.log.
+#
+# Subdirectory choice (documented): a bare glob matches the CWD only. In the
+# maze, logs live in logs/, so `*.log` from the project root may match nothing —
+# that's accepted: a command the user can edit beats an abstain (per Task 22 and
+# invariant #6). We do NOT force every search recursive.
+#
+# GENERIC references with no implied type ("this file", "the file", "this list",
+# "these names") have no glob to resolve to → they KEEP abstaining. That ~10-row
+# residual is the documented motivation for the v2 attention model.
+# --------------------------------------------------------------------------
+
+_DEFINITE_GLOBS = [
+    (re.compile(r"\bthe\s+log\s+file\b|\bthe\s+logs?\b|\bthis\s+log\b|\bmy\s+logs?\b"), "*.log"),
+    (re.compile(r"\bgzipp?ed\s+(?:archive|file)\b|\bthe\s+gzip\b|\bthe\s+gz\b"), "*.gz"),
+    (re.compile(r"\bthe\s+(?:backup|tarball)\b|\bthis\s+(?:backup|tarball)\b|\bmy\s+(?:backup|tarball)\b"), "*.tar.gz"),
+    (re.compile(r"\bthe\s+archive\b|\bthis\s+archive\b"), "*.tar.gz"),
+    (re.compile(r"\bthe\s+zip\b|\bthis\s+zip\b"), "*.zip"),
+    (re.compile(r"\bthe\s+config(?:\s+file)?\b|\bthis\s+config\b|\bmy\s+config\b"), "config.*"),
+    (re.compile(r"\bthe\s+csv(?:\s+file)?\b|\bthis\s+csv\b"), "*.csv"),
+]
+_ARCHIVE_GLOBS = {"*.tar.gz", "*.gz", "*.zip"}
+
+
+def _definite_glob(low: str):
+    """A typed definite reference → a shell glob (render.Raw), or None."""
+    for rx, g in _DEFINITE_GLOBS:
+        if rx.search(low):
+            return Raw(g)
+    return None
+
+
 def _detect_path_arg(text: str, low: str) -> str | None:
-    """A concrete file/dir the request names, or None. Prefers an explicit
-    quote, then a slash path, then a bare ``name.ext``."""
+    """A concrete file/dir the request names, or a typed definite-reference glob
+    (Task 22), or None. Prefers an explicit quote, then a slash path, then a
+    bare ``name.ext``, then a definite-reference glob."""
     m = _QUOTED_RE.search(text)
     if m:
         return m.group(1)
@@ -395,7 +437,7 @@ def _detect_path_arg(text: str, low: str) -> str | None:
     m = _FILE_TOKEN_RE.search(text)
     if m:
         return m.group(1)
-    return None
+    return _definite_glob(low)
 
 
 # --------------------------------------------------------------------------
@@ -935,11 +977,19 @@ def _arc_is_zip(archive: str) -> bool:
 
 
 def _parse_archives(text: str, low: str):
-    archive = _ARCHIVE_FILE_RE.search(text)
-    archive = archive.group(1) if archive else None
+    m = _ARCHIVE_FILE_RE.search(text)
+    archive = m.group(1) if m else None
+    # Task 22: "the backup/tarball/archive/gz/zip" → an archive-type glob, so
+    # read intents (and extract) can fire without a concrete filename. create
+    # does NOT use the glob — a glob as an OUTPUT name is nonsense, so it still
+    # needs a real name or abstains.
+    g = _definite_glob(low)
+    arc_glob = g if g is not None and str(g) in _ARCHIVE_GLOBS else None
+    arc = archive if archive is not None else arc_glob
 
     # 1. extract: unpack <archive> into <dir> → mkdir && tar (2-stage).
-    if _ARC_EXTRACT_RE.search(low) and archive is not None:
+    if _ARC_EXTRACT_RE.search(low) and arc is not None:
+        archive = arc
         m = _ARC_INTO_RE.search(text)
         dest = (m.group(1) or m.group(2)) if m else None
         slots = {"archive": archive}
@@ -957,14 +1007,14 @@ def _parse_archives(text: str, low: str):
             slots["name"] = m.group(1)
         return Frame("create_archive", slots)
 
-    # 3. list contents: tar -tf (or zipfile -l for .zip).
-    if _ARC_LIST_RE.search(low) and archive is not None:
-        intent = "list_zip" if _arc_is_zip(archive) else "list_archive"
-        return Frame(intent, {"archive": archive})
+    # 3. list contents: tar -tf (or zipfile -l for .zip). (arc = concrete or glob)
+    if _ARC_LIST_RE.search(low) and arc is not None:
+        intent = "list_zip" if _arc_is_zip(arc) else "list_archive"
+        return Frame(intent, {"archive": arc})
 
     # 4. integrity check: gzip -t.
-    if _ARC_INTEGRITY_RE.search(low) and archive is not None:
-        return Frame("archive_integrity", {"archive": archive})
+    if _ARC_INTEGRITY_RE.search(low) and arc is not None:
+        return Frame("archive_integrity", {"archive": arc})
 
     # 5. single-file compress: gzip -k (no "into <archive>" — that was create).
     if _ARC_COMPRESS_RE.search(low):
@@ -975,8 +1025,8 @@ def _parse_archives(text: str, low: str):
         return Frame("compress_file", slots)
 
     # 6. size of a named archive: du -h.
-    if _ARC_SIZE_RE.search(low) and archive is not None:
-        return Frame("archive_size", {"archive": archive})
+    if _ARC_SIZE_RE.search(low) and arc is not None:
+        return Frame("archive_size", {"archive": arc})
 
     return None
 
@@ -1037,6 +1087,17 @@ _PY_WHERE_RE = re.compile(
 )
 
 
+def _py_script_path(text: str, low: str):
+    """A concrete script path / definite-ref glob, or "*.py" for "the script"
+    (Task 22 — script is py in the python domain)."""
+    p = _detect_path_arg(text, low)
+    if p is not None:
+        return p
+    if re.search(r"\b(?:the|this|my)\s+script\b", low):
+        return Raw("*.py")
+    return None
+
+
 def _parse_python(text: str, low: str):
     # Deferred families abstain (network / shell-state / long-running). Checked
     # first so "run setup in the venv" doesn't slip through as run_script.
@@ -1045,14 +1106,14 @@ def _parse_python(text: str, low: str):
 
     if _PY_SYNTAX_RE.search(low):
         slots: dict = {}
-        p = _detect_path_arg(text, low)
+        p = _py_script_path(text, low)
         if p is not None:
             slots["path"] = p
         return Frame("check_syntax", slots)
 
     if _PY_RUN_RE.search(low):
         slots = {}
-        p = _detect_path_arg(text, low)
+        p = _py_script_path(text, low)
         if p is not None:
             slots["path"] = p
         return Frame("run_script", slots)

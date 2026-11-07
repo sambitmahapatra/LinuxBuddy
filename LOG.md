@@ -943,3 +943,50 @@ unclear abstains. **161 passed.**
 **Maze verification.** `open huge_dataset.csv` → abstain (no stray find);
 `smallest files` → `find … | sort -n | head`; `do the thing` → abstain;
 `make this executable` → abstain. ✓
+
+## 2026-11-07 — Task 22 (v1-finish): definite-reference resolution (#1 fix)
+
+**What I did.** The eval's biggest failure pattern (28/50): users say "the log",
+"the backup", "the config" — a definite reference, not a filename — so the intent
+is recognised but there's no path and the planner abstained. Now a TYPED
+definite reference resolves to a glob and a command is emitted.
+
+**The glob must be UNQUOTED (new `render.Raw`).** The emitted command is
+`grep -niF -- error *.log` — the user's SHELL expands `*.log`. But render quotes
+every argv element (shlex.quote("*.log") → '*.log', which would NOT expand). So
+I added `render.Raw(str)`: a TRUSTED shell-literal (a glob WE generated) that
+render emits verbatim, guarded by a safe charset, and still proving the whole
+command round-trips (`shlex.split(rendered) == argv`). Raw is only ever produced
+by the planner/nlu from a recognised reference — never from a user slot. The
+planner preserves Raw through slot resolution and re-wraps a whole element that
+resolves to a Raw value; find's own `-name '*.csv'` stays NON-Raw (quoted —
+find does its own globbing, the shell must not).
+
+**References resolved** (`_definite_glob`): the log(s)→`*.log`; the
+backup/tarball/archive→`*.tar.gz`; gzipped archive / the gz→`*.gz`; the
+zip→`*.zip`; the config→`config.*`; the csv→`*.csv`; (python) the
+script→`*.py`. Wired into the shared `_detect_path_arg` (so file_inspection,
+text, filesystem, compress all get it), the archives parser (archive-type globs
+for list/integrity/size/extract — NOT create, where a glob output name is
+nonsense), and a python script helper.
+
+**Documented choices.** (1) Subdirectory: a bare glob matches CWD only; from the
+project root `*.log` may match nothing (logs live in logs/) — accepted, a
+command the user edits beats an abstain; I did NOT force searches recursive.
+(2) GENERIC references with no implied type ("this file", "sort this list") have
+no glob → they KEEP abstaining (recognise the op, no file → compile fails →
+CLI exit 1). That ~10-row residual is the documented motivation for the v2
+attention model.
+
+**Tests (`tests/test_definite_reference.py`).** the log→`grep … *.log`, warnings
+count, the backup tarball→`tar -tf *.tar.gz`, gzipped archive→`gzip -t -- *.gz`,
+the config file→`stat … config.*`, run the script→`python3 -- *.py`, the
+Raw-round-trip, generic-still-abstains, and concrete-filename-unaffected.
+**170 passed.**
+
+**Maze verification.** In logs/: `errors in the log` → `grep -niF -- error *.log`
+lists real ERROR lines; `how many warnings in the log` → `grep -ciF -- warning
+*.log` → train.log:39. In archives/: `the backup tarball` → `tar -tf *.tar.gz`;
+`gzipped archive` → `gzip -t -- *.gz`. `who owns the config file` →
+`stat -c %U:%G -- config.*`; `run the script` → `python3 -- *.py`. `sort this
+list` abstains. ✓

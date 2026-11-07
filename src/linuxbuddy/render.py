@@ -11,13 +11,27 @@ the round trip would differ and we raise instead of emitting it.
 """
 from __future__ import annotations
 
+import re
 import shlex
 
-__all__ = ["to_shell", "RenderError", "Stages"]
+__all__ = ["to_shell", "RenderError", "Stages", "Raw"]
 
 
 class RenderError(ValueError):
     """Raised when a rendered string fails to round-trip back to the argv."""
+
+
+# A Raw element is a TRUSTED shell-literal — a glob WE generated (e.g. "*.log",
+# "config.*") that must reach the shell UNQUOTED so the shell expands it.
+# shlex.quote would wrap "*.log" in quotes and kill the expansion. Raw is only
+# ever produced by the planner/nlu from a recognised definite reference — NEVER
+# from a user-supplied slot value — and is restricted to a safe charset so it
+# still tokenizes back to itself (the round-trip guarantee holds).
+_SAFE_RAW_RE = re.compile(r"^[\w*?.@%+=:,/-]+$")
+
+
+class Raw(str):
+    """A trusted glob/shell-literal argv element, emitted unquoted by render."""
 
 
 class Stages(list):
@@ -41,10 +55,22 @@ def _render_stage(argv: list[str]) -> str:
                 f"argv[{i}] is {type(elem).__name__}, not str: {elem!r}"
             )
 
-    rendered = " ".join(shlex.quote(elem) for elem in argv)
+    parts = []
+    for elem in argv:
+        if isinstance(elem, Raw):
+            # Trusted glob → emit unquoted so the shell expands it. Guard the
+            # charset so an unexpected value can never smuggle in whitespace or
+            # a shell operator.
+            if not _SAFE_RAW_RE.match(elem):
+                raise RenderError(f"unsafe Raw element: {elem!r}")
+            parts.append(str(elem))
+        else:
+            parts.append(shlex.quote(elem))
+    rendered = " ".join(parts)
 
-    # The guarantee: the shell must re-tokenize this back to the exact argv.
-    if shlex.split(rendered) != argv:
+    # The guarantee: the shell must re-tokenize this back to the exact argv
+    # (comparing as plain strings, since Raw is a str subclass).
+    if shlex.split(rendered) != [str(e) for e in argv]:
         raise RenderError(
             f"render did not round-trip: {rendered!r} -> {shlex.split(rendered)!r} "
             f"!= {argv!r}"
