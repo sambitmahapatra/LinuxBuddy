@@ -115,6 +115,11 @@ def _detect_time(text: str) -> int | None:
         return 1
     if re.search(r"\b(this|last|past)\s+week\b", text):
         return 7
+    # Task 23 (E016): a bare recency cue with no number → a sensible default
+    # window (7 days), so "recently modified logs" keeps its -mtime instead of
+    # dropping the time part and degrading to a plain find-by-type.
+    if re.search(r"\b(recently|lately|recent)\b", text):
+        return 7
     return None
 
 
@@ -204,6 +209,10 @@ def _detect_ext(text: str) -> str | None:
 
 _CALLED_RE = re.compile(r"\b(?:called|named)\s+([^\s]+)", re.IGNORECASE)
 _QUOTED_RE = re.compile(r"""['"]([^'"]+)['"]""")
+# Task 23 (E018): a concrete "name.ext" in the request is an EXACT filename, not
+# a type glob. The extension must start with a letter so a version like "3.11"
+# isn't mistaken for a file.
+_BARE_FILE_RE = re.compile(r"\b([\w-]+\.[a-z][a-z0-9]{0,7})\b", re.IGNORECASE)
 
 
 def _detect_name(text: str) -> str | None:
@@ -213,6 +222,9 @@ def _detect_name(text: str) -> str | None:
     m = _CALLED_RE.search(text)
     if m:
         return m.group(1).strip(".,!?;:")
+    m = _BARE_FILE_RE.search(text)
+    if m:
+        return m.group(1)
     return None
 
 
@@ -492,6 +504,13 @@ def _stat_fmt(low: str) -> str:
     return "%y %A %s %n"
 
 
+# Task 23 (E024): display verbs that unambiguously mean "show me this file's
+# contents". Deliberately NARROW — "show"/"read"/"view"/"open" are excluded
+# because they collide with other intents ("show distinct rows", "only I should
+# read X", "open X" stays a Task-20 abstain).
+_DISPLAY_VERB_RE = re.compile(r"\b(?:print|cat|display|dump)\b", re.IGNORECASE)
+
+
 def _parse_file_inspection(text: str, low: str):
     # A superlative "top N … by size" belongs to find_largest, not show_size.
     if _FLARGE_RE.search(low):
@@ -521,6 +540,16 @@ def _parse_file_inspection(text: str, low: str):
         broad.add("type")
     if is_stat:
         broad.add("stat")
+
+    # Task 23 (E024): a display verb ("print/cat/show config.yaml") naming a
+    # concrete file → preview it (cat/head), instead of falling through to
+    # file_discovery and emitting a find. Only when nothing else already matched
+    # and there's no search/log cue — "show errors in app.log" stays a grep, and
+    # "open X" (Task 20) stays out of here (open is not a display verb).
+    if (not broad and _DISPLAY_VERB_RE.search(low)
+            and not _LOG_WORD_RE.search(low)
+            and _detect_path_arg(text, low) is not None):
+        broad.add("preview")
 
     if not broad:
         return None  # not a file_inspection request — let the next domain try
@@ -691,7 +720,24 @@ def _parse_text_and_logs(text: str, low: str):
 # --------------------------------------------------------------------------
 
 _KILL_RE = re.compile(r"\b(?:kill|pkill|killall)\b", re.IGNORECASE)
+# Task 23 (E060/E062): "stop"/"terminate"/"end" are kill synonyms, but only when
+# "process" is in the phrase — so "stop the X process" kills while "stop the
+# server" (a different intent) does not get swept in.
+_KILL_TRIGGER_RE = re.compile(
+    r"\b(?:kill|pkill|killall)\b"
+    r"|\b(?:stop|terminate|end)\s+(?:the\s+|this\s+|that\s+)?[\w.+-]+\s+process\b"
+    r"|\b(?:stop|terminate|end)\s+(?:the\s+)?process\b",
+    re.IGNORECASE,
+)
 _PORT_RE = re.compile(r"\bport\s+#?(\d{1,5})\b", re.IGNORECASE)
+# Task 23 (E056/E058): a port/listening query with NO specific number → list all
+# listening sockets rather than abstain.
+_LISTENING_RE = re.compile(
+    r"\bwhat'?s?\s+(?:on\s+)?(?:my\s+)?ports?\b|\bon\s+(?:my\s+)?ports?\b"
+    r"|\bwhat'?s?\s+listening\b|\blistening\s+(?:ports?|sockets?)\b"
+    r"|\b(?:open|used)\s+ports?\b|\bports?\s+(?:are\s+)?(?:open|in\s+use|listening)\b",
+    re.IGNORECASE,
+)
 _PID_RE = re.compile(r"\b(?:pid|process id|process)\s+#?(\d{1,7})\b", re.IGNORECASE)
 _TOPN_RE = re.compile(
     r"\btop\s+(\d+)\b|\b(\d+)\s+(?:processes|consumers|results)\b", re.IGNORECASE
@@ -749,8 +795,9 @@ def _kill_pattern(text: str, low: str) -> str | None:
 
 
 def _parse_processes(text: str, low: str):
-    # kill / pkill (Task 15): destructive, gated to the maze by the P2.0 gate.
-    if _KILL_RE.search(low):
+    # kill / pkill / stop / terminate (Task 15 + 23): destructive, gated to the
+    # maze by the P2.0 gate.
+    if _KILL_TRIGGER_RE.search(low):
         m = _KILL_PID_RE.search(low)
         if m:
             return Frame("kill_pid", {"pid": int(m.group(1))})
@@ -762,6 +809,10 @@ def _parse_processes(text: str, low: str):
     m = _PORT_RE.search(low)
     if m:
         return Frame("process_on_port", {"port": int(m.group(1))})
+
+    # Task 23 (E056/E058): port/listening query with no number → list sockets.
+    if _LISTENING_RE.search(low):
+        return Frame("list_listening", {})
 
     m = _PID_RE.search(low)
     if m:
@@ -802,7 +853,7 @@ _SETPERM_CUE_RE = re.compile(
 )
 _OCTAL_RE = re.compile(r"\b([0-7]{3,4})\b")
 _PRIV_READ_RE = re.compile(
-    r"\bonly\s+i\s+(?:can|should)\s+(?:read|edit|see|read or edit)\b"
+    r"\bonly\s+i\s+(?:can|should)(?:\s+be\s+able\s+to)?\s+(?:read|edit|see|access|open)\b"
     r"|\bprivate\b|\bonly\s+me\b|\bonly\s+my(?:self)?\b", re.IGNORECASE
 )
 _PRIV_ENTER_RE = re.compile(r"\bonly\s+i\s+(?:can|should)\s+enter\b", re.IGNORECASE)
@@ -870,9 +921,20 @@ def _chmod_target(text: str, low: str) -> str | None:
         return t
     m = _CHMOD_OBJ_RE.search(text)
     if m:
-        obj = next(g for g in m.groups() if g)
-        if obj.lower() not in _CHMOD_OBJ_STOP:
+        obj = next((g for g in m.groups() if g), None)
+        if obj and obj.lower() not in _CHMOD_OBJ_STOP:
             return obj
+    # Task 23: a definite "script" reference → a shell-script glob (E075).
+    if re.search(r"\b(?:the|this|my)\s+script\b", low):
+        return Raw("*.sh")
+    # Task 23 (E077/E078): a chmod intent clearly aimed at "this file" / "this" —
+    # the mode is unambiguous from the intent words but the file is a generic
+    # reference. Emit a FILE placeholder the user fills, rather than abstain; the
+    # destructive gate still contains it to the maze. A bare "make this
+    # executable" (no file noun / privacy cue) still abstains — see Task 20.
+    if re.search(r"\b(?:this|the|my)\s+file\b|\bread\s+this\b|\bedit\s+this\b"
+                 r"|\bprivate\b|\bonly\s+i\b", low):
+        return "FILE"
     return None
 
 
@@ -965,6 +1027,14 @@ _ARC_INTEGRITY_RE = re.compile(
     re.IGNORECASE,
 )
 _ARC_COMPRESS_RE = re.compile(r"\b(?:compress|gzip)\b", re.IGNORECASE)
+# Task 23 (E084): the thing being archived, e.g. "zip up the project" → project.
+_ARC_CREATE_OBJ_RE = re.compile(
+    r"\b(?:package|tar\s+up|zip\s+up|bundle|archive|compress)\s+(?:up\s+)?"
+    r"(?:the\s+|this\s+|my\s+)?([\w./-]+)",
+    re.IGNORECASE,
+)
+_ARC_CREATE_STOP = {"the", "this", "my", "a", "an", "it", "up", "into", "folder",
+                    "directory", "dir", "everything"}
 _ARC_SIZE_RE = re.compile(r"\bhow big\b|\bsize of\b", re.IGNORECASE)
 _ARC_INTO_RE = re.compile(
     r"\binto\s+(?:the\s+)?([\w./-]+)|\bto\s+(?:the\s+)?([\w./-]+)\s+(?:folder|dir)\b",
@@ -1000,11 +1070,20 @@ def _parse_archives(text: str, low: str):
     # 2. create: package the <name> folder into <archive> (output is .tar.gz).
     if _ARC_CREATE_RE.search(low):
         slots = {"parent": "."}
-        if archive is not None:
-            slots["archive"] = archive
+        name = None
         m = _FOLDER_NAME_RE.search(low)
         if m and m.group(1).lower() not in _ARTICLES:
-            slots["name"] = m.group(1)
+            name = m.group(1)
+        if name is None:  # Task 23 (E084): "zip up the project" → name=project
+            m = _ARC_CREATE_OBJ_RE.search(low)
+            if m and m.group(1).lower() not in _ARC_CREATE_STOP:
+                name = m.group(1)
+        if name is not None:
+            slots["name"] = name
+        if archive is not None:
+            slots["archive"] = archive
+        elif name is not None:  # default the output name from the source name
+            slots["archive"] = name + ".tar.gz"
         return Frame("create_archive", slots)
 
     # 3. list contents: tar -tf (or zipfile -l for .zip). (arc = concrete or glob)
@@ -1085,6 +1164,23 @@ _PY_WHERE_RE = re.compile(
     r"|\bpython\b[^.]*\b(?:located|live|lives|installed)\b|\blocation\s+of\s+python\b",
     re.IGNORECASE,
 )
+# Task 23 (E090): "is numpy installed" is about a PYTHON PACKAGE, not a CLI
+# binary — `command -v numpy` always fails. A small known-package hint set routes
+# the install-check to the importlib test; an unknown token ("is docker
+# installed") falls through to workspace's `command -v`.
+_KNOWN_PY_PKGS = {
+    "numpy", "pandas", "scipy", "torch", "pytorch", "sklearn", "scikit-learn",
+    "matplotlib", "seaborn", "requests", "flask", "django", "tensorflow",
+    "keras", "transformers", "pytest", "jupyter", "notebook", "plotly",
+    "statsmodels", "xgboost", "lightgbm", "polars", "pydantic", "fastapi",
+}
+_PY_INSTALLED_PKG_RE = re.compile(
+    r"\bis\s+([\w.-]+)\s+installed\b"
+    r"|\bdo\s+i\s+have\s+([\w.-]+)\s+installed\b"
+    r"|\bcheck\s+(?:if|whether)\s+([\w.-]+)\s+is\s+installed\b"
+    r"|\b([\w.-]+)\s+is\s+installed\b",
+    re.IGNORECASE,
+)
 
 
 def _py_script_path(text: str, low: str):
@@ -1123,6 +1219,14 @@ def _parse_python(text: str, low: str):
         pkg = next(g for g in m.groups() if g)
         return Frame("check_package", {"pkg": pkg})
 
+    # Task 23 (E090): "is <pkg> installed" for a KNOWN Python package → importlib
+    # check. Unknown token → not ours (workspace's command -v handles CLI tools).
+    m = _PY_INSTALLED_PKG_RE.search(text)
+    if m:
+        pkg = next(g for g in m.groups() if g)
+        if pkg.lower() in _KNOWN_PY_PKGS:
+            return Frame("check_package", {"pkg": pkg})
+
     if _PY_VERSION_RE.search(low):
         return Frame("python_version", {})
     if _PY_WHERE_RE.search(low):
@@ -1159,10 +1263,18 @@ _WS_WHICH_SHELL_RE = re.compile(
 )
 _WS_INSTALLED_RE = re.compile(
     r"\bdo\s+i\s+have\s+([\w.+-]+)(?:\s+installed)?\b"
-    r"|\bis\s+([\w.+-]+)\s+installed\b"
+    r"|\bis\s+([\w.+-]+)\s+(?:installed|there|available)\b"
+    r"|\bcheck\s+(?:if|whether)\s+([\w.+-]+)\s+is\s+(?:installed|there|available)\b"
+    r"|\b([\w.+-]+)\s+is\s+installed\b"
     r"|\b(?:command\s+-v|which)\s+([\w.+-]+)\b",
     re.IGNORECASE,
 )
+# Tokens that are ordinary English, never a tool name — so "which files are huge"
+# (Task 23 E004) can't become `command -v files`.
+_NOT_A_TOOL = {
+    "files", "file", "one", "ones", "way", "version", "it", "that", "this",
+    "any", "directory", "folder", "command", "something", "anything", "them",
+}
 _WS_GO_HOME_RE = re.compile(
     r"\bgo\s+home\b|\btake\s+me\s+home\b|\bback\s+to\s+(?:my\s+)?home\b"
     r"|\bhome\s+(?:folder|directory)\b|\bcd\s+~\b|\bto\s+my\s+home\b", re.IGNORECASE,
@@ -1229,8 +1341,9 @@ def _parse_workspace(text: str, low: str):
 
     m = _WS_INSTALLED_RE.search(text)
     if m:
-        tool = next(g for g in m.groups() if g)
-        return Frame("check_installed", {"tool": tool})
+        tool = next((g for g in m.groups() if g), None)
+        if tool and tool.lower() not in _NOT_A_TOOL:
+            return Frame("check_installed", {"tool": tool})
 
     if _WS_GO_HOME_RE.search(low):
         return Frame("go_home", {})
@@ -1289,7 +1402,7 @@ _WSL_EXPLORER_RE = re.compile(
     r"\bexplorer\b|\bfile\s+explorer\b|\bopen\b[^.]*\bin\s+windows\b", re.IGNORECASE
 )
 _WSL_CDRIVE_RE = re.compile(r"\bc\s*:?\s*drive\b|/mnt/c\b", re.IGNORECASE)
-_WSL_SPACE_RE = re.compile(r"\b(?:free\s+space|how\s+much\s+(?:free\s+)?space|disk\s+space|space\s+(?:on|left))\b", re.IGNORECASE)
+_WSL_SPACE_RE = re.compile(r"\b(?:free\s+space|how\s+much\s+(?:free\s+)?(?:space|room)|disk\s+space|(?:space|room)\s+(?:on|left))\b", re.IGNORECASE)
 _WSL_UBUNTU_RE = re.compile(r"\b(?:ubuntu|linux\s+home|linux\s+side|wsl)\b", re.IGNORECASE)
 _WSL_HOME_RE = re.compile(r"\b(?:linux|ubuntu)\s+home\b|\bback\s+to\s+my\s+linux\b", re.IGNORECASE)
 

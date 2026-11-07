@@ -32,6 +32,9 @@ intents:
   process_on_port:
     base_argv: ["ss", "-ltnp", "sport = :{port}"]
     risk_ops: ["read"]
+  list_listening:
+    base_argv: ["ss", "-ltnp"]
+    risk_ops: ["read"]
   show_pid:
     base_argv: ["ps", "-p", "{pid}", "-o", "pid,ppid,stat,%cpu,%mem,args"]
     risk_ops: ["read"]

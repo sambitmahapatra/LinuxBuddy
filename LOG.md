@@ -990,3 +990,52 @@ lists real ERROR lines; `how many warnings in the log` → `grep -ciF -- warning
 `gzipped archive` → `gzip -t -- *.gz`. `who owns the config file` →
 `stat -c %U:%G -- config.*`; `run the script` → `python3 -- *.py`. `sort this
 list` abstains. ✓
+
+## 2026-11-07 — Task 23 (v1-finish): eval cleanup (wrong-routes, defaults, synonyms)
+
+**What I did.** The smaller, specific fixes the eval exposed — grouped as the
+prompt laid out. All verified end-to-end in the maze and covered by
+`tests/test_eval_cleanup.py` (16 row-anchored tests).
+
+**A. Wrong commands (priority — these emitted misleading commands).**
+- E004 "which files are huge" emitted `command -v -- files` (!). Tightened
+  workspace check_installed with a `_NOT_A_TOOL` stoplist (files/file/one/…) so
+  the interrogative "which" can't become a tool name → now `find_largest`.
+- E024 "print config.yaml" emitted a `find`. Added a NARROW display-verb preview
+  in file_inspection (`print|cat|display|dump` + a concrete file, no log/search
+  cue) → `head -n 10 -- config.yaml`. Kept it narrow after "show"/"read" first
+  stole "show distinct rows", "only I should read X", "show …contents…zip" — so
+  those verbs are excluded; "open" stays a Task-20 abstain.
+- E090 "is numpy installed" emitted `command -v -- numpy` (always fails). Added a
+  known-Python-package set; a known pkg → importlib `check_package`, an unknown
+  token ("is docker installed") → workspace `command -v`.
+- E016 "recently modified logs" dropped the time part — `_detect_time` now
+  returns a 7-day default for "recently/lately/recent" → keeps `-mtime -7`.
+- E018 "where is settings.json" globbed to `*.json` — `_detect_name` now also
+  captures a concrete `name.ext` (extension must start with a letter so "3.11"
+  isn't caught) → `find . -name settings.json`.
+
+**B. Defaults.** E056/E058 "what's on my port" / "what's listening" (no number)
+→ new `list_listening` intent = `ss -ltnp`, instead of abstaining.
+
+**C. Known synonyms.**
+- kill: "stop"/"terminate"/"end" + "… process" → kill_process (E060/E062). Gated
+  by a `_KILL_TRIGGER_RE` that requires "process", so "stop the server" is NOT
+  swept in.
+- check_installed: "check if X is installed", "is X there/available" (E111).
+- "room" → "space" synonym in the WSL space cue (E119 → home_space).
+- archives: "zip up"/"bundle" already cued create; added source-name extraction
+  ("zip up the project" → name=project, output project.tar.gz) (E084).
+- chmod intent-words (E075/E077/E078): broadened `_PRIV_READ_RE` to "only I
+  should be able to read/edit"; `_chmod_target` now resolves "the/this script" →
+  `*.sh` and a generic "this file"/"only I" reference → a `FILE` placeholder the
+  user fills. DECISION/CAVEAT: this is the one place a destructive intent emits
+  against a placeholder rather than abstaining — justified because the MODE is
+  unambiguous from the intent words, it's the enumerated Task-23 set, and the
+  containment gate still blocks it outside the maze. A bare "make this
+  executable" (no file noun / privacy cue) STILL abstains (Task 20 preserved).
+
+**Tests.** `tests/test_eval_cleanup.py` (16) + regressions (stop-non-process not
+kill, can-i-read stays check_readable, unknown-tool stays command -v). Full
+suite **186 passed**. Maze: all 15 named rows now produce the intended command
+(or correct abstain); the 3 wrong-command rows no longer mislead.
