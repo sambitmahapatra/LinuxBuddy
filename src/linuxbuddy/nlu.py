@@ -70,6 +70,17 @@ _SIZE_CUE_RE = re.compile(
     r"\b(big|bigger|biggest|large|larger|largest|huge|small|smaller|tiny)\b",
     re.IGNORECASE,
 )
+# Direction for a numeric size threshold (E042): "under/less/smaller" → -N,
+# otherwise +N. The sign is chosen HERE, not hardcoded in the KB.
+_SIZE_UNDER_RE = re.compile(
+    r"\b(?:under|below|less than|smaller than|at most|no (?:more|bigger|larger) than"
+    r"|up to|within|tinier than)\b",
+    re.IGNORECASE,
+)
+
+
+def _size_sign(low: str) -> str:
+    return "-" if _SIZE_UNDER_RE.search(low) else "+"
 
 # Age superlatives that signal time-intent with no numeric window. Like the
 # size superlatives, these abstain-with-a-hint rather than guess a window.
@@ -348,7 +359,8 @@ def _parse_file_discovery(text: str, low: str) -> Frame | None:
     if size_cue:
         if size_bytes is None:
             return None  # size intent, no threshold -> abstain (see hint)
-        slots["size_bytes"] = size_bytes
+        # E042: sign the threshold by direction ("under 1kb" → -1024c).
+        slots["size_bytes"] = f"{_size_sign(low)}{size_bytes}"
         return Frame("find_by_size", slots)
     if days is not None:
         slots["days"] = days
@@ -460,10 +472,11 @@ _COUNT_LINES_RE = re.compile(
     r"\b(?:how many lines|line count|number of lines|count .* lines)\b"
 )
 _HEAD_RE = re.compile(
-    r"\b(?:head\b|first\s+\d+\s+\w*\s*lines?|first\s+\d+\s+lines?"
+    r"\b(?:head\b|first\s+(?:\d+\s+)?\w*\s*lines?"
     r"|top of|beginning of|column (?:names|headers)|header row)\b"
 )
-_TAIL_RE = re.compile(r"\b(?:tail\b|last\s+\d+\s+\w*\s*lines?|end of)\b")
+# E054: "last lines of the log" (no number) is a tail cue too.
+_TAIL_RE = re.compile(r"\b(?:tail\b|last\s+(?:\d+\s+)?\w*\s*lines?|end of|bottom of)\b")
 _SIZE_BYTES_RE = re.compile(
     r"\b(?:in bytes|byte size|size in bytes|how many bytes"
     r"|how big is (?:this|the) file|file size|size of [^?]* in bytes)\b"
@@ -504,11 +517,20 @@ def _stat_fmt(low: str) -> str:
     return "%y %A %s %n"
 
 
-# Task 23 (E024): display verbs that unambiguously mean "show me this file's
-# contents". Deliberately NARROW — "show"/"read"/"view"/"open" are excluded
-# because they collide with other intents ("show distinct rows", "only I should
-# read X", "open X" stays a Task-20 abstain).
-_DISPLAY_VERB_RE = re.compile(r"\b(?:print|cat|display|dump)\b", re.IGNORECASE)
+# Task 25 (E047/E050/E052): "view" cues that mean "show me this file". Broader
+# than the Task-23 set, but gated by _VIEW_DEFER_RE below so it can't steal a
+# unique/sort/grep/permission/navigation request. "open" stays excluded (Task-20
+# abstain); "read" stays excluded (collides with the chmod privacy cue).
+_VIEW_CUE_RE = re.compile(
+    r"\b(?:print|cat|display|dump|peek(?:\s+at)?|show(?:\s+me)?|view"
+    r"|look\s+at|what'?s\s+in\b|what\s+is\s+in\b|contents\s+of)", re.IGNORECASE)
+# When any of these is present, the "view" cue defers to the domain that owns it
+# (unique/sort → text; perms/owner → filesystem; folder/process → navigation/
+# processes; an archive extension → archives list-contents).
+_VIEW_DEFER_RE = re.compile(
+    r"\b(?:distinct|unique|dedupe|duplicate|sort|alphabetical"
+    r"|folder|directory|dir\b|who\s+(?:owns|can)|permission|owner|private"
+    r"|processes?|running)\b|\.(?:zip|tar|gz|tgz|tbz2?|bz2|xz)\b", re.IGNORECASE)
 
 
 def _parse_file_inspection(text: str, low: str):
@@ -516,7 +538,10 @@ def _parse_file_inspection(text: str, low: str):
     if _FLARGE_RE.search(low):
         return None
     folder = bool(_FOLDER_RE.search(low))
-    is_count = bool(_COUNT_LINES_RE.search(low))
+    logword = bool(_LOG_WORD_RE.search(low))
+    # E069: "count the warnings" is a grep-count of a log word, not wc -l of all
+    # lines — defer the line-count to text_and_logs when a log word is present.
+    is_count = bool(_COUNT_LINES_RE.search(low)) and not logword
     is_head = bool(_HEAD_RE.search(low))
     is_tail = bool(_TAIL_RE.search(low))
     is_type = bool(_TYPE_RE.search(low)) or bool(re.search(r"\bformat\b", low))
@@ -532,7 +557,7 @@ def _parse_file_inspection(text: str, low: str):
     broad = set()
     if re.search(r"\bpreview\b", low) or is_head or is_tail:
         broad.add("preview")
-    if re.search(r"\bcount\b", low) or is_count:
+    if (re.search(r"\bcount\b", low) and not logword) or is_count:
         broad.add("count")
     if is_size:
         broad.add("size")
@@ -541,13 +566,14 @@ def _parse_file_inspection(text: str, low: str):
     if is_stat:
         broad.add("stat")
 
-    # Task 23 (E024): a display verb ("print/cat/show config.yaml") naming a
-    # concrete file → preview it (cat/head), instead of falling through to
-    # file_discovery and emitting a find. Only when nothing else already matched
-    # and there's no search/log cue — "show errors in app.log" stays a grep, and
-    # "open X" (Task 20) stays out of here (open is not a display verb).
-    if (not broad and _DISPLAY_VERB_RE.search(low)
-            and not _LOG_WORD_RE.search(low)
+    # Task 25 (E047/E050/E052): a "view" cue ("show me config.yaml", "peek at
+    # data.csv", "what's in the log") naming a file → preview it (head/cat),
+    # instead of falling through to file_discovery's find. Only when nothing else
+    # matched, no log/grep cue, and _VIEW_DEFER_RE (unique/sort/perms/folder/
+    # process) does not claim it. "open X" stays a Task-20 abstain.
+    if (not broad and _VIEW_CUE_RE.search(low)
+            and not logword
+            and not _VIEW_DEFER_RE.search(low)
             and _detect_path_arg(text, low) is not None):
         broad.add("preview")
 
@@ -603,9 +629,14 @@ _IGNORE_CASE_RE = re.compile(
     r"|any case|whatever the case)\b", re.IGNORECASE,
 )
 _DISTINCT_RE = re.compile(
-    r"\b(?:distinct|unique|dedupe|deduplicate|duplicates removed|without duplicates)\b",
+    r"\b(?:distinct|unique|dedupe|deduplicate|duplicates removed|without duplicates"
+    r"|remove\s+duplicates?|duplicate\s+lines|drop\s+duplicates?)\b",
     re.IGNORECASE,
 )
+# A grep term in quotes must be WHITESPACE-bounded, so a contraction apostrophe
+# ("what's today's date" — E088) is not mistaken for a 'quoted' search term the
+# way a real one is ("find 'deprecated'").
+_GREP_QUOTE_RE = re.compile(r"""(?:^|\s)(['"])([^'"]+)\1(?=\s|[.,!?;:]|$)""")
 _SORT_RE = re.compile(r"\b(?:sort|alphabetical(?:ly)?|in order|ascending)\b", re.IGNORECASE)
 _RECURSIVE_RE = re.compile(
     r"\b(?:across|recursiv\w*|everywhere|throughout|in all"
@@ -619,8 +650,9 @@ _WORD_PAT_RE = re.compile(
     r"\b(?:the\s+)?(?:word|string|phrase|token|term)\s+['\"]?([A-Za-z0-9_./+-]+)",
     re.IGNORECASE,
 )
+# NB: "locate" is a DISCOVERY verb (find a file), NOT grep (E035) — kept out.
 _SEARCHVERB_RE = re.compile(
-    r"\b(?:search for|grep(?:\s+for)?|look for|locate)\s+['\"]?([A-Za-z0-9_./+-]+)",
+    r"\b(?:search for|grep(?:\s+for)?|look for)\s+['\"]?([A-Za-z0-9_./+-]+)",
     re.IGNORECASE,
 )
 _VAGUE_PAT = {"stuff", "things", "thing", "something", "anything", "it", "them", "that"}
@@ -637,9 +669,9 @@ _KNOWN_DIRS = {
 
 
 def _grep_pattern(text: str, low: str) -> str | None:
-    m = _QUOTED_RE.search(text)
+    m = _GREP_QUOTE_RE.search(text)
     if m:
-        return m.group(1)
+        return m.group(2)
     m = _WORD_PAT_RE.search(text)
     if m:
         return m.group(1).strip(".,!?;:")
@@ -696,9 +728,10 @@ def _parse_text_and_logs(text: str, low: str):
 
     if _RECURSIVE_RE.search(low):
         slots = {"gflags": "-Rn" + i + "F", "pattern": pattern}
-        d = _grep_dir(text, low) or _detect_path_arg(text, low)
-        if d is not None:
-            slots["path"] = d
+        # E071: a recursive grep with no explicit dir uses cwd ".", NEVER the
+        # pattern (the old _detect_path_arg fallback grabbed the quoted pattern).
+        d = _grep_dir(text, low)
+        slots["path"] = d if d is not None else "."
         return Frame("search_recursive", slots)
 
     if _COUNT_MATCH_RE.search(low):
@@ -760,6 +793,15 @@ _FIND_PROC_RE = re.compile(
     r"|\b(?:process|pgrep)\s+(?:named|called|matching|for)\s+([\w.+-]+)\b",
     re.IGNORECASE,
 )
+# Task 25 (E101): "list/show the <name> processes" → find that process by name
+# (pgrep), NOT a file-discovery find. A bare "list the processes" (no name) stays
+# list_processes via _RUNNING_RE below.
+_PROC_NAMED_LIST_RE = re.compile(
+    r"\b(?:list|show)\s+(?:me\s+)?(?:the\s+|all\s+(?:the\s+)?|my\s+)?"
+    r"([\w.+-]+)\s+process(?:es)?\b", re.IGNORECASE,
+)
+_PROC_NAME_STOP = {"running", "all", "my", "background", "these", "those",
+                   "the", "active", "live", "other"}
 
 
 # kill (Task 15): a PID directly after a kill/process word → kill_pid; else a
@@ -828,6 +870,10 @@ def _parse_processes(text: str, low: str):
         pat = next(g for g in m.groups() if g)
         return Frame("find_process", {"pattern": pat})
 
+    m = _PROC_NAMED_LIST_RE.search(text)  # E101: "list the python processes"
+    if m and m.group(1).lower() not in _PROC_NAME_STOP:
+        return Frame("find_process", {"pattern": m.group(1)})
+
     if _RUNNING_RE.search(low):
         return Frame("list_processes", {})
 
@@ -884,6 +930,11 @@ _FS_PERMS_RE = re.compile(
 _FS_OWNER_RE = re.compile(
     r"\b(?:who owns|owner of|owns (?:this|the|it)|what account owns|ownership)\b",
     re.IGNORECASE,
+)
+# Task 25 (E096): "who can read/write/access X" is a permission question → show
+# the file's mode (ls -ld), not a find.
+_FS_WHOCAN_RE = re.compile(
+    r"\bwho\s+can\s+(?:read|write|access|see|edit|execute|run)\b", re.IGNORECASE,
 )
 _FS_DISK_RE = re.compile(
     r"\b(?:how big|disk usage|how much space|using space|take[sn]? up|du\b"
@@ -983,6 +1034,8 @@ def _parse_filesystem(text: str, low: str):
         return _fs_frame("check_writable", text, low)
     if _FS_READABLE_RE.search(low):
         return _fs_frame("check_readable", text, low)
+    if _FS_WHOCAN_RE.search(low):
+        return _fs_frame("show_permissions", text, low)
     if _FS_OWNER_RE.search(low):
         return _fs_frame("show_owner", text, low)
     if _FS_PERMS_RE.search(low):
@@ -1027,6 +1080,13 @@ _ARC_INTEGRITY_RE = re.compile(
     re.IGNORECASE,
 )
 _ARC_COMPRESS_RE = re.compile(r"\b(?:compress|gzip)\b", re.IGNORECASE)
+# Task 25 (E127): "make a copy of X" / "duplicate X" → cp (a WRITE). NOT "copy to
+# clipboard" (wsl) and NOT "copy … to windows" (wsl) — guarded at the call site.
+_ARC_COPY_RE = re.compile(
+    r"\bmake\s+a\s+copy\s+of\s+(?:the\s+)?([\w./-]+)"
+    r"|\bduplicate\s+(?:the\s+)?([\w./-]+)"
+    r"|\bcopy\s+(?:the\s+)?([\w./-]+\.\w+)", re.IGNORECASE,
+)
 # Task 23 (E084): the thing being archived, e.g. "zip up the project" → project.
 _ARC_CREATE_OBJ_RE = re.compile(
     r"\b(?:package|tar\s+up|zip\s+up|bundle|archive|compress)\s+(?:up\s+)?"
@@ -1056,6 +1116,13 @@ def _parse_archives(text: str, low: str):
     g = _definite_glob(low)
     arc_glob = g if g is not None and str(g) in _ARCHIVE_GLOBS else None
     arc = archive if archive is not None else arc_glob
+
+    # 0. copy a file (E127): "make a copy of config.yaml" → cp (WRITE → exit 3).
+    if "clipboard" not in low and "windows" not in low and "/mnt/" not in low:
+        mc = _ARC_COPY_RE.search(text)
+        if mc:
+            src = next(g for g in mc.groups() if g)
+            return Frame("copy_file", {"path": src, "dest": src + ".bak"})
 
     # 1. extract: unpack <archive> into <dir> → mkdir && tar (2-stage).
     if _ARC_EXTRACT_RE.search(low) and arc is not None:
@@ -1261,6 +1328,13 @@ _WS_WHICH_SHELL_RE = re.compile(
     r"\bwhich\s+shell\b|\bwhat\s+shell\b|\bcurrent\s+shell\b|\bmy\s+shell\b"
     r"|\bwhat(?:'s| is)\s+my\s+shell\b", re.IGNORECASE,
 )
+# Task 25 (E088): date / time → `date`. (A grep fallback used to swallow
+# "what's today's date" via the contraction apostrophe — now fixed in grep too.)
+_WS_DATE_RE = re.compile(
+    r"\bwhat\s+time\s+is\s+it\b|\btoday'?s\s+date\b|\bcurrent\s+(?:date|time)\b"
+    r"|\bwhat(?:'s| is)\s+the\s+(?:date|time)\b|\bwhat\s+day\s+is\s+it\b"
+    r"|\bdate\s+and\s+time\b", re.IGNORECASE,
+)
 _WS_INSTALLED_RE = re.compile(
     r"\bdo\s+i\s+have\s+([\w.+-]+)(?:\s+installed)?\b"
     r"|\bis\s+([\w.+-]+)\s+(?:installed|there|available)\b"
@@ -1338,6 +1412,9 @@ def _parse_workspace(text: str, low: str):
 
     if _WS_WHICH_SHELL_RE.search(low):
         return Frame("which_shell", {})
+
+    if _WS_DATE_RE.search(low):
+        return Frame("date_time", {})
 
     m = _WS_INSTALLED_RE.search(text)
     if m:

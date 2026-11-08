@@ -21,7 +21,7 @@ intents:
     base_argv: ["find", "{path}", "-type", "f"]
     optional_args:
       ext: ["-name", "*.{ext}"]
-      size_bytes: ["-size", "+{size_bytes}c"]
+      size_bytes: ["-size", "{size_bytes}c"]
     risk_ops: ["read"]
   find_by_time:
     base_argv: ["find", "{path}", "-type", "f"]

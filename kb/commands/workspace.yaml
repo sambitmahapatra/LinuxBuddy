@@ -40,6 +40,9 @@ intents:
   which_shell:
     base_argv: ["printf", "%s\n", "$SHELL"]
     risk_ops: ["read"]
+  date_time:
+    base_argv: ["date"]
+    risk_ops: ["read"]
   show_history:
     base_argv: ["history"]
     risk_ops: ["read"]

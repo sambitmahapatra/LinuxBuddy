@@ -40,6 +40,9 @@ intents:
     risk_ops: ["read"]
 
   # --- write (gated to the maze) ---
+  copy_file:
+    base_argv: ["cp", "--", "{path}", "{dest}"]
+    risk_ops: ["write"]
   create_archive:
     base_argv: ["tar", "-czf", "{archive}", "-C", "{parent}", "--", "{name}"]
     risk_ops: ["write"]

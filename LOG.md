@@ -1160,3 +1160,48 @@ skipped-abstain 39, skipped-gui 3. exit-code↔risk mismatches: 10.
   E110/E127 routed to reads. All expected signals, left for human analysis.
 
 Committed `sweep_results.csv` + `sweep_scenarios.csv`. Not pushed.
+
+## 2026-11-08 — Task 25 (BATCH 25-27): routing priority + parsing bugs
+
+Driven by `sweep_results.csv`. The silent-wrong-command fixes (a confident wrong
+command is worse than an abstain), done first.
+
+**A. `find` was a greedy catch-all.** Root cause: when a view/count/copy/perm/
+process request happened to contain a filename or glob and no specific parser
+claimed it, it fell through to file_discovery's `find`. Fix = make the specific
+parser claim it (find stays the last-resort fallback):
+- file_inspection: broadened the view cue (`show me/peek at/what's in/…`, gated
+  by `_VIEW_DEFER_RE` so unique/sort/perms/folder/process/archive-ext requests
+  are NOT stolen) → E047 `head config.yaml`, E050 `head *.log`, E052 `head
+  data.csv`; extended tail/head to no-number "last lines" → E054 `tail *.log`.
+- text: "remove duplicate(s)" → unique (E075 `sort -u`); line-count defers to
+  grep-count when a log word is present → E069 `grep -ciF warning`.
+- filesystem: "who can read X" → show_permissions (E096 `ls -ld`).
+- processes: "list the <name> processes" → find_process (E101 `pgrep -af
+  python`; reasonable + editable, chosen over a bespoke `ps|grep` intent).
+- archives: new `copy_file` intent — "make a copy of X"/"duplicate X" → `cp -- X
+  X.bak`, **risk write → exit 3** (E127). Guarded against clipboard / windows.
+- reverse misroute: dropped "locate" from the grep search-verbs — it's a
+  DISCOVERY verb → E035 `find . -name train.py`.
+
+**B. Four parsing bugs.**
+1. E088 "what's today's date" emitted grep garbage: the contraction apostrophe
+   was read as a 'quoted' grep term. Grep-quote detection is now whitespace-
+   bounded; added a `date_time` intent (workspace) → `date`.
+2. E071 recursive grep duplicated the pattern into the path slot: a recursive
+   grep with no explicit dir now uses `.`, never the `_detect_path_arg` fallback
+   (which grabbed the quoted pattern) → `grep -RnF -- deprecated .`.
+3. E042 size comparator was inverted/hardcoded `+` in the KB. Direction now
+   chosen in nlu (`_size_sign`: under/less/smaller → `-N`, else `+N`); the
+   size_bytes slot carries the sign, KB template is `{size_bytes}c`. "under 1kb"
+   → `-1024c`; E040/E041 "over" stay `+`.
+4. E019 absolute-path truncation (`cd /mnt/c`) — DEFERRED to Task 26 (navigation
+   rebuild) per the prompt; not fixed twice.
+
+**C. Housekeeping.** The stale MANIFEST sha constant (`5af914bd…`) lives in
+MAZE.md (not CLAUDE.md); corrected to the current `89ba5fc4…`.
+
+**Tests.** `tests/test_routing_priority.py` (16) + updated 3 size-slot tests to
+the new signed representation. Full suite **206 passed**. Maze-verified all named
+rows; confirmed find still wins for genuine discovery and grep neighbors
+(E064/E067/E068) unchanged.

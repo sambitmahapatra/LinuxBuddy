@@ -10,7 +10,7 @@ def test_size_expression_csv_over_100_megs():
     assert isinstance(f, Frame)
     assert f.intent == "find_by_size"
     assert f.slots["ext"] == "csv"
-    assert f.slots["size_bytes"] == 104857600  # 100 * 1048576 (MiB)
+    assert f.slots["size_bytes"] == "+104857600"  # 100 * 1048576 (MiB), signed (Task 25)
     assert f.slots["path"] == "."
 
 
@@ -73,7 +73,7 @@ def test_plural_csvs_bigger_than_2_gigs():
     assert f is not None
     assert f.intent == "find_by_size"
     assert f.slots["ext"] == "csv"
-    assert f.slots["size_bytes"] == 2147483648  # 2 * 1073741824 (GiB)
+    assert f.slots["size_bytes"] == "+2147483648"  # 2 * 1073741824 (GiB), signed (Task 25)
 
 
 def test_plural_logs_from_today():
@@ -87,10 +87,10 @@ def test_plural_logs_from_today():
 # --- a few extra normalization checks the table implies -------------------
 
 def test_size_unit_variants():
-    assert parse("files 100mb").slots["size_bytes"] == 100 * 1048576
-    assert parse("files over 100 mb").slots["size_bytes"] == 100 * 1048576
-    assert parse("bigger than 2 gigs").slots["size_bytes"] == 2 * 1073741824
-    assert parse("stuff over 100M").slots["size_bytes"] == 100 * 1048576
+    assert parse("files 100mb").slots["size_bytes"] == "+" + str(100 * 1048576)
+    assert parse("files over 100 mb").slots["size_bytes"] == "+" + str(100 * 1048576)
+    assert parse("bigger than 2 gigs").slots["size_bytes"] == "+" + str(2 * 1073741824)
+    assert parse("stuff over 100M").slots["size_bytes"] == "+" + str(100 * 1048576)
 
 
 def test_time_keyword_variants():

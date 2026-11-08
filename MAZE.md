@@ -21,7 +21,8 @@ committed).
    `$HOME` itself. It never touches anything outside the maze.
 2. Deterministic — fixed seed, fixed `touch -d` timestamps, fixed contents.
    Two builds produce a byte-identical `MANIFEST.txt`
-   (sha256 `5af914bd…`).
+   (sha256 `89ba5fc4…` — the current committed build; the older `5af914bd…`
+   constant was stale, corrected in Task 25).
 3. Idempotent — `rm -rf` then rebuild, every time. The 000-permission dir is
    restored to writable before each wipe so rebuilds never jam.
 4. Pure bash + coreutils + git. No network, no pip.

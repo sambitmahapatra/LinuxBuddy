@@ -1,6 +1,6 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-07 (v1-finish batch COMPLETE: Tasks 19, 20, 22, 23, re-sweep, 18)
+**Last updated:** 2026-11-08 (BATCH 25-27: Task 25 done; next 26 navigation)
 
 ## Where we are
 V1 is feature-complete and **usable**: all 9 domains built, the asymmetric
