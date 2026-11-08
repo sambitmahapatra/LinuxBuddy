@@ -24,6 +24,9 @@ intents:
   go_home:
     base_argv: ["cd", "~"]
     risk_ops: ["read"]
+  cd_parent:
+    base_argv: ["cd", "{updots}"]
+    risk_ops: ["read"]
   go_back:
     base_argv: ["cd", "-"]
     risk_ops: ["read"]

@@ -28,6 +28,7 @@ below still governs find_by_size/time/name; superlatives are handled before it.
 """
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 
@@ -1422,17 +1423,9 @@ def _parse_workspace(text: str, low: str):
         if tool and tool.lower() not in _NOT_A_TOOL:
             return Frame("check_installed", {"tool": tool})
 
-    if _WS_GO_HOME_RE.search(low):
-        return Frame("go_home", {})
-    if _WS_GO_BACK_RE.search(low):
-        return Frame("go_back", {})
-    m = _WS_GOTO_RE.search(text)
-    if m:
-        path = _detect_path_arg(text, low) or m.group(1)
-        return Frame("goto", {"path": path})
-
-    if _WS_WHERE_RE.search(low):
-        return Frame("where_am_i", {})
+    # go_home / go_back / goto / where_am_i moved to the navigation domain
+    # (Task 26) — it runs before workspace and owns all cd/pwd routing, which
+    # also kills the old glob leak (workspace goto used _detect_path_arg).
     if _WS_LIST_ALL_RE.search(low):
         return Frame("list_all", {})
     if _WS_WHO_RE.search(low):
@@ -1478,7 +1471,10 @@ _WSL_CLIP_RE = re.compile(r"\bclip(?:board)?\b", re.IGNORECASE)
 _WSL_EXPLORER_RE = re.compile(
     r"\bexplorer\b|\bfile\s+explorer\b|\bopen\b[^.]*\bin\s+windows\b", re.IGNORECASE
 )
-_WSL_CDRIVE_RE = re.compile(r"\bc\s*:?\s*drive\b|/mnt/c\b", re.IGNORECASE)
+# Narrowed (Task 26): only the "C drive" WORD request is wsl's. An explicit
+# "/mnt/c/Users" path is a plain absolute path → navigation (cd_absolute) owns it
+# and captures the WHOLE path (E019), instead of truncating to `cd /mnt/c`.
+_WSL_CDRIVE_RE = re.compile(r"\bc\s*:\s*\\?|\bthe\s+c\s+drive\b|\bc\s+drive\b", re.IGNORECASE)
 _WSL_SPACE_RE = re.compile(r"\b(?:free\s+space|how\s+much\s+(?:free\s+)?(?:space|room)|disk\s+space|(?:space|room)\s+(?:on|left))\b", re.IGNORECASE)
 _WSL_UBUNTU_RE = re.compile(r"\b(?:ubuntu|linux\s+home|linux\s+side|wsl)\b", re.IGNORECASE)
 _WSL_HOME_RE = re.compile(r"\b(?:linux|ubuntu)\s+home\b|\bback\s+to\s+my\s+linux\b", re.IGNORECASE)
@@ -1533,6 +1529,105 @@ def _parse_wsl(text: str, low: str):
 # cues. workspace sits after filesystem (file-ish queries stay with filesystem)
 # and before file_discovery (it catches navigation/shell verbs file_discovery
 # would otherwise abstain on).
+# --------------------------------------------------------------------------
+# Domain: navigation (Task 26) — a first-class cd/pwd parser. Resolution order
+# matters: directional words (up/back/home) are unambiguous and beat name
+# matching. cd_ancestor/cd_parent read the live cwd (os.getcwd()), the same
+# source the gate uses. A navigation target is a DIRECTORY name — it is NEVER
+# run through the Task-22 definite-reference glob resolver (that caused the
+# `cd -- *.log` leak). "windows" requests defer to wsl.
+# --------------------------------------------------------------------------
+
+_NAV_NUM_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+                  "six": 6, "a": 1, "an": 1}
+_NAV_LEVELS_RE = re.compile(
+    r"\bup\s+(\d+|one|two|three|four|five|six)\s+(?:levels?|directories|dirs?|folders?)\b",
+    re.IGNORECASE,
+)
+_NAV_PARENT_RE = re.compile(
+    r"\bup\s+(?:\d+|one|two|three|four|five|six|a|an)\s+(?:levels?|directories|dirs?|folders?)\b"
+    r"|\b(?:go|move|level)\s+up\b|\bgo\s+up\b|\bup\s+(?:a|one)\s+(?:level|directory|dir|folder)\b"
+    r"|\b(?:go\s+)?back\s+up\s+(?:a|one|the)?\s*(?:level|directory|dir|folder)s?\b"
+    r"|\btake\s+me\s+back\b|\bgo\s+back\b(?!\s+to\b)|\bparent\b",
+    re.IGNORECASE,
+)
+_NAV_HOME_RE = re.compile(
+    r"\btake\s+me\s+home\b|\bgo\s+home\b|\bhome\s+(?:directory|folder|dir)\b"
+    r"|\b(?:to|into)\s+(?:my\s+)?home\b|\bcd\s+~|^\s*home\s*$",
+    re.IGNORECASE,
+)
+_NAV_PREV_RE = re.compile(
+    r"\bwhere\s+i\s+was\b|\b(?:previous|last)\s+(?:directory|folder|dir)\b"
+    r"|\bback\s+to\s+where\s+i\s+was\b|\bcd\s+-\B",
+    re.IGNORECASE,
+)
+_NAV_PWD_RE = re.compile(
+    r"\bwhere\s+am\s+i\b|\bwhat\s+(?:folder|directory|dir)\s+am\s+i\s+in\b"
+    r"|\bcurrent\s+(?:folder|directory|dir|working\s+directory)\b"
+    r"|\b(?:present|print)\s+working\s+directory\b|\bpwd\b",
+    re.IGNORECASE,
+)
+_NAV_GOTO_RE = re.compile(
+    r"\b(?:go\s+back\s+to|go\s+to|goto|take\s+me\s+(?:to|into)|navigate\s+to"
+    r"|move\s+(?:to|into)|change\s+to|cd\s+(?:to|into)?|go\s+into|enter|open)\s+"
+    r"(?:the\s+|my\s+)?([/\w.+-]+)",
+    re.IGNORECASE,
+)
+_NAV_STOP = {"the", "my", "a", "an", "it", "here", "there", "where", "back"}
+
+
+def _nav_levels(low: str) -> int:
+    m = _NAV_LEVELS_RE.search(low)
+    if m:
+        w = m.group(1).lower()
+        return int(w) if w.isdigit() else _NAV_NUM_WORDS.get(w, 1)
+    return 1
+
+
+def _parse_navigation(text: str, low: str):
+    # "windows" navigation is wsl's (downloads/documents/C-drive). Defer.
+    if "windows" in low:
+        return None
+
+    # 1. cd_parent — directional, beats name matching.
+    if _NAV_PARENT_RE.search(low):
+        n = _nav_levels(low)
+        return Frame("cd_parent", {"updots": "/".join([".."] * n)})
+    # 2. cd_home
+    if _NAV_HOME_RE.search(low):
+        return Frame("go_home", {})
+    # 3. cd_previous (guarded above so "go up"/"project root" don't reach it)
+    if _NAV_PREV_RE.search(low):
+        return Frame("go_back", {})
+    # 7(early). pwd — a keyword query, no target.
+    if _NAV_PWD_RE.search(low):
+        return Frame("where_am_i", {})
+
+    # target-based: extract the destination from a goto verb.
+    m = _NAV_GOTO_RE.search(text)
+    if m:
+        target = m.group(1).rstrip("/")
+        low_t = target.lower()
+        # 6. cd_absolute — an explicit /path, captured WHOLE (E019).
+        if target.startswith("/"):
+            return Frame("goto", {"path": target})
+        # a filename (has an extension) is not a directory → not navigation.
+        if "." in target and target not in (".", ".."):
+            return None
+        if low_t in _NAV_STOP or not target:
+            return None
+        # 4. cd_ancestor — X is a segment of the cwd → cd to that absolute path.
+        segs = os.getcwd().split(os.sep)
+        if low_t in [s.lower() for s in segs if s]:
+            idx = max(i for i, s in enumerate(segs) if s.lower() == low_t)
+            anc = os.sep.join(segs[: idx + 1]) or os.sep
+            return Frame("goto", {"path": anc})
+        # 5. cd_child — a child directory name.
+        return Frame("goto", {"path": target})
+
+    return None
+
+
 _ROUTER = (
     _parse_file_inspection,
     _parse_python,
@@ -1540,6 +1635,7 @@ _ROUTER = (
     _parse_processes,
     _parse_archives,
     _parse_wsl,
+    _parse_navigation,
     _parse_filesystem,
     _parse_workspace,
     _parse_file_discovery,

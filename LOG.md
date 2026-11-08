@@ -1205,3 +1205,43 @@ MAZE.md (not CLAUDE.md); corrected to the current `89ba5fc4…`.
 the new signed representation. Full suite **206 passed**. Maze-verified all named
 rows; confirmed find still wins for genuine discovery and grep neighbors
 (E064/E067/E068) unchanged.
+
+## 2026-11-08 — Task 26 (BATCH 25-27): navigation domain built properly
+
+Navigation was never a real domain — it won on accidents in workspace, leaked
+the Task-22 glob into `cd`, and emitted `cd -` for "go up". Built
+`_parse_navigation` as a first-class parser, inserted after wsl and before
+filesystem/workspace, and removed the go_home/go_back/goto/where_am_i branches
+from workspace (navigation owns all cd/pwd now — which also kills the glob leak,
+since the old workspace goto used `_detect_path_arg`).
+
+**Resolution order (first match wins — directional words beat name matching):**
+1. cd_parent — up/back/parent/"up N levels" → `cd ..` / `cd ../..` (new KB
+   intent `cd_parent` with an `updots` slot; word-number map for "two"→2).
+   E009 "take me to the parent folder" → `cd ..` (not `cd -- parent`).
+2. cd_home — home/"take me home" → `cd ~` (→ absolute $HOME at compile).
+3. cd_previous — "where i was"/"previous dir" → `cd -`. Guarded so "go up" and
+   "project root" never reach it (fixes the stray `cd -` on E010/E016).
+4. cd_ancestor — target that is a segment of `os.getcwd()` → `cd` to that
+   ABSOLUTE ancestor path (E015 `cd -- /…/project`, E017 `cd -- /…/testlinuxbuddy`).
+5. cd_child — a bareword dir (not an ancestor) → `cd -- X` (E001-E005). "open
+   the X folder" → cd (E004).
+6. cd_absolute — an explicit `/path`, captured WHOLE (E019
+   "/mnt/c/Users" → `cd -- /mnt/c/Users`, fixing the Task-25-deferred truncation).
+7. pwd — "where am i"/"current directory" → `pwd`.
+
+**Bugs killed.** (1) Glob leak (E001): navigation extracts its own directory
+target via `_NAV_GOTO_RE` — never the definite-reference glob — so "take me to
+the logs folder" → `cd -- logs`, not `cd -- *.log`. (2) Stray `cd -` (E010/E016)
+via the cd_previous guard.
+
+**Disambiguation.** A target with a file extension (`open config.yaml`) is NOT a
+directory → navigation returns None (stays a Task-20 abstain, not `cd`). "back
+up the project" has no goto verb and no parent cue → not cd (archives' concern).
+"windows …" requests defer to wsl. Narrowed `_WSL_CDRIVE_RE` to the "C drive"
+WORD so an explicit `/mnt/c/Users` path falls through to cd_absolute; the
+C-drive word rows (`cd /mnt/c`, `df -h /mnt/c`) still work.
+
+**Tests.** `tests/test_navigation.py` (26, cwd-aware cases monkeypatch
+`nlu.os.getcwd`), incl. the two collision tests. Full suite **232 passed**. All
+E001-E023 maze-verified from their mapped cwds.
