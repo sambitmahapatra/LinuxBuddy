@@ -47,11 +47,12 @@ def test_cdrive_space():
 
 
 def test_windows_user_folder_resolves():
-    # Task 27 (E117/E118): a Windows user folder → cd /mnt/c/Users/$USER/<F>.
-    # ($USER is emitted unquoted so the shell expands it; the user edits if their
-    # Windows account name differs.) Previously deferred as needing nested $().
+    # Task 27 (E117/E118): a Windows user folder → cd /mnt/c/Users/*/<F>.
+    # Task 28: a GLOB, not $USER — the Linux $USER is rarely the Windows account
+    # name, so the glob expands to the real user dir. Previously deferred (nested
+    # $()).
     f = parse("take me to my windows downloads")
-    assert f.intent == "goto" and str(f.slots["path"]) == "/mnt/c/Users/$USER/Downloads"
+    assert f.intent == "goto" and str(f.slots["path"]) == "/mnt/c/Users/*/Downloads"
 
 
 def test_nested_substitution_abstains():

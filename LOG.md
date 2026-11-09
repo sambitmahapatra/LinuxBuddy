@@ -1307,3 +1307,69 @@ file", E066 "which lines mention warning") are near-misses NOT in Task 27's row
 list — left as follow-ups per one-task-per-session. **Pre-existing non-Task-27
 miss flagged:** E086 "what commands did i run recently" → `find -mtime -7`
 instead of `history` ("recently" pulls it into find before workspace).
+
+---
+
+## 2026-11-09 — Task 28 (v1 cleanup: the last real residual) + re-sweep
+
+The final rules-v1 pass. Four surgical fixes driven by named `sweep_results_v3`
+rows, then a confirming re-sweep (`sweep_results_v4.csv`, v1/v2/v3 untouched).
+Wrote a test per fixed row FIRST (`tests/test_v1_cleanup.py`), then the code.
+
+**The four fixes (all in `nlu.py`):**
+
+1. **E086 — history request hijacked by `find_recent`.** "what commands did i
+   run recently" emitted `find . -type f -mtime -7`: the word "recently" pulled
+   a command-history request into file discovery. Broadened `_WS_HISTORY_RE`
+   (workspace, which already runs before file_discovery) to catch the command
+   cues — "what commands did i/have i …", "commands did i run", "recent
+   commands", "what have i run", and "commands i run". It now wins on the
+   command cue even with "recent/recently" present. Did NOT broaden
+   `find_recent`. → `history`.
+
+2. **E048 — "print the readme" abstained.** Added `the readme` / bare `readme`
+   → `README*` to the Task-22 definite-reference table (`_DEFINITE_GLOBS`). The
+   existing file_inspection VIEW-preview path then picks it up:
+   "print/show the readme" → `head -n 10 -- README*` (the head-preview form used
+   for every other definite file ref — kept consistent rather than special-
+   casing `cat`).
+
+3. **E066 — "which lines mention warning" abstained.** It parsed to
+   `search_in_file` with no path → `{path}` unresolved → PlanError (effectively
+   an abstain). Added `_LINES_GREP_RE` ("which lines", "lines mentioning/with/
+   containing/matching …") and, in `_parse_text_and_logs`, when a grep pattern
+   is found but NO file is named, route those to a recursive grep in cwd —
+   consistent with the no-target grep behaviour (E070/E071): `grep -RniF --
+   warning .` (`-i` because "warning" is a case-word). A named file still routes
+   to a single-file `search_in_file`.
+
+4. **E117/E118 — Windows user folder used `$USER`.** `cd /mnt/c/Users/$USER/…`
+   is wrong on WSL: the Linux `$USER` is almost never the Windows account name,
+   so that path usually doesn't exist. **Decision: a glob over `$USER`.**
+   Switched to `cd -- /mnt/c/Users/*/Downloads` (and `.../Documents`). The `*`
+   is emitted unquoted (render.Raw) and the shell expands it to the real Windows
+   user dir — one editable command beats a path that resolves to nothing.
+   Updated the two tests that pinned the old `$USER` form (test_synonym_fill
+   E117/E118, test_wsl_interop test_windows_user_folder_resolves).
+
+**Re-sweep (`data/eval/sweep_results_v4.csv`):** COMMAND 132 → **134**, ABSTAIN
+7 → **5**, integrity PASS (snapshot 06ecdaa3…, 2323 entries, MANIFEST unchanged).
+Diffed the routing columns (lb_stdout/lb_stderr/exit_code/outcome) row-by-row
+against v3: **exactly the 5 intended rows changed** (E048 + E066 abstain→command,
+E086 wrong-command→`history`, E117/E118 `$USER`→`*`), every other row byte-
+identical. 0 regressions.
+
+**Remaining 5 abstains are the honest residual** (as predicted): E056 "tail the
+output" and E060 "what is this file" (generic target, no file named), E073 "sort
+this list" (genuinely vague), E138/E139 pip-install (runtime network =
+invariant #1 — a correct abstain; the scenario's `pip install` expected_shape is
+what's wrong, not us). These generic-reference residuals remain the documented
+motivation for the Phase-3 intent model.
+
+**Tests:** 281 pass (was 266; +15 in test_v1_cleanup.py). History does not steal
+file-discovery rows (E036–E039 stay find; "last hour" stays find_recent), and
+the README/lines-grep defaults don't break other definite-ref or grep rows.
+
+**v1 is declared.** No LLM/network at runtime, typed argv the plan, one-slot-one-
+element, nothing auto-executes, absolute paths — all invariants intact. Committed
+(not pushed).

@@ -101,11 +101,12 @@ def test_E116_open_vscode():
 
 
 def test_E117_windows_downloads():
-    assert sh("take me to my windows downloads") == "cd -- /mnt/c/Users/$USER/Downloads"
+    # Task 28: a glob (not $USER) — the Windows account name rarely matches $USER.
+    assert sh("take me to my windows downloads") == "cd -- /mnt/c/Users/*/Downloads"
 
 
 def test_E118_windows_documents():
-    assert sh("where are my windows documents") == "cd -- /mnt/c/Users/$USER/Documents"
+    assert sh("where are my windows documents") == "cd -- /mnt/c/Users/*/Documents"
 
 
 # --- filesystem: chmod lock-down / find_perms (E094/E097/E098) ---

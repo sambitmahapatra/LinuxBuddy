@@ -477,6 +477,9 @@ _DEFINITE_GLOBS = [
     (re.compile(r"\bthe\s+zip\b|\bthis\s+zip\b"), "*.zip"),
     (re.compile(r"\bthe\s+config(?:\s+file)?\b|\bthis\s+config\b|\bmy\s+config\b"), "config.*"),
     (re.compile(r"\bthe\s+csv(?:\s+file)?\b|\bthis\s+csv\b"), "*.csv"),
+    # Task 28 (E048): "the readme" / a bare "readme" → the README glob, so
+    # "print the readme" previews it instead of abstaining.
+    (re.compile(r"\bthe\s+readme\b|\breadme\b"), "README*"),
 ]
 _ARCHIVE_GLOBS = {"*.tar.gz", "*.gz", "*.zip"}
 
@@ -698,6 +701,13 @@ _RECURSIVE_RE = re.compile(
 _GREP_CWD_SYNONYMS = {"code", "codebase", "project", "repo", "repository",
                       "source", "everything", "everywhere", "here", "files"}
 _COUNT_MATCH_RE = re.compile(r"\b(?:how many|how often|count|number of times)\b", re.IGNORECASE)
+# Task 28 (E066): a "which lines mention X" / "lines with X" / "lines mentioning
+# X" request is a grep. With no file named it defaults to a recursive grep in
+# cwd (like E070/E071), not a pathless grep that hangs on stdin.
+_LINES_GREP_RE = re.compile(
+    r"\bwhich\s+lines\b|\blines\s+(?:that\s+)?(?:mention(?:ing)?s?|with|containing"
+    r"|contain|matching|having)\b", re.IGNORECASE,
+)
 
 _ALLCAPS_RE = re.compile(r"\b([A-Z][A-Z0-9_]{2,})\b")
 # Env-var names (Task 27): a bare one is an env_var query, not a grep pattern.
@@ -807,6 +817,13 @@ def _parse_text_and_logs(text: str, low: str):
     p = _detect_path_arg(text, low)
     if p is not None:
         slots["path"] = p
+        return Frame("search_in_file", slots)
+    # Task 28 (E066): "which lines mention warning" names no file → recursive
+    # grep in cwd, consistent with the no-target grep behaviour (E070/E071),
+    # instead of a pathless search_in_file that leaves {path} unresolved.
+    if _LINES_GREP_RE.search(low):
+        return Frame("search_recursive",
+                     {"gflags": "-Rn" + i + "F", "pattern": pattern, "path": "."})
     return Frame("search_in_file", slots)
 
 
@@ -1532,7 +1549,11 @@ _WS_WHO_RE = re.compile(
 )
 _WS_HISTORY_RE = re.compile(
     r"\bcommand\s+history\b|\bshow\s+(?:me\s+)?(?:the\s+)?history\b|\bhistory\s+of\s+commands\b"
-    r"|\bcommands\s+i\s+(?:used|ran|typed)\b|\b(?:earlier|previous)\s+commands\b", re.IGNORECASE,
+    r"|\bcommands?\s+i\s+(?:used|ran|run|typed)\b|\b(?:earlier|previous|recent)\s+commands?\b"
+    # Task 28 (E086): a command-history request must beat find_recent even when
+    # "recent/recently" is present. Cue words: command(s) / did i run / i ran.
+    r"|\bwhat\s+commands?\s+(?:did\s+i|have\s+i)\b|\bcommands?\s+did\s+i\s+run\b"
+    r"|\bwhat\s+have\s+i\s+run\b", re.IGNORECASE,
 )
 _WS_CLEAR_RE = re.compile(
     r"\bclear\s+(?:the\s+)?(?:screen|terminal)\b|\bclear\s+my\s+screen\b"
@@ -1670,13 +1691,15 @@ def _parse_wsl(text: str, low: str):
         p = _detect_path_arg(text, low) or "."
         return Frame("path_to_windows", {"path": p})
 
-    # Task 27 (E117/E118): a Windows user folder → cd /mnt/c/Users/$USER/<F>.
-    # $USER is emitted UNQUOTED (Raw) so the shell expands it — the Windows
-    # account name may differ, so the user edits if needed.
+    # Task 27 (E117/E118): a Windows user folder → cd /mnt/c/Users/*/<F>.
+    # Task 28: use a GLOB (`*`), not `$USER`. On WSL the Linux $USER is almost
+    # never the Windows account name, so `/mnt/c/Users/$USER/...` usually points
+    # at a path that doesn't exist. The `*` is emitted unquoted (Raw) and the
+    # shell expands it to the real Windows user dir.
     m = _WSL_WINFOLDER_RE.search(low)
     if m:
         folder = next(g for g in m.groups() if g).capitalize()
-        return Frame("goto", {"path": Raw(f"/mnt/c/Users/$USER/{folder}")})
+        return Frame("goto", {"path": Raw(f"/mnt/c/Users/*/{folder}")})
 
     if _WSL_VSCODE_RE.search(low):
         return Frame("open_vscode", {})
