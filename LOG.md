@@ -1373,3 +1373,39 @@ the README/lines-grep defaults don't break other definite-ref or grep rows.
 **v1 is declared.** No LLM/network at runtime, typed argv the plan, one-slot-one-
 element, nothing auto-executes, absolute paths — all invariants intact. Committed
 (not pushed).
+
+---
+
+## 2026-11-09 — Task 29 (declare v1 — release artifacts)
+
+Docs/release task, no code changes. Run after Task 28's re-sweep came back clean
+(134/139, 0 regressions). Wrote the artifacts that make v1 a real, documented
+release.
+
+- **Version → 1.0.0** in `pyproject.toml`, and exposed `linuxbuddy.__version__ =
+  "1.0.0"` in a newly-created `src/linuxbuddy/__init__.py` (the package had an
+  empty init before).
+- **README.md** rewritten from empty — the front door. Covers, in order: what it
+  is (offline, no-LLM, rule-based, command-to-buffer-for-review), who it's for
+  (the WSL2 data scientist handed Linux as a tool), how it works (request →
+  intent/slot → typed argv plan → shlex-checked render → buffer), install
+  (editable install or venv symlink to ~/.local/bin/lb; source the bash/zsh
+  widget), usage (Ctrl-G replaces the line, editable, not run; tiered confirm by
+  exit code 0/1/3), the containment safety model (LINUXBUDDY_MODE /
+  LINUXBUDDY_MAZE_ROOT, one rendering path), the 10 domains, the evidence (139-
+  scenario sweep, link to sweep_results_v4.csv, 281 tests, reproducible), and
+  the honest known-limits → v2 motivation. Prose + short lists, no marketing.
+- **CHANGELOG.md** new, Keep-a-Changelog style, single [1.0.0] entry.
+- **STATUS.md** marks the milestone: v1.0.0 rules engine COMPLETE, final sweep
+  number, the honest-5 residual, and the forward pointer to v2.
+
+**Honesty note on numbers:** the task prompt's template quoted "266 tests" and
+"~134/139" (written before Task 28). I used the ACTUAL current figures —
+**281 tests**, **134/139 sweep (v4)** — per the report-faithfully rule, and
+noted reproducibility precisely (routing byte-identical v2==v3; Task-28 cleanup
+changed only its 5 intended rows v3→v4) rather than the template's shorthand.
+The CHANGELOG tag link points at the real origin
+(github.com/sambitmahapatra/LinuxBuddy), not a placeholder.
+
+`pytest` still green (281). **Committed as `release: v1.0.0`. NOT tagged, NOT
+pushed** — ready for the human to tag `v1.0.0` and push.
