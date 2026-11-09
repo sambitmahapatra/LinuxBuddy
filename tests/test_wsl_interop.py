@@ -46,10 +46,17 @@ def test_cdrive_space():
     assert compile(f) == ["df", "-h", "/mnt/c"]
 
 
+def test_windows_user_folder_resolves():
+    # Task 27 (E117/E118): a Windows user folder → cd /mnt/c/Users/$USER/<F>.
+    # ($USER is emitted unquoted so the shell expands it; the user edits if their
+    # Windows account name differs.) Previously deferred as needing nested $().
+    f = parse("take me to my windows downloads")
+    assert f.intent == "goto" and str(f.slots["path"]) == "/mnt/c/Users/$USER/Downloads"
+
+
 def test_nested_substitution_abstains():
-    # "take me to my windows downloads" needs cd $(wslpath $(cmd.exe ...)) →
-    # nested command substitution, deferred.
-    assert parse("take me to my windows downloads") is None
+    # A genuine nested case (windows user/profile folder) still defers.
+    assert parse("take me to my windows user folder") is None
 
 
 def test_all_read_only():

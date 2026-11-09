@@ -18,6 +18,9 @@ capability: wsl_interop
 utility: wslpath/explorer.exe/df
 
 intents:
+  open_vscode:
+    base_argv: ["code", "."]
+    risk_ops: ["read"]
   open_explorer:
     base_argv: ["explorer.exe", "."]
     risk_ops: ["read"]

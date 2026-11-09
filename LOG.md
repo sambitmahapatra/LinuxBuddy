@@ -1245,3 +1245,65 @@ C-drive word rows (`cd /mnt/c`, `df -h /mnt/c`) still work.
 **Tests.** `tests/test_navigation.py` (26, cwd-aware cases monkeypatch
 `nlu.os.getcwd`), incl. the two collision tests. Full suite **232 passed**. All
 E001-E023 maze-verified from their mapped cwds.
+
+## 2026-11-08 — Task 27 (BATCH 25-27): intent & synonym fill + re-sweep
+
+Closed the synonym/intent gaps the Task-24 sweep surfaced, across six domains.
+New KB intents: `env_var` (echo $VAR), `cd_parent` already added in T26,
+`disk_free` (df -h), `find_empty` (find -empty -type), `find_perms`
+(find -perm), `find_recent` (find -mmin), `count_files` (find | wc -l),
+`pip_list`, `extract_tar`/`extract_zip` (single-stage extract, no dir),
+`open_vscode` (code .). Rows fixed (all verified in the maze):
+
+- **env_var** E076-E078: "what's my PATH" → `echo $PATH`. The $VAR is a
+  render.Raw so it stays UNQUOTED and the shell expands it. Enabled by two
+  supporting changes: `_SAFE_RAW_RE` now allows `$ { }` (command substitution
+  still can't form — `(` `)` backtick and space stay excluded), and the planner
+  `_sub` no longer runs `_resolve_literal` on a Raw value (so `$HOME` stays
+  `$HOME`, not the resolved path). The grep ALLCAPS heuristic now skips known
+  env-var names so "what's my PATH" isn't grabbed as a literal grep for "PATH".
+- **disk_space** E079/E081: whole-system "how much space is left" / "running out
+  of disk" → `df -h` (a named folder still → `du`).
+- **which / pip** E085: "which pip am i using" → `command -v pip` (checked in the
+  python domain before the install-abstain, which matched a bare "pip").
+- **pip_list** E134/E135 → `pip list`.
+- **package vs CLI** E129/E130 (pandas/torch → importlib check_package);
+  E132 "check if docker is there" → `command -v docker` (python now claims the
+  non-package CLI case so filesystem's "is there" → check_exists can't steal it).
+- **extract** E123/E124: "extract the tarball" → `tar -xzf *.tar.gz`; "unzip the
+  archive" → `unzip *.zip` (exit 3). Removed downloads/desktop/documents from
+  `_WSL_NESTED_RE` so they resolve instead of deferring.
+- **create synonyms** E120/E122: "make a backup of the project" / "compress the
+  results" → `tar -czf <name>.tar.gz …`.
+- **wsl** E113/E114 (wslpath -w defaults path to "."), E116 (code .),
+  E117/E118 (`cd /mnt/c/Users/$USER/Downloads`, $USER emitted unquoted as Raw).
+- **filesystem** E094 "lock down the key file" → `chmod 600 FILE` (exit 3);
+  E097/E098 world-writable/readable → `find . -perm -002/-004`.
+- **processes** E100 "show my processes" → `ps aux`.
+- **text** E065/E070: recursive grep where "the code"/"all files" are
+  cwd-synonyms → path ".", not a literal subdir.
+- **file_discovery** E039 "last hour" → `-mmin -60`; E043/E044 find_empty;
+  E045/E046 count_files (`find … | wc -l`). file_inspection now defers a count
+  when "files" (plural) is present (that's a file-count, not a line-count).
+
+**Two VIEW-preview regressions caught in the sweep and fixed** (from Task 25's
+view cue): "show me all the log files" was previewing (head) instead of listing
+(E027), and "list the contents of the zip" was `head`-ing a binary zip (E126).
+The VIEW block now defers when "files" (plural, a listing) or an archive glob is
+the target.
+
+**Re-sweep → data/eval/sweep_results_v2.csv** (139 rows, same harness as T24,
+integrity PASS, canonical maze unchanged 2323 entries / sha 89ba5fc4…).
+COMMAND **93 → 132**, ABSTAIN **46 → 7**. Row-by-row vs v1: **0 regressions**
+(no COMMAND→ABSTAIN), 39 newly fixed, 24 commands improved. Correctness vs
+expected_shape: ~118 exact-tool + ~11 review-but-correct (importlib, pgrep,
+zipfile, $USER paths, python3) ≈ **~129/139 fully right** (target was 115-125).
+
+**Remaining 7 abstains:** E138/E139 (pip install) are CORRECT abstains —
+runtime network is invariant #1, the scenario's `pip install` expected_shape
+violates it. E073 "sort this list" is a genuinely-vague residual (no file). The
+other four (E048 "print the readme", E056 "tail the output", E060 "what is this
+file", E066 "which lines mention warning") are near-misses NOT in Task 27's row
+list — left as follow-ups per one-task-per-session. **Pre-existing non-Task-27
+miss flagged:** E086 "what commands did i run recently" → `find -mtime -7`
+instead of `history` ("recently" pulls it into find before workspace).

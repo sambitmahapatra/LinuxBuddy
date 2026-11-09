@@ -39,6 +39,15 @@ intents:
   disk_usage:
     base_argv: ["du", "-sh", "--", "{path}"]
     risk_ops: ["read"]
+  disk_free:
+    base_argv: ["df", "-h"]
+    risk_ops: ["read"]
+  find_empty:
+    base_argv: ["find", ".", "-empty", "-type", "{ftype}"]
+    risk_ops: ["read"]
+  find_perms:
+    base_argv: ["find", ".", "-perm", "{perm}"]
+    risk_ops: ["read"]
 
   # --- chmod (Task 15): destructive, gated to the maze ---
   make_executable:

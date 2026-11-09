@@ -46,6 +46,9 @@ intents:
   date_time:
     base_argv: ["date"]
     risk_ops: ["read"]
+  env_var:
+    base_argv: ["echo", "{var}"]
+    risk_ops: ["read"]
   show_history:
     base_argv: ["history"]
     risk_ops: ["read"]

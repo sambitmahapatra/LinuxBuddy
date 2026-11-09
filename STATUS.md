@@ -1,47 +1,48 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-08 (BATCH 25-27: Tasks 25-26 done; next 27 synonym fill)
+**Last updated:** 2026-11-08 (BATCH 25-27 COMPLETE: Tasks 25, 26, 27 all done)
 
 ## Where we are
-V1 is feature-complete and **usable**: all 9 domains built, the asymmetric
-abstain policy in force, definite-reference resolution landed, the eval cleanup
-done, and the shell widgets (bash + zsh) inject commands into the buffer with
-tiered risk confirm. **190 tests pass.**
+V1 is feature-complete and **usable**: all 9 domains built (plus navigation now
+a first-class 10th parser), the asymmetric abstain policy in force,
+definite-reference resolution landed, and the shell widgets (bash + zsh) inject
+commands with tiered risk confirm. **266 tests pass.**
 
-## Done (this batch)
-- **Task 19** find_largest (biggest/top-N files).
-- **Task 20** asymmetric abstain policy (help on reads, caution on destructive);
-  find_smallest; "open X" abstains cleanly. CLAUDE.md invariant #6 rewritten.
-- **Task 22** definite-reference → glob (render.Raw emits globs UNQUOTED so the
-  shell expands them). "the log"→*.log, "the backup"→*.tar.gz, etc.
-- **Task 23** eval cleanup: wrong-routes (E004/E024/E090/E016/E018), defaults
-  (E056/E058 → ss -ltnp), synonyms (stop/terminate, check-if-installed, room,
-  zip up, chmod intent-words).
-- **Re-sweep** → data/eval/eval_results_v2.csv. COMMAND 66→94, ABSTAIN 64→36.
-  Wrong-abstains where a clear command existed: ~45 → ~9.
-- **Task 18** bash widget (`bind -x`, Ctrl-G) + zsh parity + lb exit-code risk
-  signaling (0 read / 3 destructive / 1 abstain).
+The systematic sweep is the current quality bar: **COMMAND 132 / ABSTAIN 7**
+out of 139 (up from 93/46), ~129/139 fully-right, **0 regressions**, integrity
+PASS. See `data/eval/sweep_results_v2.csv`.
 
-## Systematic sweep (Task 24)
-`data/eval/sweep_results.csv` — 139 scenarios routed + (safe ones) executed in
-the maze. Integrity PASS (canonical maze unchanged). COMMAND 93 / ABSTAIN 46;
-read-row exec ok 42 / nonzero 36. **Top finding surfaced for review:** "take me
-to the logs folder" emits `cd -- *.log` (Task-22 definite-glob leaks into the
-`goto` target — should be `cd logs`). Full findings in LOG.md. Capture only.
+## Done (BATCH 25-27)
+- **Task 25** routing priority — a specific intent beats `find`; fixed view/
+  count/copy/history/process/perm rows + size-sign + recursive-grep bugs.
+- **Task 26** navigation built as a first-class domain parser (cd_parent/home/
+  previous/ancestor/child/absolute/pwd, cwd-aware). Killed the `cd -- *.log`
+  glob leak, the stray `cd -` on "go up", and the `/mnt/c/Users` truncation.
+- **Task 27** intent & synonym fill across six domains — env_var, disk_free,
+  which/pip, pip_list, package-vs-CLI, extract, create synonyms, wsl
+  (win_path/vscode/win_folders), chmod lock-down, find_perms, find_empty,
+  find_recent (-mmin), count_files, recursive-grep cwd-synonyms. Also fixed two
+  VIEW-preview regressions (E027 listing, E126 zip) found in the re-sweep.
+- **Re-sweep** → `data/eval/sweep_results_v2.csv` (COMMAND 93→132, ABSTAIN
+  46→7, 0 regressions vs v1, 39 newly fixed, integrity PASS).
 
 ## Open / next
-- **Fix the `cd -- *.log` goto leak** surfaced by the sweep (navigation `goto`
-  should not pull the definite-reference glob; use the folder name).
-- **Manual widget check in a REAL interactive bash** (I verified the function
-  non-interactively; a human should source it in an interactive shell and press
-  Ctrl-G to confirm Readline redraw feels right).
-- **~9 near-miss abstains** (documented in LOG under the re-sweep entry): e.g.
-  "tail the app log", "extract the backup" (default dir), "execute the analysis
-  script" (execute synonym), windows-bridge phrasings. Candidate v1 synonym
-  patches — left as follow-ups (one-task-per-session).
-- **~14 generic-reference abstains** ("this file", "sort this list") are the
-  intentional v1 residual → the motivation for the Phase-3 intent model.
-- Phase 3 (intent-only model) not started.
+- **Manual widget check in a REAL interactive bash** (verified non-interactively;
+  a human should source it and press Ctrl-G to confirm Readline redraw).
+- **4 near-miss abstains NOT in the batch's row list** (follow-up synonym
+  patches, one-task-per-session): E048 "print the readme" (→ `cat README*`),
+  E056 "tail the output" (vague target), E060 "what is this file" (→ `file FILE`),
+  E066 "which lines mention warning" (no file named → would need a *.log guess).
+- **1 pre-existing miss flagged:** E086 "what commands did i run recently" →
+  `find -mtime -7` instead of `history` ("recently" routes to find before
+  workspace). Not a Task-27 row.
+- **Correct-by-design "abstains"/choices:** E073 "sort this list" (genuinely
+  vague, no file) and E138/E139 pip-install (runtime network = invariant #1, so
+  the scenario's `pip install` expected_shape is the thing that's wrong, not us).
+  E110 "stop whatever's on port 8000" shows the port's process (safe) rather than
+  auto-killing an unclear target.
+- Phase 3 (intent-only model) not started. The ~5 generic-reference residuals
+  ("sort this list", "what is this file") remain its motivation.
 
 ## Open bugs
-None known. Full suite green (190).
+None known. Full suite green (266). Sweep: 0 regressions, integrity PASS.

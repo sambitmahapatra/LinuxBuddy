@@ -22,12 +22,15 @@ class RenderError(ValueError):
 
 
 # A Raw element is a TRUSTED shell-literal — a glob WE generated (e.g. "*.log",
-# "config.*") that must reach the shell UNQUOTED so the shell expands it.
-# shlex.quote would wrap "*.log" in quotes and kill the expansion. Raw is only
-# ever produced by the planner/nlu from a recognised definite reference — NEVER
-# from a user-supplied slot value — and is restricted to a safe charset so it
-# still tokenizes back to itself (the round-trip guarantee holds).
-_SAFE_RAW_RE = re.compile(r"^[\w*?.@%+=:,/-]+$")
+# "config.*") or an env-var reference ("$PATH", "/mnt/c/Users/$USER/Downloads")
+# that must reach the shell UNQUOTED so the shell expands it. shlex.quote would
+# wrap it in quotes and kill the expansion. Raw is only ever produced by the
+# planner/nlu from a recognised reference — NEVER from a user-supplied slot
+# value — and is restricted to a safe charset so it still tokenizes back to
+# itself (the round-trip guarantee holds). `$ { }` are allowed for env-var
+# references; command substitution `$(` / backticks cannot form because `(`,
+# `)`, backtick and whitespace are all excluded.
+_SAFE_RAW_RE = re.compile(r"^[\w*?.@%+=:,/${}-]+$")
 
 
 class Raw(str):

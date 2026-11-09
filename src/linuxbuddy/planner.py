@@ -100,8 +100,13 @@ def _build_stage(base: list, optional: dict, frame: Frame, slots: dict) -> list[
     raw_vals = {str(v) for v in slots.values() if isinstance(v, Raw)}
 
     def _sub(elem: str) -> str:
-        out = _resolve_literal(_substitute(elem, slots))
-        return Raw(out) if out in raw_vals else out
+        sub = _substitute(elem, slots)
+        # A Raw slot value (a glob or a $VAR we generated) is already final — do
+        # NOT run _resolve_literal on it (that would turn "$HOME" into a path and
+        # defeat `echo $HOME`). Normal elements still resolve ~/$HOME/$SHELL/$USER.
+        if sub in raw_vals:
+            return Raw(sub)
+        return _resolve_literal(sub)
 
     argv: list[str] = [_sub(elem) for elem in base]
     # Append optional fragments in KB-declared order, only for slots present.

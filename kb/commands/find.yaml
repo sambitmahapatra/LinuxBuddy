@@ -40,6 +40,19 @@ intents:
       ftype: ["-type", "{ftype}"]
       ext: ["-name", "*.{ext}"]
     risk_ops: ["read"]
+  # find_recent (Task 27): a sub-day window in MINUTES → -mmin -N (E039).
+  find_recent:
+    base_argv: ["find", "{path}", "-type", "f", "-mmin", "-{minutes}"]
+    optional_args:
+      ext: ["-name", "*.{ext}"]
+    risk_ops: ["read"]
+  # count_files (Task 27): "how many csv files" → find | wc -l (E045/E046).
+  count_files:
+    base_argv: ["find", "{path}"]
+    optional_args:
+      ext: ["-name", "*.{ext}"]
+    pipe_argv: ["wc", "-l"]
+    risk_ops: ["read"]
   # find_largest (Task 19): "biggest/largest/top N files". No size threshold —
   # sort by size, show the top. A 3-stage pipe: find | sort | head. The `-printf`
   # format keeps literal \t and \n (find expands them at runtime); each stage is

@@ -36,6 +36,9 @@ intents:
   check_package:
     base_argv: ["python3", "-c", 'import importlib.util as u; print(u.find_spec("{pkg}") is not None)']
     risk_ops: ["read"]
+  pip_list:
+    base_argv: ["pip", "list"]
+    risk_ops: ["read"]
 
   # --- write (gated to the maze) ---
   run_script:

@@ -50,6 +50,13 @@ intents:
     base_argv: ["mkdir", "-p", "--", "{path}"]
     and_argv: ["tar", "-xf", "{archive}", "-C", "{path}"]
     risk_ops: ["write"]
+  # Task 27 (E123/E124): extract into the cwd when no destination is named.
+  extract_tar:
+    base_argv: ["tar", "-xzf", "{archive}"]
+    risk_ops: ["write"]
+  extract_zip:
+    base_argv: ["unzip", "{archive}"]
+    risk_ops: ["write"]
   compress_file:
     base_argv: ["gzip", "-k", "--", "{path}"]
     risk_ops: ["write"]

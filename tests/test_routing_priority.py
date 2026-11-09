@@ -81,7 +81,9 @@ def test_E040_E041_over_stays_plus_size():
 
 def test_find_still_wins_for_discovery():
     assert sh("find all csv files") == "find . -name '*.csv'"
-    assert sh("how many json files") == "find . -name '*.json'"
+    # Task 27: "how many … files" is now a file-COUNT (find | wc -l), still a
+    # file_discovery find — just piped. (Was a bare find before count_files.)
+    assert sh("how many json files") == "find . -name '*.json' | wc -l"
     assert sh("where are the log files") == "find . -name '*.log'"
 
 

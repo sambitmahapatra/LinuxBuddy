@@ -112,6 +112,25 @@ _WEEKS_RE = re.compile(r"(\d+)\s*weeks?\b", re.IGNORECASE)
 _HOURS_RE = re.compile(r"(\d+)\s*(?:hours?|hrs?|h)\b", re.IGNORECASE)
 
 
+_MIN_NUM_WORDS = {"an": 1, "a": 1, "one": 1, "two": 2, "three": 3, "half an": 0}
+
+
+def _detect_minutes(low: str) -> int | None:
+    """A sub-day recency window in MINUTES (for `find -mmin`), or None.
+    "last hour"→60, "last 30 minutes"→30, "past 2 hours"→120 (E039)."""
+    m = re.search(r"\b(?:last|past|within|in\s+the\s+last)\s+(\d+)\s*min", low)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"\b(?:last|past|within|in\s+the\s+last)\s+(\d+)\s*(?:hours?|hrs?)\b", low)
+    if m and int(m.group(1)) < 24:  # >=24h is days territory (-mtime), not -mmin
+        return int(m.group(1)) * 60
+    if re.search(r"\b(?:last|past|within|this)\s+(?:the\s+)?(?:an?\s+)?hour\b", low):
+        return 60
+    if re.search(r"\blast\s+half\s+hour\b|\bpast\s+half\s+hour\b", low):
+        return 30
+    return None
+
+
 def _detect_time(text: str) -> int | None:
     m = _DAYS_RE.search(text)
     if m:
@@ -320,6 +339,7 @@ def _largest_path(text: str, low: str) -> str:
 def _parse_file_discovery(text: str, low: str) -> Frame | None:
     ext = _detect_ext(low)
     size_bytes, size_cue = _detect_size(low)
+    minutes = _detect_minutes(low)
     days = _detect_time(low)
     pattern = _detect_name(text)
     path = _detect_path(text, low)
@@ -350,6 +370,26 @@ def _parse_file_discovery(text: str, low: str) -> Frame | None:
     # emit a wrong command.
     if re.search(r"\bopen\b", low):
         return None
+
+    # Task 27 (E045/E046): "how many csv files" / "count the python files" → a
+    # file-count (find … | wc -l), not a per-file line-count. Needs a count cue
+    # plus a file-type or a bare "files"; a count of log WORDS was already taken
+    # by text_and_logs, and a per-file line-count by file_inspection.
+    if re.search(r"\bhow many\b|\bcount\b", low) and (
+        ext is not None or re.search(r"\bfiles\b", low)
+    ):
+        cslots: dict = {"path": path}
+        if ext is not None:
+            cslots["ext"] = ext
+        return Frame("count_files", cslots)
+
+    # Task 27 (E039): a sub-day recency window → `find -mmin -N` (minutes).
+    # Checked before days so "last 2 hours" uses -mmin, not a coarse -mtime.
+    if minutes is not None:
+        mslots: dict = {"path": path, "minutes": str(minutes)}
+        if ext is not None:
+            mslots["ext"] = ext
+        return Frame("find_recent", mslots)
 
     # Intent precedence: size -> time -> name -> type -> abstain.
     #
@@ -558,7 +598,10 @@ def _parse_file_inspection(text: str, low: str):
     broad = set()
     if re.search(r"\bpreview\b", low) or is_head or is_tail:
         broad.add("preview")
-    if (re.search(r"\bcount\b", low) and not logword) or is_count:
+    # A count of "files" (plural) is a file-DISCOVERY count (find | wc -l),
+    # owned by file_discovery (Task 27) — not a per-file line-count. Defer it.
+    files_count = bool(re.search(r"\bfiles\b", low))
+    if ((re.search(r"\bcount\b", low) and not logword) or is_count) and not files_count:
         broad.add("count")
     if is_size:
         broad.add("size")
@@ -572,10 +615,15 @@ def _parse_file_inspection(text: str, low: str):
     # instead of falling through to file_discovery's find. Only when nothing else
     # matched, no log/grep cue, and _VIEW_DEFER_RE (unique/sort/perms/folder/
     # process) does not claim it. "open X" stays a Task-20 abstain.
+    vpath = _detect_path_arg(text, low)
     if (not broad and _VIEW_CUE_RE.search(low)
             and not logword
             and not _VIEW_DEFER_RE.search(low)
-            and _detect_path_arg(text, low) is not None):
+            and vpath is not None
+            # "… files" (plural) is a listing → file_discovery, not a preview (E027).
+            and not re.search(r"\bfiles\b", low)
+            # an archive definite-ref ("the zip/tarball") → archives list (E126).
+            and str(vpath) not in _ARCHIVE_GLOBS):
         broad.add("preview")
 
     if not broad:
@@ -640,13 +688,21 @@ _DISTINCT_RE = re.compile(
 _GREP_QUOTE_RE = re.compile(r"""(?:^|\s)(['"])([^'"]+)\1(?=\s|[.,!?;:]|$)""")
 _SORT_RE = re.compile(r"\b(?:sort|alphabetical(?:ly)?|in order|ascending)\b", re.IGNORECASE)
 _RECURSIVE_RE = re.compile(
-    r"\b(?:across|recursiv\w*|everywhere|throughout|in all"
-    r"|(?:in|within|under) the (?:project|repo|codebase|source|src|configs?))\b",
+    r"\b(?:across|recursiv\w*|everywhere|throughout|in all|all files|every file"
+    r"|(?:in|within|under|through)\s+(?:all\s+(?:the\s+)?)?the\s+"
+    r"(?:project|repo|repository|codebase|code|source|src|configs?|files))\b",
     re.IGNORECASE,
 )
+# cwd-synonyms: "the code", "the project", "everywhere" mean "search here,
+# recursively" → path ".", NOT a literal subdir named "code" (E065/E070).
+_GREP_CWD_SYNONYMS = {"code", "codebase", "project", "repo", "repository",
+                      "source", "everything", "everywhere", "here", "files"}
 _COUNT_MATCH_RE = re.compile(r"\b(?:how many|how often|count|number of times)\b", re.IGNORECASE)
 
 _ALLCAPS_RE = re.compile(r"\b([A-Z][A-Z0-9_]{2,})\b")
+# Env-var names (Task 27): a bare one is an env_var query, not a grep pattern.
+_ENVVAR_NAMES = {"PATH", "HOME", "PORT", "USER", "SHELL", "PWD", "LANG",
+                 "TERM", "EDITOR", "DISPLAY", "GPU_ID", "PID"}
 _WORD_PAT_RE = re.compile(
     r"\b(?:the\s+)?(?:word|string|phrase|token|term)\s+['\"]?([A-Za-z0-9_./+-]+)",
     re.IGNORECASE,
@@ -682,7 +738,10 @@ def _grep_pattern(text: str, low: str) -> str | None:
         if tok.lower() not in _VAGUE_PAT:
             return tok
     m = _ALLCAPS_RE.search(text)   # TODO, FIXME, API_URL, SUCCESS
-    if m:
+    if m and m.group(1) not in _ENVVAR_NAMES:
+        # A bare env-var name ("what's my PATH") is an env_var query, not a grep
+        # for the literal word — leave it for workspace (Task 27). An intentional
+        # grep for PATH uses a verb/quote, caught by the branches above.
         return m.group(1)
     m = _LOG_WORD_RE.search(low)
     if m:
@@ -692,11 +751,13 @@ def _grep_pattern(text: str, low: str) -> str | None:
 
 def _grep_dir(text: str, low: str) -> str | None:
     m = _DIR_NOUN_RE.search(text)
-    if m:
+    if m and m.group(1).lower() not in _GREP_CWD_SYNONYMS:
         return m.group(1)
     m = _PREP_DIR_RE.search(text)
     if m:
         cand = m.group(1)
+        if cand.lower() in _GREP_CWD_SYNONYMS:
+            return None  # a cwd-synonym → recurse from "." (set by caller)
         if cand.lower() in _KNOWN_DIRS or "." not in cand:
             return cand
     return None
@@ -785,7 +846,7 @@ _MOST_RE = re.compile(
 _RUNNING_RE = re.compile(
     r"\b(?:what'?s running|whats running|what is running|everything running"
     r"|all (?:the )?processes|running processes|list (?:the )?processes"
-    r"|show (?:me )?(?:all )?(?:the )?(?:running )?processes)\b",
+    r"|my processes|show (?:me )?(?:all )?(?:the )?(?:running |my )?processes)\b",
     re.IGNORECASE,
 )
 _FIND_PROC_RE = re.compile(
@@ -901,7 +962,9 @@ _SETPERM_CUE_RE = re.compile(
 _OCTAL_RE = re.compile(r"\b([0-7]{3,4})\b")
 _PRIV_READ_RE = re.compile(
     r"\bonly\s+i\s+(?:can|should)(?:\s+be\s+able\s+to)?\s+(?:read|edit|see|access|open)\b"
-    r"|\bprivate\b|\bonly\s+me\b|\bonly\s+my(?:self)?\b", re.IGNORECASE
+    r"|\bprivate\b|\bonly\s+me\b|\bonly\s+my(?:self)?\b"
+    r"|\block(?:\s+it)?\s*down\b|\block\s+down\b|\bsecure\s+(?:the|this|my)\b",  # Task 27 (E094)
+    re.IGNORECASE
 )
 _PRIV_ENTER_RE = re.compile(r"\bonly\s+i\s+(?:can|should)\s+enter\b", re.IGNORECASE)
 _CHMOD_OBJ_RE = re.compile(
@@ -940,6 +1003,28 @@ _FS_WHOCAN_RE = re.compile(
 _FS_DISK_RE = re.compile(
     r"\b(?:how big|disk usage|how much space|using space|take[sn]? up|du\b"
     r"|size of .* (?:folder|dir|directory))\b",
+    re.IGNORECASE,
+)
+# Task 27 (E079/E081): a WHOLE-SYSTEM disk query → `df -h`, not a targetless
+# `du` (which would abstain). Only fires when no specific folder is named.
+_FS_DISKFREE_RE = re.compile(
+    r"\b(?:running\s+out\s+of\s+(?:disk|space)|out\s+of\s+(?:disk\s+)?space"
+    r"|how\s+much\s+(?:free\s+)?space(?:\s+is\s+left)?|space\s+left|space\s+is\s+left"
+    r"|disk\s+free|free\s+space|disk\s+space(?:\s+left)?|low\s+on\s+(?:disk|space))\b",
+    re.IGNORECASE,
+)
+# Task 27 (E043/E044): "find empty files/folders" is a DISCOVERY (find -empty),
+# distinct from "is the output folder empty" (a check, still deferred).
+_FS_FINDEMPTY_RE = re.compile(
+    r"\bempty\s+(?:files?|folders?|dirs?|directories)\b"
+    r"|\b(?:files?|folders?|dirs?|directories)\s+that\s+are\s+empty\b",
+    re.IGNORECASE,
+)
+# Task 27 (E097/E098): permission-bit discovery → `find . -perm <mode>`.
+_FS_FINDPERM_RE = re.compile(
+    r"\bworld[-\s]?(writable|readable|executable)\b"
+    r"|\b(writable|readable|executable|writeable)\s+by\s+(?:everyone|all|anyone|others?)\b"
+    r"|\b(?:everyone|anyone|the\s+world|others?)\s+can\s+(write|read|execute)\b",
     re.IGNORECASE,
 )
 
@@ -987,6 +1072,11 @@ def _chmod_target(text: str, low: str) -> str | None:
     if re.search(r"\b(?:this|the|my)\s+file\b|\bread\s+this\b|\bedit\s+this\b"
                  r"|\bprivate\b|\bonly\s+i\b", low):
         return "FILE"
+    # Task 27 (E094): "lock down the key file" / "the secrets file" — a definite
+    # "the <word> file" reference with no concrete name → a FILE placeholder the
+    # user fills (exit 3 keeps it gated to the maze).
+    if re.search(r"\b(?:the|this|my)\s+\w+\s+file\b", low):
+        return "FILE"
     return None
 
 
@@ -1028,8 +1118,32 @@ def _parse_filesystem(text: str, low: str):
     chmod = _parse_fs_chmod(text, low)
     if chmod is not None:
         return chmod
+
+    # Task 27 (E097/E098): permission-bit discovery. Before _FS_READABLE so
+    # "readable by everyone" is a find_perms, not a check_readable on a target.
+    m = _FS_FINDPERM_RE.search(low)
+    if m:
+        verb = (" ".join(g for g in m.groups() if g)).lower()
+        if "writ" in verb:
+            perm = "-002"
+        elif "exec" in verb:
+            perm = "-001"
+        else:
+            perm = "-004"
+        return Frame("find_perms", {"perm": perm})
+
+    # Task 27 (E043/E044): "find empty files/folders" → find -empty (discovery),
+    # before the generic "empty" abstain (a dir-emptiness CHECK stays deferred).
+    m = _FS_FINDEMPTY_RE.search(low)
+    if m:
+        ftype = "d" if re.search(r"\b(?:folders?|dirs?|directories)\b", low) else "f"
+        return Frame("find_empty", {"ftype": ftype})
     if _EMPTY_RE.search(low):
         return _ABSTAIN  # dir_empty deferred (needs $(...) command substitution)
+
+    # Task 27 (E079/E081): a whole-system disk query with no named folder → df -h.
+    if _FS_DISKFREE_RE.search(low) and _detect_fs_target(text, low) is None:
+        return Frame("disk_free", {})
 
     if _FS_WRITABLE_RE.search(low):
         return _fs_frame("check_writable", text, low)
@@ -1067,6 +1181,8 @@ _ARC_EXTRACT_RE = re.compile(
 _ARC_CREATE_RE = re.compile(
     r"\b(?:package|tar up|zip up|bundle|make (?:a |an )?(?:archive|tarball|backup)"
     r"|create (?:a |an )?(?:archive|tarball|backup)|archive (?:the|this|my|up)"
+    r"|make\s+a\s+backup\s+of\b|back\s+up\s+(?:the|this|my)\s+[\w./-]+"  # E120
+    r"|compress\s+(?:the\s+|this\s+|my\s+)[\w-]+"  # E122 "compress the results"
     r"|compress\b[^.]*\binto\b)\b",
     re.IGNORECASE,
 )
@@ -1090,7 +1206,9 @@ _ARC_COPY_RE = re.compile(
 )
 # Task 23 (E084): the thing being archived, e.g. "zip up the project" → project.
 _ARC_CREATE_OBJ_RE = re.compile(
-    r"\b(?:package|tar\s+up|zip\s+up|bundle|archive|compress)\s+(?:up\s+)?"
+    r"\bmake\s+a\s+backup\s+of\s+(?:the\s+|this\s+|my\s+)?([\w./-]+)"      # E120
+    r"|\bback\s+up\s+(?:the\s+|this\s+|my\s+)?([\w./-]+)"
+    r"|\b(?:package|tar\s+up|zip\s+up|bundle|archive|compress)\s+(?:up\s+)?"
     r"(?:the\s+|this\s+|my\s+)?([\w./-]+)",
     re.IGNORECASE,
 )
@@ -1125,15 +1243,21 @@ def _parse_archives(text: str, low: str):
             src = next(g for g in mc.groups() if g)
             return Frame("copy_file", {"path": src, "dest": src + ".bak"})
 
-    # 1. extract: unpack <archive> into <dir> → mkdir && tar (2-stage).
+    # 1. extract: unpack <archive> into <dir> → mkdir && tar (2-stage). With NO
+    # destination (E123/E124 "extract the tarball"), extract into the cwd with a
+    # single command — tar for a tarball, unzip for a zip (both WRITE → exit 3).
     if _ARC_EXTRACT_RE.search(low) and arc is not None:
         archive = arc
         m = _ARC_INTO_RE.search(text)
         dest = (m.group(1) or m.group(2)) if m else None
-        slots = {"archive": archive}
         if dest is not None:
-            slots["path"] = dest
-        return Frame("extract_archive", slots)
+            return Frame("extract_archive", {"archive": archive, "path": dest})
+        if "unzip" in low or _arc_is_zip(str(archive)):
+            # a "zip" request with only a definite tar-glob → use the .zip glob
+            if not _arc_is_zip(str(archive)) and str(archive) in _ARCHIVE_GLOBS:
+                archive = Raw("*.zip")
+            return Frame("extract_zip", {"archive": archive})
+        return Frame("extract_tar", {"archive": archive})
 
     # 2. create: package the <name> folder into <archive> (output is .tar.gz).
     if _ARC_CREATE_RE.search(low):
@@ -1144,8 +1268,10 @@ def _parse_archives(text: str, low: str):
             name = m.group(1)
         if name is None:  # Task 23 (E084): "zip up the project" → name=project
             m = _ARC_CREATE_OBJ_RE.search(low)
-            if m and m.group(1).lower() not in _ARC_CREATE_STOP:
-                name = m.group(1)
+            if m:
+                obj = next((g for g in m.groups() if g), None)
+                if obj and obj.lower() not in _ARC_CREATE_STOP:
+                    name = obj
         if name is not None:
             slots["name"] = name
         if archive is not None:
@@ -1243,10 +1369,17 @@ _KNOWN_PY_PKGS = {
     "statsmodels", "xgboost", "lightgbm", "polars", "pydantic", "fastapi",
 }
 _PY_INSTALLED_PKG_RE = re.compile(
-    r"\bis\s+([\w.-]+)\s+installed\b"
-    r"|\bdo\s+i\s+have\s+([\w.-]+)\s+installed\b"
-    r"|\bcheck\s+(?:if|whether)\s+([\w.-]+)\s+is\s+installed\b"
+    r"\bis\s+([\w.-]+)\s+(?:installed|there|available|around)\b"
+    r"|\bdo\s+i\s+have\s+([\w.-]+)(?:\s+installed)?\b"
+    r"|\bcheck\s+(?:if|whether)\s+([\w.-]+)\s+(?:is\s+)?(?:installed|there|available|around)\b"
     r"|\b([\w.-]+)\s+is\s+installed\b",
+    re.IGNORECASE,
+)
+# Task 27 (E134/E135): list installed packages → `pip list`.
+_PY_PIPLIST_RE = re.compile(
+    r"\bpip\s+list\b|\blist\s+(?:my\s+|all\s+)?(?:pip\s+|installed\s+|python\s+)?packages\b"
+    r"|\bwhat\s+packages\s+are\s+installed\b|\b(?:show|list)\s+(?:me\s+)?(?:my\s+)?"
+    r"installed\s+(?:python\s+)?packages\b|\binstalled\s+(?:python\s+)?packages\b",
     re.IGNORECASE,
 )
 
@@ -1263,6 +1396,17 @@ def _py_script_path(text: str, low: str):
 
 
 def _parse_python(text: str, low: str):
+    # Task 27 (E134/E135): list installed packages → `pip list`. Checked before
+    # the deferred "pip install" family (so "what packages are installed" isn't
+    # swept into the network abstain).
+    if _PY_PIPLIST_RE.search(low):
+        return Frame("pip_list", {})
+
+    # Task 27 (E085): "which pip am i using" / "where is pip" → command -v pip.
+    # Checked before the install-abstain (which matches a bare "pip").
+    if re.search(r"\bwhich\s+pip\b|\bwhere(?:'s| is)?\s+(?:my\s+)?pip\b", low):
+        return Frame("check_installed", {"tool": "pip"})
+
     # Deferred families abstain (network / shell-state / long-running). Checked
     # first so "run setup in the venv" doesn't slip through as run_script.
     if _PY_INSTALL_RE.search(low) or _PY_VENV_RE.search(low) or _PY_SERVER_RE.search(low):
@@ -1294,6 +1438,11 @@ def _parse_python(text: str, low: str):
         pkg = next(g for g in m.groups() if g)
         if pkg.lower() in _KNOWN_PY_PKGS:
             return Frame("check_package", {"pkg": pkg})
+        # Task 27 (E132): a non-package name ("check if docker is there") is a
+        # CLI-tool check → command -v. Claimed here (before filesystem's
+        # "is there" → check_exists would steal it). Vague tokens still defer.
+        if pkg.lower() not in _NOT_A_TOOL:
+            return Frame("check_installed", {"tool": pkg})
 
     if _PY_VERSION_RE.search(low):
         return Frame("python_version", {})
@@ -1313,6 +1462,11 @@ _WS_COMPOUND_RE = re.compile(r"\bthen\b|\band then\b|\bafter that\b|&&", re.IGNO
 _WS_SETUP_RE = re.compile(
     r"\b(?:set\s*up|setup|create|make|start)\s+(?:a\s+|an\s+|my\s+)?(?:new\s+)?"
     r"(?:project|workspace)\b", re.IGNORECASE,
+)
+_WS_ENVVAR_RE = re.compile(
+    r"\b(?:what'?s|what\s+is|show|print|echo|display|value\s+of)\b[^.]*?"
+    r"\b(PATH|HOME|PORT|USER|SHELL|PWD|LANG|TERM|EDITOR|DISPLAY|GPU_ID|PID)\b",
+    re.IGNORECASE,
 )
 _WS_NAME_CALLED_RE = re.compile(r"\b(?:called|named)\s+([\w.-]+)", re.IGNORECASE)
 _WS_NAME_FALLBACK_RE = re.compile(
@@ -1414,6 +1568,12 @@ def _parse_workspace(text: str, low: str):
     if _WS_WHICH_SHELL_RE.search(low):
         return Frame("which_shell", {})
 
+    # Task 27 (E076/E077/E078): print an environment variable. The $VAR is a Raw
+    # so render emits it unquoted and the shell expands it (`echo $PATH`).
+    m = _WS_ENVVAR_RE.search(text)
+    if m:
+        return Frame("env_var", {"var": Raw("$" + m.group(1).upper())})
+
     if _WS_DATE_RE.search(low):
         return Frame("date_time", {})
 
@@ -1452,9 +1612,13 @@ def _parse_workspace(text: str, low: str):
 
 _WSL_WINPATH_RE = re.compile(r"([A-Za-z]:\\[^\s'\"]*)")
 # nested $() — a named Windows special folder / user folder / cp to windows
+# Task 27: downloads/desktop/documents/pictures are no longer deferred — they
+# resolve to `cd /mnt/c/Users/$USER/<Folder>` (win_folders, no nested $() needed).
+# The genuinely-nested cases (windows home/user/profile, "copy X to windows")
+# still abstain.
 _WSL_NESTED_RE = re.compile(
-    r"\bwindows\s+(?:downloads|desktop|documents|home|user(?:\s+folder)?|profile)\b"
-    r"|\bmy\s+windows\s+(?:downloads|desktop|documents|user|profile|home)\b"
+    r"\bwindows\s+(?:home|user(?:\s+folder)?|profile)\b"
+    r"|\bmy\s+windows\s+(?:user|profile|home)\b"
     r"|\bwhere\s+my\s+windows\s+(?:user\s+)?(?:folder|profile)\b"
     r"|\bcopy\b[^.]*\bto\s+(?:my\s+)?windows\b|\bcp\b[^.]*\bwindows\b",
     re.IGNORECASE,
@@ -1468,6 +1632,14 @@ _WSL_TO_WINDOWS_RE = re.compile(
     r"|\bwindows\s+(?:version|equivalent|path\s+for)\b|\bwslpath\s+-w\b", re.IGNORECASE,
 )
 _WSL_CLIP_RE = re.compile(r"\bclip(?:board)?\b", re.IGNORECASE)
+# Task 27 (E116): "open this in vs code" → `code .`.
+_WSL_VSCODE_RE = re.compile(r"\bvs\s*code\b|\bvscode\b|\bvisual\s+studio\s+code\b", re.IGNORECASE)
+# Task 27 (E117/E118): a Windows user folder → cd to /mnt/c/Users/$USER/<F>.
+_WSL_WINFOLDER_RE = re.compile(
+    r"\bwindows\s+(downloads|documents|desktop|pictures)\b"
+    r"|\bmy\s+(downloads|documents|desktop|pictures)\s+(?:on|in)\s+windows\b",
+    re.IGNORECASE,
+)
 _WSL_EXPLORER_RE = re.compile(
     r"\bexplorer\b|\bfile\s+explorer\b|\bopen\b[^.]*\bin\s+windows\b", re.IGNORECASE
 )
@@ -1493,12 +1665,21 @@ def _parse_wsl(text: str, low: str):
             return Frame("path_to_linux", {"winpath": win.group(1)})
         return _ABSTAIN  # "to a linux path" but no C:\ path given
     if _WSL_TO_WINDOWS_RE.search(low):
-        p = _detect_path_arg(text, low)
-        slots = {}
-        if p is not None:
-            slots["path"] = p
-        return Frame("path_to_windows", slots)
+        # Task 27 (E113/E114): "the windows path for this folder" names no
+        # concrete path → default to "." (the cwd), rather than abstain.
+        p = _detect_path_arg(text, low) or "."
+        return Frame("path_to_windows", {"path": p})
 
+    # Task 27 (E117/E118): a Windows user folder → cd /mnt/c/Users/$USER/<F>.
+    # $USER is emitted UNQUOTED (Raw) so the shell expands it — the Windows
+    # account name may differ, so the user edits if needed.
+    m = _WSL_WINFOLDER_RE.search(low)
+    if m:
+        folder = next(g for g in m.groups() if g).capitalize()
+        return Frame("goto", {"path": Raw(f"/mnt/c/Users/$USER/{folder}")})
+
+    if _WSL_VSCODE_RE.search(low):
+        return Frame("open_vscode", {})
     if _WSL_CLIP_RE.search(low):
         return Frame("copy_to_clipboard", {})
     if _WSL_EXPLORER_RE.search(low):
@@ -1573,7 +1754,7 @@ _NAV_GOTO_RE = re.compile(
     r"(?:the\s+|my\s+)?([/\w.+-]+)",
     re.IGNORECASE,
 )
-_NAV_STOP = {"the", "my", "a", "an", "it", "here", "there", "where", "back"}
+_NAV_STOP = {"the", "my", "a", "an", "it", "here", "there", "where", "back", "this"}
 
 
 def _nav_levels(low: str) -> int:
