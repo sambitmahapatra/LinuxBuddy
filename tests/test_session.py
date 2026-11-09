@@ -6,6 +6,10 @@ and an unrelated turn (act=new) replacing the frame — driven through the real
 cli.main with LINUXBUDDY_SESSION set and an isolated cache dir.
 """
 import io
+import os
+import sys
+import time
+import subprocess
 import contextlib
 
 import pytest
@@ -206,3 +210,91 @@ def test_non_find_request_falls_back_to_single_turn(session_mode):
     # A non-composable request in session mode behaves exactly like v1.
     rc, out = _run("what's my PATH")
     assert (rc, out) == (0, "echo $PATH")
+
+
+# --------------------------------------------------------------------------
+# Task 31 — the store key must come from $LINUXBUDDY_SESSION, not getppid()
+# --------------------------------------------------------------------------
+
+def test_store_key_prefers_env_and_sanitizes(monkeypatch):
+    monkeypatch.setenv("LINUXBUDDY_SESSION", "lb-123-456/../a b")
+    k = session.store_key()
+    assert "/" not in k and " " not in k          # safe as a filename component
+    assert k.startswith("lb-123-456")
+
+
+def test_store_key_falls_back_to_ppid_when_unset(monkeypatch):
+    monkeypatch.delenv("LINUXBUDDY_SESSION", raising=False)
+    assert session.store_key() == str(os.getppid())
+
+
+# --- cross-process: the real widget bug (lb runs in a $(…) subshell) ---
+#
+# Each Ctrl-G runs `lb` inside a command substitution, i.e. a *fresh* subshell
+# with a *different* PID — so keying on os.getppid() gives a new session file
+# every turn and nothing accumulates. We reproduce that here by running each
+# `lb` as a forked child of a brand-new bash per call (distinct getppid), while
+# sharing one exported LINUXBUDDY_SESSION. This FAILS under getppid keying and
+# PASSES once the key comes from the env id.
+
+_LB_SNIPPET = "import sys; from linuxbuddy.cli import main; sys.exit(main(sys.argv[1:]))"
+
+
+def _run_lb_subshell(request, env):
+    """Run `lb` as a forked child of a fresh bash (so getppid differs per call,
+    like the widget's $(lb …) subshell). The two-statement `bash -c` body defeats
+    bash's single-command exec optimization, guaranteeing a distinct parent PID."""
+    proc = subprocess.run(
+        ["bash", "-c", '"$@"; exit $?', "_",
+         sys.executable, "-c", _LB_SNIPPET, request],
+        capture_output=True, text=True, env=env,
+    )
+    return proc.returncode, proc.stdout.strip()
+
+
+def _env(tmp_path, session_id):
+    e = {k: v for k, v in os.environ.items() if k != "LINUXBUDDY_SESSION"}
+    e["LINUXBUDDY_CACHE_DIR"] = str(tmp_path)
+    if session_id is not None:
+        e["LINUXBUDDY_SESSION"] = session_id
+    return e
+
+
+def test_env_keyed_persistence_across_subshells(tmp_path):
+    env = _env(tmp_path, "lb-term-A-999")
+    rc1, out1 = _run_lb_subshell("find CSV files larger than 100MB", env)
+    rc2, out2 = _run_lb_subshell("only the ones modified yesterday", env)
+    assert (rc1, out1) == (0, "find . -name '*.csv' -size +100M")
+    # The refine SEES turn 1's frame despite a different subshell PID each call.
+    assert (rc2, out2) == (0, "find . -name '*.csv' -size +100M -daystart -mtime 1")
+
+
+def test_distinct_session_ids_do_not_cross_talk(tmp_path):
+    envA = _env(tmp_path, "lb-A")
+    envB = _env(tmp_path, "lb-B")
+    rc1, out1 = _run_lb_subshell("find CSV files larger than 100MB", envA)
+    assert (rc1, out1) == (0, "find . -name '*.csv' -size +100M")
+    # Terminal B never saw A's query: the day phrase starts a fresh query of its
+    # own, carrying NONE of A's csv/size. If the sessions collided it would read
+    # "... -name '*.csv' -size +100M -daystart -mtime 1".
+    rc2, out2 = _run_lb_subshell("only the ones modified yesterday", envB)
+    assert (rc2, out2) == (0, "find . -daystart -mtime 1")
+    assert "*.csv" not in out2 and "+100M" not in out2
+
+
+def test_unset_session_still_single_turn(tmp_path):
+    env = _env(tmp_path, None)   # no LINUXBUDDY_SESSION
+    rc, out = _run_lb_subshell("what's my PATH", env)
+    assert (rc, out) == (0, "echo $PATH")
+    assert not list(tmp_path.glob("session_*.json"))   # nothing persisted
+
+
+def test_cleanup_reaps_stale_session_files(monkeypatch, tmp_path):
+    monkeypatch.setenv("LINUXBUDDY_CACHE_DIR", str(tmp_path))
+    stale = tmp_path / "session_deadshell.json"
+    stale.write_text("{}")
+    old = time.time() - (session.TTL_SECONDS + 100)
+    os.utime(stale, (old, old))
+    session.save("liveshell", SessionFrame(shell_id="liveshell"))
+    assert not stale.exists()                               # old file reaped
+    assert (tmp_path / "session_liveshell.json").exists()   # fresh one kept

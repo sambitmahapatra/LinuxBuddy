@@ -1487,3 +1487,78 @@ Diffed routing (lb_stdout/stderr/exit_code/outcome) vs v4: **0 changes**, integr
 PASS. Single-turn behaviour is byte-identical.
 
 Committed on `v2-multiturn` (not pushed).
+
+## 2026-11-09 — Task 31 (v2 bugfix): key the session on an exported per-terminal id, not getppid()
+
+**The bug (headline multi-turn feature was broken in the real widget).** An
+interactive test showed the 3-turn chain did NOT accumulate: turn 2 ("only the
+ones modified yesterday") came back as `find . -daystart -mtime 1`, dropping the
+`-name '*.csv' -size +100M` from turn 1. Root cause: the Ctrl-G widget runs `lb`
+inside a `$(lb …)` command substitution — a **fresh subshell with a new PID every
+press** — and the store was keyed on `os.getppid()`. So each turn got a different
+`session_<PPID>.json` and never saw the previous frame. The Task-30 tests passed
+only because they drove three `lb` processes with a *shared* PPID, which the real
+widget never provides.
+
+**The fix.** Key the session on a stable, exported, per-terminal id.
+- **Widgets** (`shell/linuxbuddy.bash` + `.zsh`): at source time (once per shell,
+  top level), `export LINUXBUDDY_SESSION="lb-$$-$(date +%s%N)"`. `$$` is the
+  interactive shell's PID (fixed for the terminal); the nanosecond stamp makes it
+  unique across terminals. Being exported, every `lb` in that terminal — subshell,
+  command substitution or direct — inherits the SAME value. (This also fixes the
+  old `=1` value, which would have collided ALL terminals onto one session.)
+- **`session.py`**: `store_key()` now returns the sanitized `$LINUXBUDDY_SESSION`
+  when set (authoritative), falling back to `os.getppid()` only when it is absent
+  (a direct `lb` with no widget). `_sanitize_key()` maps anything outside
+  `[A-Za-z0-9._-]` to `_` and caps at 128 chars, so no `/` or space can reach the
+  store path. `--frame`/`--reset` were already on the `store_key()` path, so they
+  pick up the new keying for free.
+- **Cleanup**: `save()` now calls `_cleanup_stale()` (best-effort, never raises),
+  reaping `session_*.json` whose mtime is older than the TTL, so one dead file per
+  closed terminal doesn't pile up in `~/.cache/linuxbuddy`.
+
+TTL + reset-word + cwd-change reset behaviour unchanged.
+
+**Tests first (the test that WOULD have caught this).** Added 6 tests to
+`tests/test_session.py`:
+- `test_env_keyed_persistence_across_subshells` — runs each `lb` as a forked child
+  of a *fresh bash per call* (a two-statement `bash -c` body defeats bash's
+  single-command exec optimization, so getppid genuinely differs per call) while
+  sharing one `LINUXBUDDY_SESSION`. Asserts turn 2 accumulates. This FAILS under
+  the old getppid keying (turn 2 would emit `find . -daystart -mtime 1`) and
+  PASSES after the fix — it reproduces the real subshell scenario.
+- `test_distinct_session_ids_do_not_cross_talk` — two different ids → no leakage
+  (terminal B's day phrase starts its own query, carrying none of A's csv/size).
+- `test_unset_session_still_single_turn` — unset env → single-turn, no file
+  written.
+- `test_store_key_prefers_env_and_sanitizes`, `..._falls_back_to_ppid_when_unset`,
+  `test_cleanup_reaps_stale_session_files`.
+Full suite: **308 pass** (was 302).
+
+**Live re-verification (the real proof).** In one bash shell with the widget's
+exported id, running `lb` through actual `$(lb …)` subshells inside the maze
+(`testlinuxbuddy/project`):
+- turn 1 `find CSV files larger than 100MB` → `find . -name '*.csv' -size +100M`
+- turn 2 `only the ones modified yesterday` →
+  `find . -name '*.csv' -size +100M -daystart -mtime 1`  ← **the dropped filters
+  are now kept; this is the exact symptom that was broken.**
+- turn 3 `show the biggest one` →
+  `find . -name '*.csv' -size +100M -daystart -mtime 1 -printf '%s\t%p\n' | sort -rn | head -1`
+- `lb --frame` grows across turns; `never mind` clears it (frame gone afterward).
+Each `$(lb …)` is a distinct subshell PID, so this exercises exactly the path the
+getppid keying broke.
+
+**Regression.** Re-ran the 139-scenario single-turn sweep →
+`data/eval/sweep_results_v6.csv`. COMMAND 134 / ABSTAIN 5, integrity PASS.
+Routing diff (lb_stdout/stderr/exit_code/outcome) vs v5: **0 changes** — single-
+turn is byte-identical (the fix only touches the session path, which single-turn
+never enters).
+
+**Note for the human.** `ROADMAP_V2.md` (referenced by this prompt's "read first")
+still does not exist — built to the inline spec as in Task 30; worth writing as a
+separate task. The widget keying was verified via `$(lb …)` subshells, which is
+the mechanism Ctrl-G uses; a human pressing Ctrl-G in a fully interactive bash is
+the one remaining manual confirmation (the Readline redraw), but the persistence
+bug itself is now covered by an automated cross-process test.
+
+Committed on `v2-multiturn` (not pushed).

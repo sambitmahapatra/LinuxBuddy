@@ -24,10 +24,15 @@
 # Because the command lands in YOUR buffer (not a subprocess), requests that
 # change shell state — `cd`, `export` — work: your own shell runs them.
 
-# Enable the v2 multi-turn session for Ctrl-G calls: `lb` persists a running
-# query keyed by this shell's PID, so "only the ones modified yesterday" refines
-# the previous command. A direct `lb "..."` (no widget) stays single-turn.
-export LINUXBUDDY_SESSION=1
+# Enable the v2 multi-turn session for Ctrl-G calls, and KEY it on a stable,
+# per-terminal id. The widget runs `lb` inside a $(…) command substitution — a
+# fresh subshell with a different PID each Ctrl-G — so `lb` must NOT key on its
+# parent PID (it would get a new session file every turn and never accumulate).
+# `$$` is this interactive shell's PID (fixed for the terminal); the nanosecond
+# timestamp makes it unique across terminals. Exported once at source time, so
+# every `lb` in this terminal — subshell or not — inherits the SAME id. A direct
+# `lb "..."` in a shell without this sourced stays single-turn.
+export LINUXBUDDY_SESSION="lb-$$-$(date +%s%N)"
 
 _linuxbuddy_widget() {
   local request=$READLINE_LINE

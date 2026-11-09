@@ -8,9 +8,15 @@ pipeline: ``to_command_plan()`` returns a plain :class:`~linuxbuddy.nlu.Frame`
 that ``planner.compile`` + ``render.to_shell`` + ``gate`` handle unchanged.
 
 Design choices (documented in LOG.md):
-  * **Store key** = the parent shell PID (``os.getppid()``), so every Ctrl-G in
-    the same shell shares one frame. File: ``<cache>/session_<PPID>.json``,
-    ``<cache>`` = ``$LINUXBUDDY_CACHE_DIR`` or ``~/.cache/linuxbuddy``.
+  * **Store key** = the per-terminal id the shell widget exports in
+    ``$LINUXBUDDY_SESSION`` (Task 31). The widget runs ``lb`` inside a ``$(…)``
+    command substitution — a fresh subshell with a *different* PID every Ctrl-G —
+    so keying on ``os.getppid()`` gave a new file each turn and nothing
+    accumulated. The exported id is stable for the life of the terminal and is
+    inherited by every subshell, so all of a terminal's Ctrl-G calls share one
+    frame. File: ``<cache>/session_<sanitized-id>.json``, ``<cache>`` =
+    ``$LINUXBUDDY_CACHE_DIR`` or ``~/.cache/linuxbuddy``. A direct ``lb`` call
+    without the widget (no env id) falls back to ``os.getppid()``.
   * **TTL** = 10 min. A stale frame is treated as absent (fresh parse).
   * **Reset** on the words "start over / reset / never mind / forget it", OR on a
     cwd change since the frame was written (a ``cd`` means a fresh context).
@@ -290,13 +296,45 @@ def cache_dir() -> str:
     )
 
 
+def _sanitize_key(sid: str) -> str:
+    """Make an env-supplied id safe as a filename component — no path separators
+    or spaces can leak into the store path."""
+    safe = re.sub(r"[^A-Za-z0-9._-]", "_", sid)
+    return safe[:128] or "default"
+
+
 def store_key() -> str:
-    """The session key — the parent shell's PID, shared across Ctrl-G calls."""
+    """The session key. Prefer the per-terminal id the widget exports in
+    ``$LINUXBUDDY_SESSION`` (stable across the ``$(lb …)`` subshells each Ctrl-G
+    spawns); fall back to the parent PID only for a direct ``lb`` call with no
+    widget. When present, the env id is authoritative (Task 31)."""
+    sid = os.environ.get("LINUXBUDDY_SESSION")
+    if sid:
+        return _sanitize_key(sid)
     return str(os.getppid())
 
 
 def _store_path(key: str) -> str:
     return os.path.join(cache_dir(), f"session_{key}.json")
+
+
+def _cleanup_stale(ttl: float = TTL_SECONDS) -> None:
+    """Best-effort reaping of session files older than the TTL, so the cache
+    doesn't accumulate one dead file per closed terminal. Never raises."""
+    cutoff = time.time() - ttl
+    try:
+        names = os.listdir(cache_dir())
+    except OSError:
+        return
+    for name in names:
+        if not (name.startswith("session_") and name.endswith(".json")):
+            continue
+        p = os.path.join(cache_dir(), name)
+        try:
+            if os.path.getmtime(p) < cutoff:
+                os.remove(p)
+        except OSError:
+            pass
 
 
 def load(key: str, ttl: float = TTL_SECONDS, cwd: str | None = None) -> "SessionFrame | None":
@@ -330,6 +368,7 @@ def save(key: str, frame: SessionFrame) -> None:
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(frame.to_json())
     os.replace(tmp, path)  # atomic
+    _cleanup_stale()       # reap dead terminals' files (the fresh one is kept)
 
 
 def clear(key: str) -> None:
