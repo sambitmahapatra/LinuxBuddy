@@ -24,6 +24,11 @@
 # Because the command lands in YOUR buffer (not a subprocess), requests that
 # change shell state — `cd`, `export` — work: your own shell runs them.
 
+# Enable the v2 multi-turn session for Ctrl-G calls: `lb` persists a running
+# query keyed by this shell's PID, so "only the ones modified yesterday" refines
+# the previous command. A direct `lb "..."` (no widget) stays single-turn.
+export LINUXBUDDY_SESSION=1
+
 _linuxbuddy_widget() {
   local request=$READLINE_LINE
 

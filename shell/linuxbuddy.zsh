@@ -25,6 +25,10 @@
 # result. Because the command lands in YOUR buffer, requests that change shell
 # state (`cd`, `export`) work — your own shell runs them when you press Enter.
 
+# Enable the v2 multi-turn session for Ctrl-G calls (see linuxbuddy.bash). A
+# direct `lb "..."` without the widget stays single-turn.
+export LINUXBUDDY_SESSION=1
+
 _linuxbuddy_widget() {
   emulate -L zsh
   setopt localoptions no_aliases

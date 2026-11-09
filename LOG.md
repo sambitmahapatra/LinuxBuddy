@@ -1409,3 +1409,81 @@ The CHANGELOG tag link points at the real origin
 
 `pytest` still green (281). **Committed as `release: v1.0.0`. NOT tagged, NOT
 pushed** — ready for the human to tag `v1.0.0` and push.
+
+---
+
+## 2026-11-09 — Task 30 (v2 Phase 1 spike: multi-turn 3-chain, NO model)
+
+Started v2 on a new branch `v2-multiturn` (v1.0.0 line kept pristine). This is
+the thin slice: prove the multi-turn *mechanic* with a session frame + rules-
+based delta detection, rendering through the UNCHANGED v1 pipeline. **No
+transformer/torch/embeddings** — the encoder is Phase 2.
+
+**Note on docs:** `Prompts/30` says to read `ROADMAP_V2.md`; that file does not
+exist in the repo. The frame shape is specified inline in the task, so I built to
+that and did not invent a roadmap doc. Flagging for the human.
+
+**The target chain works end-to-end** (verified as 3 *separate* `lb` processes in
+one bash shell in the maze, sharing a PPID via the disk store):
+```
+find CSV files larger than 100MB
+  -> find . -name '*.csv' -size +100M
+only the ones modified yesterday
+  -> find . -name '*.csv' -size +100M -daystart -mtime 1
+show the biggest one
+  -> find . -name '*.csv' -size +100M -daystart -mtime 1 -printf '%s\t%p\n' | sort -rn | head -1
+```
+
+**Frame shape** (`src/linuxbuddy/session.py`, `SessionFrame` dataclass):
+`op, targets{}, filters{}, modifier, cwd, history[], updated_at, shell_id`.
+`targets` holds `path` + the `-name` glob; `filters` holds `size` (+100M) and
+`mtime`; `modifier` ∈ {None, max-by-size, count}. Methods: `merge(delta)` (accum-
+ulates without clobbering), `to_command_plan()` (returns a plain v1 `Frame`),
+`is_stale(ttl)`, `reset()`, plus `from_request()` / (de)serialization.
+
+**Rendering reuses v1 whole.** Added a KB file `kb/commands/session.yaml`
+(capability `session_compose`, intents `session_find` / `session_find_biggest` /
+`session_count`) that uses the SAME contract as find.yaml — ordered
+`optional_args` (name, size, mtime) + `pipe_argv` stages. `to_command_plan()`
+emits a `Frame(session_*)` that the existing `planner.compile` → `render.to_shell`
+→ `gate` handle unchanged. The `-printf '%s\t%p\n' | sort -rn | head -1` compose
+is built via the Stages/pipe mechanism, never a hand-concatenated string.
+
+**Store** (disk-backed, since each Ctrl-G is a fresh process): key = parent shell
+PID (`os.getppid()`); file `<cache>/session_<PPID>.json`, `<cache>` =
+`$LINUXBUDDY_CACHE_DIR` or `~/.cache/linuxbuddy`. **TTL = 10 min.** Cleared on the
+reset words (start over / reset / never mind / forget it / scratch that) and on a
+**cwd change** since the frame was written (a `cd` means fresh context). A
+missing/corrupt file loads as empty (never raises).
+
+**`-daystart` decision:** "modified yesterday" → `-daystart -mtime 1` (the whole
+previous calendar day), "today" → `-daystart -mtime 0`. `-daystart` anchors
+`-mtime` to midnight, matching the human calendar sense; plain `-mtime 1` means
+24–48h ago relative to *now*, which is not "yesterday".
+
+**Dialogue-act detector** (`classify`, rules): reset → self-contained-new (op
+verb + a composable query: a type glob / size / day — beats refine/operate, so
+"find all json files" mid-chain REPLACES the frame) → operate (biggest/largest →
+max-by-size; count them / how many → count) → refine (a bare constraint, or a
+leading only/just/and, with no new op verb; extracts size/day/ext as a delta and
+merges, keeping existing slots) → new-if-composable → **fallback to the v1 single-
+turn path** (the safe default; a non-find request like "what's my PATH" always
+falls back). "new" is based on MY extractor, not v1's router — v1 sends "find CSV
+files…" to grep (uppercase CSV), but the session composes it correctly.
+
+**Opt-in, so single-turn is untouched.** Multi-turn engages only when
+`LINUXBUDDY_SESSION` is set; the shell widgets (bash + zsh) now export it, so
+Ctrl-G is session-aware while a direct `lb "..."` — including the 139-sweep — runs
+the unchanged v1 body. CLI also gains `lb --frame` (print the frame) and
+`lb --reset` (clear it).
+
+**Tests:** `tests/test_session.py` — 21 tests: merge no-clobber, TTL/reset,
+disk round-trip, cwd-reset, corrupt-file tolerance, the act classifier, and the
+full 3-turn chain / reset-mid-chain / unrelated-new-replaces through the real
+`cli.main`. Full suite **302 pass** (was 281).
+
+**Regression:** re-ran the 139-scenario sweep single-turn → `sweep_results_v5.csv`.
+Diffed routing (lb_stdout/stderr/exit_code/outcome) vs v4: **0 changes**, integrity
+PASS. Single-turn behaviour is byte-identical.
+
+Committed on `v2-multiturn` (not pushed).

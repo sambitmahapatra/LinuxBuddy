@@ -1,0 +1,54 @@
+# session.yaml — capability spec for the v2 multi-turn compose intents
+# (Task 30, v2 Phase 1 spike).
+#
+# These intents are NEVER produced by the single-turn NLU router — only by
+# SessionFrame.to_command_plan() when a multi-turn chain accumulates filters.
+# They reuse the exact same KB contract as find.yaml (base_argv + ordered
+# optional_args + pipe_argv stages), so the existing planner/renderer/gate
+# compile and emit them with no parallel renderer.
+#
+# The optional_args order fixes the flag order in the rendered command:
+#   name  -> -name '*.csv'      (a filename glob; QUOTED, so the shell doesn't
+#                                 expand it before find sees it)
+#   size  -> -size +100M        (find size unit, human-friendly: +100M not bytes)
+#   mtime -> -daystart -mtime N (calendar-day semantics: N=0 today, N=1 yesterday)
+#
+# Everything here is read-only (find + sort/head/wc). No write intents.
+
+capability: session_compose
+utility: find
+
+intents:
+  # Accumulated find with the current filters (no operator).
+  session_find:
+    base_argv: ["find", "{path}"]
+    optional_args:
+      name: ["-name", "{name}"]
+      size: ["-size", "{size}"]
+      mtime: ["-daystart", "-mtime", "{mtime}"]
+    risk_ops: ["read"]
+
+  # "show the biggest one": the accumulated filters + a size-sorted top-1.
+  # The `-printf` action must come AFTER the filter tests, so it is the last
+  # optional fragment (find evaluates left-to-right). The `| sort -rn | head -1`
+  # stages are compiler-inserted via the Stages/pipe mechanism, never a string.
+  session_find_biggest:
+    base_argv: ["find", "{path}"]
+    optional_args:
+      name: ["-name", "{name}"]
+      size: ["-size", "{size}"]
+      mtime: ["-daystart", "-mtime", "{mtime}"]
+      printf_fmt: ["-printf", "{printf_fmt}"]
+    pipe_argv: ["sort", "-rn"]
+    pipe2_argv: ["head", "-1"]
+    risk_ops: ["read"]
+
+  # "count them": the accumulated filters piped to a line count.
+  session_count:
+    base_argv: ["find", "{path}"]
+    optional_args:
+      name: ["-name", "{name}"]
+      size: ["-size", "{size}"]
+      mtime: ["-daystart", "-mtime", "{mtime}"]
+    pipe_argv: ["wc", "-l"]
+    risk_ops: ["read"]
