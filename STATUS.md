@@ -1,11 +1,21 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-10 (Task 34 — **copy synonyms; last manual synonym
-patch**)
+**Last updated:** 2026-11-10 (Task 35 — **autonomous adaptive stress test;
+testing only, no source changes**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**.
+
+**Task 35 (stress test — testing only).** Added `tests/stress_test.py`: a 5-agent
+adaptive harness (Environment Builder / Explorer / Adversary / Session Tester /
+Judge) that generates and adapts its own test cases. One run = **170 tests,
+84.1% behaved as a reasonable user expects, 0 gate leaks, session 32/32**. **No
+LinuxBuddy source was modified.** Outputs (`stress_test_results.csv`,
+`stress_test_report.md`) are gitignored as ephemeral — regenerate with
+`python3 tests/stress_test.py`. It cleans up `testlinuxbuddy/stress/` after each
+run. The harness separates **bugs to fix** from **Phase-2 encoder territory** —
+see "Findings from the stress test" below.
 
 **Task 34 (synonym fix — the LAST manual one).** "create a copy of X" /
 "duplicate X" / "make a duplicate of X" / "back up X.ext" are now copy intents
@@ -87,6 +97,31 @@ Motivation for the v2 model.
 
 HANDOVER.md stays frozen as founding context; this file is the living snapshot.
 
+## Findings from the stress test (Task 35) — for triage, not yet actioned
+**Routing/rendering (5, all read-only → low-risk, but wrong command emitted):**
+- `where are the python scripts` → `command -v python3` (python-installed check
+  steals the find).
+- `list all python files` → `ls -la` (list_all beats find_by_type; cf. `find all
+  the python files` works).
+- `show the permissions of notes.txt` → `head -n 10` and `show me the stats for
+  notes.txt` → `head` (inspection verbs misroute to preview).
+- `check the syntax of src/main.py` → `find . -name main.py` (py_syntax phrasing
+  unrecognised).
+
+**Rules ceiling → Phase-2 encoder corpus (22, NOT to patch by hand):** abstained
+reads (`what processes are running`, `list everything here`, `where are the
+spreadsheets`, `what changed in the last day`) + destructive synonyms that
+degrade *safely* to a find (`erase/nuke/wipe/discard/del/throw away`,
+`clone/replicate`, `set up a folder`). The full list is the training signal.
+
+**Containment observation (for the human — would change a settled rule):** the
+gate is cwd-based by design, so `delete ../../../etc/hosts` run *inside* the maze
+emits `rm -- ../../../etc/hosts` at rc=3 — a `..` target escapes the maze. Not a
+breach of the current contract (and `lb` never executes), but a prod-mode
+hardening item. No change made.
+
 ## Open bugs
-None known. Full suite green (389), deterministic w/ and w/o `LINUXBUDDY_SESSION`.
-Sweep: 0 routing diffs (147 rows == v8), integrity preserved.
+None in shipped behaviour. Full suite green (389), deterministic w/ and w/o
+`LINUXBUDDY_SESSION`. Sweep: 0 routing diffs (147 rows == v8), integrity
+preserved. The 5 routing observations above are stress-test findings for triage
+(read-only, non-blocking), not regressions.

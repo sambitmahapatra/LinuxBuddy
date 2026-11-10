@@ -1787,3 +1787,68 @@ its motivation). Future "the tool didn't understand X" reports of this shape
 should be logged as encoder training signal, not patched individually.
 
 Committed on `v2-multiturn` (not pushed).
+
+## 2026-11-10 — Task 35: autonomous adaptive stress test (testing only, no src changes)
+
+Built `tests/stress_test.py` — a 5-agent stress harness that generates its own
+test cases and adapts, rather than iterating a fixed list. **No LinuxBuddy source
+was touched** (testing only, per the task). One run = 170 tests; outputs
+(`stress_test_results.csv`, `stress_test_report.md`) are gitignored as ephemeral.
+
+**The agents.** (1) Environment Builder grows a 35-item tricky tree under
+`testlinuxbuddy/stress/` — 5-level nesting, spaces in dir+file names, ALL-CAPS,
+dotfiles, a symlink, a real `tar.gz`, a ~2MB file, similar-name families
+(report / report_final / report_backup) — each item documented with the hazard it
+probes. (2) Explorer runs 87 single-turn requests across every domain, several
+phrasings per operation, each stamped with the expectation a reasonable user
+holds (read⇒0, destructive⇒3, vague/nonsense⇒abstain). (3) Adversary (51 probes)
+reads the Explorer's *actual* failures and computes its probes from them —
+rewording abstained reads to map the boundary, running synonym ladders, and a
+gate-leak battery outside the maze. (4) Session Tester runs 9 multi-turn chains
+(32 rows) verifying accumulation, reset, new-replaces, isolation, off-topic
+resilience, and the vague-size no-op. (5) Judge analyses everything and writes the
+report, separating bugs-to-fix from Phase-2-encoder territory.
+
+**Calibration first (the honest part).** Before writing the judge I probed real
+`lb` across domains so expectations match reality, and caught myself: my first
+judge flagged `erase scratch.tmp → find …` as "DANGER: destructive flagged
+read-only." That was backwards — an *unrecognised* destructive verb safely
+**degrades to a read-only find**; it is a synonym gap, not a risk. Fixed the judge
+so WRONG_EXIT fires only when a genuinely destructive-family command (`rm`/`mv`/…)
+is emitted at rc=0. Also fixed two false positives where my expectation was wrong,
+not lb's output: `remove duplicate lines → sort -u` and session `how many →
+find … | wc -l` are both correct.
+
+**Results (170 tests, 84.1% behaved as a reasonable user expects, 0 gate leaks).**
+- **Bugs to fix (5, all routing/rendering, all read-only so low-risk):**
+  `where are the python scripts → command -v python3` (python-installed check
+  steals it); `list all python files → ls -la` (list_all beats find_by_type);
+  `show the permissions of notes.txt → head -n 10` and `show me the stats … →
+  head` (inspection verbs misroute to preview); `check the syntax of main.py →
+  find` (py_syntax phrasing not recognised).
+- **Rules ceiling / Phase-2 corpus (22):** abstained reads
+  (`what processes are running`, `list everything here`,
+  `where are the spreadsheets`, `what changed in the last day`, …) plus
+  unrecognised destructive verbs that degraded safely to a find
+  (`erase/nuke/wipe/discard/del/throw away`, `clone/replicate`, `set up a
+  folder`). The delete-synonym boundary: recognised = delete/remove/get rid
+  of/trash; not = erase/nuke/wipe/discard/del/throw away.
+- **Session: 32/32, all 9 chain properties held** — accumulation, reset,
+  isolation (two `$LINUXBUDDY_SESSION` ids don't interfere), off-topic turns
+  leave the frame intact and refinable. `delete them` coreference correctly
+  abstains (invariant 6), which the harness scores as the safe outcome.
+- **Containment:** 10/10 destructive ops refused outside the maze. **New
+  observation worth a look:** `delete ../../../etc/hosts` run *inside* the maze
+  emits `rm -- ../../../etc/hosts` at rc=3 — the gate is cwd-based by design and
+  does not inspect the *target*, so a `..` target escapes the maze. Not a breach
+  of the current gate contract (and `lb` never executes), but a real hardening
+  item for prod mode. Flagged in the report, not "fixed" (would change a settled
+  design rule — for the human to decide).
+
+The two "bug" classes that look like misroutes (#3/#5 above) are arguably
+synonym gaps that happen to emit a wrong read rather than abstain; the report
+lists them under routing because lb emitted a *specific* wrong command, which is
+more actionable than a silent abstain.
+
+Full existing suite still **389 pass** (unchanged — no src edits). Committed on
+`v2-multiturn` (not pushed); output files gitignored.

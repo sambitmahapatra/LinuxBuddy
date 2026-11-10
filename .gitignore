@@ -9,3 +9,7 @@ __pycache__/
 
 # Editable-install / build metadata
 *.egg-info/
+
+# Task 35 stress-test outputs (ephemeral — deliver for review, don't track)
+stress_test_results.csv
+stress_test_report.md
