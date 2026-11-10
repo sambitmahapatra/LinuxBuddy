@@ -207,6 +207,28 @@ _OP_VERB_RE = re.compile(
 )
 _REFINE_LEAD_RE = re.compile(r"^\s*(only|just|and|also|plus)\b", re.IGNORECASE)
 
+# Task 33: a file-MANAGEMENT verb at the head of the request. These are never
+# discovery queries, so the session layer must NOT claim them as a new/refine
+# find just because the request happens to carry a filename with an extension
+# (the Task-32 regression: "delete old.log" composed `find . -name '*.log'`
+# instead of `rm`). When one leads, we hand the whole request to the v1
+# single-turn path, whose router already routes move/copy/delete/rename to the
+# file_management domain (and "remove the executable bit"/"remove duplicate
+# lines" to chmod/text). Discovery verbs (find/list/locate/where/how many/
+# recently modified/biggest) are disjoint from this set, so discovery is
+# untouched. Anchored at the head so "find files to move" stays a find.
+_FILEOP_LEAD_RE = re.compile(
+    r"^\s*(?:please\s+|pls\s+|can\s+you\s+|could\s+you\s+|would\s+you\s+)?"
+    r"(?:mv|cp|rm"
+    r"|move|copy|rename|delete|remove|trash|put"
+    r"|get\s+rid\s+of"
+    r"|(?:make|create)\s+(?:a\s+)?copy"
+    # mkdir phrasings: "make a folder logs" would otherwise be hijacked because
+    # "logs" reads as a .log type — keep it a mkdir (single-turn make_dir).
+    r"|(?:make|create|new|add)\s+(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:folder|dir|directory))\b",
+    re.IGNORECASE,
+)
+
 
 def _composable(low: str) -> bool:
     """True if this spike can extract a find query (a type glob, a size, or a
@@ -263,6 +285,14 @@ def classify(text: str, frame: "SessionFrame | None") -> tuple[str, dict]:
     if m:
         remainder = (low[:m.start()] + low[m.end():]).strip(" ,.")
         return ("reset", {"remainder": remainder})
+
+    # Task 33: a file-management verb owns the sentence → defer to single-turn
+    # (which routes it to the file_management domain). Checked BEFORE the
+    # composable-find checks so a filename extension can't hijack it into a find,
+    # and before operate/refine so a mid-chain "delete old.log" is a fresh
+    # destructive op, not a refinement of the running query.
+    if _FILEOP_LEAD_RE.match(low):
+        return ("fallback", {})
 
     # A self-contained find request (explicit verb + a composable query)
     # replaces the frame, even mid-chain — so "find all json files" is NEW, not a

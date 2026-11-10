@@ -138,3 +138,11 @@ E136,python_environments,venv,canonical,read,project,which python am i using,com
 E137,python_environments,run_script,canonical,read,project,run train.py,python train.py,emit; do NOT execute (side effects)
 E138,python_environments,pip_install,canonical,destructive,project,install the requests package,pip install requests,write op
 E139,python_environments,pip_install,synonym,destructive,project,add pandas to my environment,pip install pandas,
+E140,file_management,move_file,canonical,destructive,project,move report.csv to archive,mv -- report.csv archive,Task 33: file-op must win over find
+E141,file_management,move_file,rename,destructive,project,rename a.txt to b.txt,mv -- a.txt b.txt,Task 33: two filenames present
+E142,file_management,copy_file,canonical,destructive,project,copy requirements.txt to archives,cp -- requirements.txt archives,Task 33: copy-to-dest
+E143,file_management,delete_file,canonical,destructive,project,delete old.log,rm -- old.log,Task 33: delete not find
+E144,file_management,delete_file,synonym,destructive,project,get rid of output.tmp,rm -- output.tmp,Task 33: 'get rid of' verb
+E145,file_management,make_dir,canonical,destructive,project,make a folder photos,mkdir -p -- photos,Task 33: mkdir unchanged
+E146,file_discovery,find_by_type,control,read,project,find all csv files,find . -name '*.csv',"Task 33: discovery control, must stay find"
+E147,file_management,copy_file,backup,destructive,project,make a copy of config.yaml,cp -- config.yaml config.yaml.bak,Task 33: backup_copy still works

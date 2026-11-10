@@ -1650,3 +1650,79 @@ the same outside are refused (exit 1). "go to test_02 inside linuxbuddy" from
 these too. `ROADMAP_V2.md` still absent (built to the inline spec).
 
 Committed on `v2-multiturn` (not pushed).
+
+## 2026-11-10 — Task 33: file-management verbs win over `find` in the SESSION path
+
+Bugfix on `v2-multiturn`. The four file-ops from Task 32 emitted `find …`
+(exit 0) instead of `mv`/`rm`/`cp` (exit 3) — but ONLY in the real widget.
+
+**Raw results first (per CLAUDE.md).** Probed before touching code:
+`nlu.parse("move report.csv to archive")` already returns `move_file`, and the
+single-turn CLI already emits `mv -- report.csv archive` (exit 3). The bug
+reproduces only when `LINUXBUDDY_SESSION` is set — i.e. the multi-turn path the
+Ctrl-G widget uses, which the owner's bash exports.
+
+**So the prompt's stated root cause was wrong.** It said `file_management` is
+checked AFTER `file_discovery` in the router. It isn't — Task 32 already put
+`_parse_file_management` before `_parse_file_discovery`, and single-turn routing
+is correct. The real culprit is `session.classify()`: its `_composable()` test
+treats ANY request carrying a filename extension as a new `find`-by-type query,
+so "delete old.log" → act `new` → `SessionFrame.from_request` → `find . -name
+'*.log'`. `mkdir "photos"` survived only because it has no extension — but
+`"make a folder logs"` was ALSO hijacked ("logs" reads as `.log`), a case the
+prompt's probe missed.
+
+**Fix (session.py).** A new `_FILEOP_LEAD_RE` matches a file-management verb at
+the HEAD of the request — move/copy/rename/delete/remove/trash/put/get rid of,
+bare mv/cp/rm, "make a copy", and the mkdir phrasings (make/create/new/add a
+folder|dir|directory). When it matches, `classify()` returns `("fallback", {})`
+BEFORE the composable-find checks and before operate/refine — so the v1
+single-turn path handles it (routing move/copy/delete/rename to file_management,
+and "remove the executable bit"/"remove duplicate lines" to chmod/text). It sits
+after the reset check so "never mind, delete X" still resets. Discovery verbs
+(find/list/locate/where/how many/recently modified/biggest) are disjoint from
+this set, so discovery is untouched. Anchored at the head so "find files to
+move" stays a find.
+
+**Test-hygiene fix (tests/conftest.py).** An autouse fixture unsets
+`LINUXBUDDY_SESSION` for every test by default; session tests opt back in via
+`monkeypatch.setenv` (which runs after it). Without this, running `pytest` from
+the owner's widget-active bash routed the single-turn CLI tests through the
+session path and failed 6 of them spuriously — the SAME environment that hid
+this bug. The suite is now deterministic with or without the env var.
+
+**Tests (written first, RED before the fix).** `tests/test_session_fileops_routing.py`,
+28 tests: classify returns `fallback` for file-op leads both with and without an
+active frame (so a mid-chain "delete old.log" is a fresh destructive op, not a
+refine); discovery stays `new`; refine/operate still fire with a frame;
+end-to-end through the real `cli.main` in session mode the four rows emit the
+right destructive command at exit 3, mkdir (photos AND logs) and backup_copy
+work, a file-op is refused outside the maze (exit 1, empty stdout); and the
+discovery control + 3-turn chain still accumulate. 15 of the 28 failed before
+the fix, all green after. Full suite **368 pass** (was 340), identical with and
+without `LINUXBUDDY_SESSION` set.
+
+**Regression — the 139-row single-turn sweep: 0 routing diffs vs v7.** Re-ran lb
+single-turn over all 139 scenarios (LINUXBUDDY_SESSION unset) and diffed
+lb_stdout/lb_stderr/exit_code/outcome against `sweep_results_v7.csv`: byte-
+identical (the fix only touches the session path).
+
+**Manual re-verify (real `lb`, widget session id set, in the maze).** `move
+report.csv to archive` → `mv -- report.csv archive` (3); `delete old.log` → `rm
+-- old.log` (3); `copy requirements.txt to archives` → `cp -- requirements.txt
+archives` (3); `rename a.txt to b.txt` → `mv -- a.txt b.txt` (3); `make a folder
+photos|logs` → `mkdir -p -- …` (3); `make a copy of config.yaml` → `cp --
+config.yaml config.yaml.bak` (3). Discovery in fresh sessions still routes to
+`find` (exit 0). `delete something.txt` outside the maze → refused (exit 1).
+
+**Optional sweep rows — added, with an honest caveat.** Appended E140–E147 to
+`sweep_scenarios.csv` (6 file-ops + mkdir + a discovery control) and regenerated
+`data/eval/sweep_results_v8.csv` (147 rows, COMMAND 142 / ABSTAIN 5; the first
+139 copied verbatim from v7 since routing is identical; the new destructive rows
+are `skipped-destructive-unsafe` in the exec phase so the maze isn't mutated).
+**Caveat:** these are SINGLE-TURN rows and would NOT have caught this bug —
+single-turn was never broken. The actual regression guard for this class is the
+new session test file. The sweep rows are still worth it as the single-turn
+coverage of the Task-32 intents that Task 32 flagged as missing.
+
+Committed on `v2-multiturn` (not pushed).

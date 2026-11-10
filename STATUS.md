@@ -1,83 +1,81 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-10 (Task 32 — **file-management intents + nested nav**)
+**Last updated:** 2026-11-10 (Task 33 — **file-ops win over `find` in the
+session path**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**.
 
-**New capabilities (Task 32), all deterministic rules.** A `file_management`
-domain: **move/rename** (`mv -- X Y`), **copy-to-dest** (`cp -- X Y`, generalized
-from the old X.bak duplicate), **delete** (`rm -- X`), **mkdir** (noun-then-name
-phrasings → the existing `make_dir`). All destructive → exit 3, maze-gated, real
-command rendered through the unchanged v1 pipeline; delete is plain `rm --` (no
-`-f`/`-i`) with the review-before-Enter + gate as the safety net. Definite refs
-grew: "the old logs" → `*.log`, "the image" → `*.{jpg,png}`. **Nested navigation**
-("go to X inside Y") resolves Y to an ancestor (absolute) or a child dir
-(relative), else abstains; repeated path segments disambiguate by which ancestor
-actually contains X.
+**Task 33 (bugfix).** The Task-32 file-management verbs (move/copy/delete/rename)
+were emitting `find …` (exit 0) instead of the real destructive command (exit 3)
+— but ONLY in the multi-turn widget path. Single-turn (`nlu.parse` →
+`cli._run_single_turn`) was always correct. Root cause (contrary to the prompt's
+guess about router order, which Task 32 had already fixed): `session.classify()`
+treated ANY request carrying a filename extension as a composable `find`-by-type
+query, so "delete old.log" became `find . -name '*.log'`. `mkdir "photos"`
+survived only because it has no extension; `"make a folder logs"` was hijacked
+too. **Fix:** a `_FILEOP_LEAD_RE` guard in `classify()` — a file-management verb
+at the HEAD of the request (move/copy/rename/delete/remove/trash/put/get rid of,
+bare mv/cp/rm, "make a copy", make/create/new/add a folder|dir|directory) now
+returns `fallback` before the composable-find and operate/refine checks, so the
+v1 single-turn path routes it. Discovery verbs are disjoint → discovery
+unregressed.
 
-**v2 multi-turn — now actually works in the real widget (Task 31 bugfix).** The
-Task-30 spike's store was keyed on `os.getppid()`, but the Ctrl-G widget runs `lb`
-inside a `$(lb …)` command substitution — a fresh subshell with a new PID each
-press — so every turn got its own session file and nothing accumulated (turn 2
-dropped turn 1's `-name/-size`). Fixed by keying on a stable, exported
-per-terminal id: the widgets now `export LINUXBUDDY_SESSION="lb-$$-$(date +%s%N)"`
-and `session.store_key()` derives the file name from that (sanitized), falling
-back to `getppid()` only when the env id is absent. `save()` also reaps stale
-session files past the TTL. TTL / reset-word / cwd-change reset unchanged.
+**Test hygiene:** new `tests/conftest.py` autouse-unsets `LINUXBUDDY_SESSION` so
+the single-turn tests are deterministic even when run from the owner's
+widget-active bash (that env is what hid this bug and was failing 6 single-turn
+tests spuriously).
 
-The target 3-turn chain now accumulates end-to-end through real `$(lb …)`
-subshells in the maze:
-`find CSV files larger than 100MB` → `find . -name '*.csv' -size +100M`; refine
-`only the ones modified yesterday` → `… -daystart -mtime 1` (filters KEPT);
-operate `show the biggest one` → `… -printf '%s\t%p\n' | sort -rn | head -1`.
-Multi-turn is still opt-in (the env id); single-turn is byte-identical.
+### Earlier v2 state (unchanged, carried forward)
+Task 32 added the `file_management` domain: move/rename (`mv -- X Y`),
+copy-to-dest (`cp -- X Y`), delete (`rm -- X`), mkdir, plus nested navigation
+("go to X inside Y"). All destructive → exit 3, maze-gated. Task 31 fixed the
+multi-turn store key (per-terminal `$LINUXBUDDY_SESSION`, not `getppid()`) so the
+3-turn chain accumulates end-to-end through the real `$(lb …)` subshells.
 **No transformer/torch** — the encoder is Phase 2.
 
-v1 release artifacts (Task 29): version `1.0.0`, `README.md`, `CHANGELOG.md` on
-the v1 line. **Still ready for the human to tag `v1.0.0` and push** — not tagged.
+## Final evidence (Task 33)
+- **368 tests pass** (was 340; +28 in `tests/test_session_fileops_routing.py`),
+  **identical with and without `LINUXBUDDY_SESSION` set** (the conftest makes it
+  deterministic). 15 of the 28 new tests were RED before the fix.
+- **139-row single-turn sweep: 0 routing diffs vs v7** (lb_stdout/stderr/
+  exit_code/outcome byte-identical) — the fix only touches the session path.
+- **Sweep coverage extended:** E140–E147 added to `sweep_scenarios.csv`;
+  `data/eval/sweep_results_v8.csv` written (147 rows, COMMAND 142 / ABSTAIN 5;
+  new destructive rows marked `skipped-destructive-unsafe`, maze not mutated).
+  Caveat: these single-turn rows would NOT have caught this bug — the session
+  test file is the real guard; they close the Task-32 single-turn coverage gap.
+- **Manual (real `lb`, widget session id, in maze):** the four rows → mv/rm/cp
+  at exit 3; mkdir (photos & logs) and backup_copy at exit 3; discovery (fresh
+  session) still `find` exit 0; file-op outside maze refused (exit 1).
 
-## Final evidence
-- Sweep: **COMMAND 134 / ABSTAIN 5** of 139, integrity PASS, **0 regressions**.
-  See `data/eval/sweep_results_v7.csv` (routing byte-identical v4→v7; v1–v6 kept
-  too). The Task-32 intents aren't in the 139 yet (see "open items").
-- **340 tests** pass (281 v1 + 27 v2 session + 32 file-ops/nested-nav). The
-  cross-process test `test_env_keyed_persistence_across_subshells` reproduces the
-  Task-31 subshell bug (FAILS under getppid keying, PASSES with env-id keying).
-
-## The honest-5 residual (abstain by design)
-- **E056** "tail the output" / **E060** "what is this file" — generic target, no
-  file named.
-- **E073** "sort this list" — genuinely vague, no file.
-- **E138/E139** "install the requests package" / "add pandas to my environment" —
-  correct abstains: runtime network is invariant #1.
-These generic/ambiguous/context-dependent cases are the motivation for v2.
+## The honest-5 residual (abstain by design, unchanged)
+- **E056** "tail the output" / **E060** "what is this file" — generic target.
+- **E073** "sort this list" — vague, no file.
+- **E138/E139** "install the requests package" / "add pandas …" — correct
+  abstains (runtime network is invariant #1).
+Motivation for the v2 model.
 
 ## Next — v2
-- **Phase 1 (multi-turn mechanic): DONE** (spike in Task 30; keying fixed in Task
-  31 so it works in the real widget). Scope to grow next: more operate modifiers
-  (smallest / sort / first-N), more refine constraints (name/path/type),
-  coreference beyond elided "one/them/it".
-- **Phase 2 (the model):** the transformer/attention intent encoder, Siamese /
-  zero-shot matching for unseen phrasings, a continual-learning feedback loop.
-  Intent-only — slot extraction stays rule-based; no runtime network dependency.
-  The honest-5 residual above is still its motivation.
+- **Phase 1 (multi-turn mechanic): DONE** (Task 30 spike; keying fixed Task 31;
+  file-ops no longer hijacked by the session find-composer, Task 33). Scope to
+  grow: more operate modifiers (smallest / sort / first-N), more refine
+  constraints (name/path/type), coreference beyond elided "one/them/it".
+- **Phase 2 (the model):** transformer/attention intent encoder, Siamese/
+  zero-shot matching, continual-learning feedback loop. Intent-only; slot
+  extraction stays rule-based. The honest-5 residual is its motivation.
 
 ## Open items / for the human
-- **`ROADMAP_V2.md` does not exist yet** (referenced by the Prompts/30–32 "read
-  first" lists). Tasks were built to the inline spec. Worth writing as a task.
-- **Sweep coverage for the Task-32 intents**: the move/copy/delete/mkdir +
-  nested-nav cases aren't in the 139-row `sweep_scenarios.csv` (prompt marked
-  this optional). Adding ~10 rows would regress them in future sweeps.
-- **Manual Ctrl-G redraw check** in a fully interactive bash: the Task-31
-  persistence bug is covered by an automated cross-process test and verified via
-  real `$(lb …)` subshells, but a human pressing Ctrl-G confirms the Readline
-  redraw (and the new destructive warning on the file-management ops).
-- Tag `v1.0.0` + push the v1 line (carried from Task 29).
+- **`ROADMAP_V2.md` still does not exist** (referenced by Prompts/30–33 "read
+  first"). All v2 tasks built to the inline spec. Worth writing as a task.
+- **Manual Ctrl-G redraw check** in a fully interactive bash — the one remaining
+  human confirmation (Readline redraw + the destructive warning on file-ops).
+  The persistence + routing are covered by automated cross-process/session tests.
+- Tag `v1.0.0` + push the v1 line (carried from Task 29; still not tagged).
 
 HANDOVER.md stays frozen as founding context; this file is the living snapshot.
 
 ## Open bugs
-None known. Full suite green (340). Single-turn sweep: 0 regressions (v7==v6),
-integrity PASS.
+None known. Full suite green (368), deterministic w/ and w/o `LINUXBUDDY_SESSION`.
+Single-turn sweep: 0 routing diffs (v8 routing == v7), integrity preserved.
