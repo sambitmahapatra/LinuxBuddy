@@ -1,11 +1,24 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-10 (Task 33 — **file-ops win over `find` in the
-session path**)
+**Last updated:** 2026-11-10 (Task 34 — **copy synonyms; last manual synonym
+patch**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**.
+
+**Task 34 (synonym fix — the LAST manual one).** "create a copy of X" /
+"duplicate X" / "make a duplicate of X" / "back up X.ext" are now copy intents
+(`cp -- X X.bak`, or `cp -- X Y` with a destination), rendered at exit 3 and
+maze-gated. Three coordinated edits so single-turn and session agree: `_ARC_COPY_RE`
+gained the create/duplicate-of/back-up cues (back-up only for a single file with
+an extension; a folder still → `create_archive`); `_parse_text_and_logs` now
+bails to the copy parser when a grep pattern came only from an ALL-CAPS filename
+stem (the "MANIFEST.txt" theft), placed after the distinct/sort checks so dedup
+is unaffected; and the session `_FILEOP_LEAD_RE` gained `duplicate` / `back up` /
+`make|create a copy|duplicate` leads. **Deliberately the last hand-written
+synonym rule** — the remaining phrasing tail is Phase-2 encoder territory, not
+more rules.
 
 **Task 33 (bugfix).** The Task-32 file-management verbs (move/copy/delete/rename)
 were emitting `find …` (exit 0) instead of the real destructive command (exit 3)
@@ -35,20 +48,18 @@ multi-turn store key (per-terminal `$LINUXBUDDY_SESSION`, not `getppid()`) so th
 3-turn chain accumulates end-to-end through the real `$(lb …)` subshells.
 **No transformer/torch** — the encoder is Phase 2.
 
-## Final evidence (Task 33)
-- **368 tests pass** (was 340; +28 in `tests/test_session_fileops_routing.py`),
-  **identical with and without `LINUXBUDDY_SESSION` set** (the conftest makes it
-  deterministic). 15 of the 28 new tests were RED before the fix.
-- **139-row single-turn sweep: 0 routing diffs vs v7** (lb_stdout/stderr/
-  exit_code/outcome byte-identical) — the fix only touches the session path.
-- **Sweep coverage extended:** E140–E147 added to `sweep_scenarios.csv`;
-  `data/eval/sweep_results_v8.csv` written (147 rows, COMMAND 142 / ABSTAIN 5;
-  new destructive rows marked `skipped-destructive-unsafe`, maze not mutated).
-  Caveat: these single-turn rows would NOT have caught this bug — the session
-  test file is the real guard; they close the Task-32 single-turn coverage gap.
-- **Manual (real `lb`, widget session id, in maze):** the four rows → mv/rm/cp
-  at exit 3; mkdir (photos & logs) and backup_copy at exit 3; discovery (fresh
-  session) still `find` exit 0; file-op outside maze refused (exit 1).
+## Final evidence
+- **389 tests pass** (Task 34 added `tests/test_copy_synonyms.py`, +21; Task 33
+  added `tests/test_session_fileops_routing.py`, +28), **identical with and
+  without `LINUXBUDDY_SESSION` set** (the conftest makes it deterministic).
+- **147-row sweep: 0 routing diffs vs v8** (the 139 originals + Task-33's
+  E140–E147). Task 34 shifted no existing routing, so no new results file.
+- **Sweep baseline:** `data/eval/sweep_results_v8.csv` (147 rows, COMMAND 142 /
+  ABSTAIN 5; Task-33's new destructive rows `skipped-destructive-unsafe`).
+- **Manual (real `lb`, widget session id, in maze):** Task 34 — all copy
+  synonyms → `cp … .bak` (or `cp -- X Y`) at exit 3; `remove duplicate lines` →
+  `sort -u` (0, not copy); `back up the project` → tar (3). Task 33 — move/
+  delete/rename/mkdir at exit 3; discovery still `find` (0); refused outside maze.
 
 ## The honest-5 residual (abstain by design, unchanged)
 - **E056** "tail the output" / **E060** "what is this file" — generic target.
@@ -77,5 +88,5 @@ Motivation for the v2 model.
 HANDOVER.md stays frozen as founding context; this file is the living snapshot.
 
 ## Open bugs
-None known. Full suite green (368), deterministic w/ and w/o `LINUXBUDDY_SESSION`.
-Single-turn sweep: 0 routing diffs (v8 routing == v7), integrity preserved.
+None known. Full suite green (389), deterministic w/ and w/o `LINUXBUDDY_SESSION`.
+Sweep: 0 routing diffs (147 rows == v8), integrity preserved.

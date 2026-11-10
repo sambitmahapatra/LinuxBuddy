@@ -1726,3 +1726,64 @@ new session test file. The sweep rows are still worth it as the single-turn
 coverage of the Task-32 intents that Task 32 flagged as missing.
 
 Committed on `v2-multiturn` (not pushed).
+
+## 2026-11-10 — Task 34: copy synonyms + no-destination copy (last manual synonym patch)
+
+Small synonym fix on `v2-multiturn`. "create a copy of X" / "duplicate X" /
+"make a duplicate of X" / "back up X.ext" were not recognized as copy intents and
+fell through to the greedy find/grep fallback.
+
+**Raw results first.** Probed before editing: `create a copy of sales.csv` →
+`find . -name sales.csv`; `back up config.yaml` → `find … config.yaml`;
+`create a copy of MANIFEST.txt in this folder` → `grep -nF -- MANIFEST
+MANIFEST.txt`. The grep theft is specific to an ALL-CAPS filename stem
+(`_ALLCAPS_RE` turns "MANIFEST" into a grep pattern) — that's why sales.csv /
+config.yaml fell to `find` but MANIFEST.txt was grabbed by `_parse_text_and_logs`
+(which runs before archives). `duplicate report.csv` already rendered `cp` in
+single-turn but was classified `new` (hijacked to find) in the session path.
+
+**Fix — three coordinated edits so both paths agree.**
+1. `_ARC_COPY_RE` (nlu): added `(?:make|create) (a|an)? (copy|duplicate) of X`,
+   and `back up X.ext` (single file only — a bare `[\w./-]+\.\w+`, so "back up
+   the project" has no extension and still falls through to `create_archive`).
+   Kept the existing bare `duplicate X` and `copy X.ext` alts and the
+   clipboard/windows/mnt guard.
+2. `_parse_text_and_logs` (nlu): after the distinct/sort checks AND only once a
+   grep pattern exists, bail (`return None`) when `_ARC_COPY_RE` matches — so the
+   MANIFEST all-caps case defers to the copy parser. Placed AFTER distinct/sort
+   so "remove duplicate lines" stays `unique_lines` (the first placement, at the
+   top, regressed E075 — caught by the suite, moved down).
+3. `_FILEOP_LEAD_RE` (session): added `duplicate`, `back up`, and
+   `(make|create) (a|an)? (copy|duplicate)` as lead verbs, so the session path
+   also falls back to single-turn for these (which now renders `cp`).
+
+No-destination copy was already handled: the copy call site defaults `dest` to
+`src + ".bak"` when there's no "to/into Y", and "in this folder"/"here" don't
+match the `to|into` destination regex, so they correctly yield the `.bak` copy.
+All copy variants are writes → exit 3, maze-gated (unchanged pipeline).
+
+**Tests (written first, RED before the fix).** `tests/test_copy_synonyms.py`,
+21 tests: the new cues render `cp` single-turn; "make a copy of X" and "copy X to
+Y" unchanged; discovery / folder-backup (tar) / dedup unregressed; the session
+`classify` falls back for every copy-synonym lead (with and without a frame);
+end-to-end exit-3 in session mode for the three evidence rows; refused outside
+the maze. 12 of 21 were RED before the fix.
+
+**Results.** Full suite **389 pass** (was 368; +21), identical with and without
+`LINUXBUDDY_SESSION`. 147-row sweep (the 139 + Task-33's E140–E147): **0 routing
+diffs vs v8** — no existing routing shifted (no new results file needed).
+
+**Manual (real `lb`, widget session, in maze).** All three evidence rows + every
+copy synonym → `cp -- X X.bak` (or `cp -- X Y`) at exit 3; `copy a.txt to b.txt`
+→ `cp -- a.txt b.txt`; `find all csv files` → `find` (0); `back up the project` →
+`tar -czf project.tar.gz -C . -- project` (3, folder archive); `remove duplicate
+lines from notes.txt` → `sort -u -- notes.txt` (0, not hijacked to copy);
+`create a copy of sales.csv` outside the maze → refused (exit 1).
+
+**This is the last hand-written synonym patch.** The remaining phrasing tail
+(unseen verbs/paraphrases) is deliberately NOT chased with more rules — it is the
+Phase-2 intent-encoder's job (the honest-5 residual + the long synonym tail are
+its motivation). Future "the tool didn't understand X" reports of this shape
+should be logged as encoder training signal, not patched individually.
+
+Committed on `v2-multiturn` (not pushed).

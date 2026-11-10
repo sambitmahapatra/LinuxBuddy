@@ -800,6 +800,16 @@ def _parse_text_and_logs(text: str, low: str):
     if pattern is None:
         return None  # not a text-search request — let the next domain try
 
+    # Task 34: a file-copy request can still produce a spurious grep pattern via
+    # the all-caps/filename heuristic ("create a copy of MANIFEST.txt" → pattern
+    # "MANIFEST"). Checked AFTER distinct/sort (so "remove duplicate lines" stays
+    # unique_lines) and only when a pattern exists — defer to the file-copy
+    # parser. Mirror its clipboard/windows/mnt guard so a genuine wsl "copy … to
+    # clipboard" is left for its own domain.
+    if ("clipboard" not in low and "windows" not in low and "/mnt/" not in low
+            and _ARC_COPY_RE.search(text)):
+        return None
+
     ic = bool(_IGNORE_CASE_RE.search(low)) or (pattern.lower() in _CASE_WORDS)
     i = "i" if ic else ""
 
@@ -1221,9 +1231,13 @@ _ARC_INTEGRITY_RE = re.compile(
 _ARC_COMPRESS_RE = re.compile(r"\b(?:compress|gzip)\b", re.IGNORECASE)
 # Task 25 (E127): "make a copy of X" / "duplicate X" → cp (a WRITE). NOT "copy to
 # clipboard" (wsl) and NOT "copy … to windows" (wsl) — guarded at the call site.
+# Task 34 (last manual synonym patch): also "create a copy of X", "make/create a
+# duplicate of X", and "back up X.ext" (a single file → cp; a folder/project has
+# no extension and still falls through to create_archive below).
 _ARC_COPY_RE = re.compile(
-    r"\bmake\s+a\s+copy\s+of\s+(?:the\s+)?([\w./-]+)"
+    r"\b(?:make|create)\s+(?:a\s+|an\s+)?(?:copy|duplicate)\s+of\s+(?:the\s+)?([\w./-]+)"
     r"|\bduplicate\s+(?:the\s+)?([\w./-]+)"
+    r"|\bback\s+up\s+(?:the\s+)?([\w./-]+\.\w+)"
     r"|\bcopy\s+(?:the\s+)?([\w./-]+\.\w+)", re.IGNORECASE,
 )
 # Task 23 (E084): the thing being archived, e.g. "zip up the project" → project.

@@ -222,7 +222,10 @@ _FILEOP_LEAD_RE = re.compile(
     r"(?:mv|cp|rm"
     r"|move|copy|rename|delete|remove|trash|put"
     r"|get\s+rid\s+of"
-    r"|(?:make|create)\s+(?:a\s+)?copy"
+    # copy synonyms (Task 34): "create a copy of X", "duplicate X", "make a
+    # duplicate of X", "back up X" — all defer to single-turn, which renders cp.
+    r"|duplicate|back\s+up"
+    r"|(?:make|create)\s+(?:a\s+|an\s+)?(?:copy|duplicate)"
     # mkdir phrasings: "make a folder logs" would otherwise be hijacked because
     # "logs" reads as a .log type — keep it a mkdir (single-turn make_dir).
     r"|(?:make|create|new|add)\s+(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:folder|dir|directory))\b",
