@@ -1,0 +1,30 @@
+# fileops.yaml — capability spec for file_management (Task 32).
+#
+# Placeholder names are Frame slot keys: path, dest.
+#
+# Every intent here is a write/delete op → risk_ops carry write/delete, so the
+# P2.0 gate (gate.py) refuses them unless cwd is under the maze root in prototype
+# mode, exactly like chmod. The CLI emits exit 3 and the shell widget shows the
+# destructive warning; the review-before-Enter checkpoint is the safety net.
+#
+# NOTE on `--`: mv and rm both honour `--` as the end-of-options terminator, so a
+# source/dest beginning with `-` can't be read as a flag. Each slot value is
+# still quoted to exactly one argv element (a glob source is a trusted Raw,
+# emitted unquoted so the shell expands it — e.g. `rm -- *.log`).
+#
+# delete gets NO `-f` and NO `-i`: plain `rm -- X`. `-f` would silently force
+# past the one safety we rely on (a real file that isn't there should error, not
+# be ignored); `-i` is redundant for a tool whose whole model is review-first.
+# copy_file + make_dir live in archive.yaml / workspace.yaml (reused, not
+# redefined here) — a KB intent name must be unique across capabilities.
+
+capability: manage_files
+utility: coreutils
+
+intents:
+  move_file:
+    base_argv: ["mv", "--", "{path}", "{dest}"]
+    risk_ops: ["write"]
+  delete_file:
+    base_argv: ["rm", "--", "{path}"]
+    risk_ops: ["delete"]

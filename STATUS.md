@@ -1,10 +1,21 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-09 (Task 31 — **multi-turn session keying fix**)
+**Last updated:** 2026-11-10 (Task 32 — **file-management intents + nested nav**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**.
+
+**New capabilities (Task 32), all deterministic rules.** A `file_management`
+domain: **move/rename** (`mv -- X Y`), **copy-to-dest** (`cp -- X Y`, generalized
+from the old X.bak duplicate), **delete** (`rm -- X`), **mkdir** (noun-then-name
+phrasings → the existing `make_dir`). All destructive → exit 3, maze-gated, real
+command rendered through the unchanged v1 pipeline; delete is plain `rm --` (no
+`-f`/`-i`) with the review-before-Enter + gate as the safety net. Definite refs
+grew: "the old logs" → `*.log`, "the image" → `*.{jpg,png}`. **Nested navigation**
+("go to X inside Y") resolves Y to an ancestor (absolute) or a child dir
+(relative), else abstains; repeated path segments disambiguate by which ancestor
+actually contains X.
 
 **v2 multi-turn — now actually works in the real widget (Task 31 bugfix).** The
 Task-30 spike's store was keyed on `os.getppid()`, but the Ctrl-G widget runs `lb`
@@ -29,11 +40,11 @@ the v1 line. **Still ready for the human to tag `v1.0.0` and push** — not tagg
 
 ## Final evidence
 - Sweep: **COMMAND 134 / ABSTAIN 5** of 139, integrity PASS, **0 regressions**.
-  See `data/eval/sweep_results_v6.csv` (routing byte-identical to v5/v4; v1–v5
-  kept too).
-- **308 tests** pass (281 v1 + 27 v2 session). The new cross-process test
-  (`test_env_keyed_persistence_across_subshells`) reproduces the subshell bug:
-  it FAILS under getppid keying and PASSES with the env-id keying.
+  See `data/eval/sweep_results_v7.csv` (routing byte-identical v4→v7; v1–v6 kept
+  too). The Task-32 intents aren't in the 139 yet (see "open items").
+- **340 tests** pass (281 v1 + 27 v2 session + 32 file-ops/nested-nav). The
+  cross-process test `test_env_keyed_persistence_across_subshells` reproduces the
+  Task-31 subshell bug (FAILS under getppid keying, PASSES with env-id keying).
 
 ## The honest-5 residual (abstain by design)
 - **E056** "tail the output" / **E060** "what is this file" — generic target, no
@@ -54,16 +65,19 @@ These generic/ambiguous/context-dependent cases are the motivation for v2.
   The honest-5 residual above is still its motivation.
 
 ## Open items / for the human
-- **`ROADMAP_V2.md` does not exist yet** (referenced by the Prompts/30 and 31
-  "read first" lists). Both tasks were built to the inline spec. Worth writing as
-  a dedicated task.
-- **Manual Ctrl-G redraw check** in a fully interactive bash: the persistence bug
-  is now covered by an automated cross-process test and verified via real
-  `$(lb …)` subshells, but a human pressing Ctrl-G confirms the Readline redraw.
+- **`ROADMAP_V2.md` does not exist yet** (referenced by the Prompts/30–32 "read
+  first" lists). Tasks were built to the inline spec. Worth writing as a task.
+- **Sweep coverage for the Task-32 intents**: the move/copy/delete/mkdir +
+  nested-nav cases aren't in the 139-row `sweep_scenarios.csv` (prompt marked
+  this optional). Adding ~10 rows would regress them in future sweeps.
+- **Manual Ctrl-G redraw check** in a fully interactive bash: the Task-31
+  persistence bug is covered by an automated cross-process test and verified via
+  real `$(lb …)` subshells, but a human pressing Ctrl-G confirms the Readline
+  redraw (and the new destructive warning on the file-management ops).
 - Tag `v1.0.0` + push the v1 line (carried from Task 29).
 
 HANDOVER.md stays frozen as founding context; this file is the living snapshot.
 
 ## Open bugs
-None known. Full suite green (308). Single-turn sweep: 0 regressions (v6==v5),
+None known. Full suite green (340). Single-turn sweep: 0 regressions (v7==v6),
 integrity PASS.

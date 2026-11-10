@@ -470,7 +470,12 @@ _FILE_TOKEN_RE = re.compile(r"\b([\w./+-]*\w\.[A-Za-z][A-Za-z0-9]{0,7})\b")
 # --------------------------------------------------------------------------
 
 _DEFINITE_GLOBS = [
-    (re.compile(r"\bthe\s+log\s+file\b|\bthe\s+logs?\b|\bthis\s+log\b|\bmy\s+logs?\b"), "*.log"),
+    # Task 32: allow an adjective before "logs" ("the OLD logs" → *.log) so a
+    # delete/move of them resolves instead of abstaining.
+    (re.compile(r"\bthe\s+log\s+file\b|\bthe\s+(?:old\s+)?logs?\b|\bthis\s+log\b|\bmy\s+logs?\b"), "*.log"),
+    # Task 32: "the image/picture/photo" → an image glob. The brace list is a
+    # trusted Raw (safe charset), emitted unquoted so the shell expands it.
+    (re.compile(r"\bthe\s+(?:image|picture|photo)\b|\bthis\s+(?:image|picture|photo)\b"), "*.{jpg,png}"),
     (re.compile(r"\bgzipp?ed\s+(?:archive|file)\b|\bthe\s+gzip\b|\bthe\s+gz\b"), "*.gz"),
     (re.compile(r"\bthe\s+(?:backup|tarball)\b|\bthis\s+(?:backup|tarball)\b|\bmy\s+(?:backup|tarball)\b"), "*.tar.gz"),
     (re.compile(r"\bthe\s+archive\b|\bthis\s+archive\b"), "*.tar.gz"),
@@ -1254,11 +1259,14 @@ def _parse_archives(text: str, low: str):
     arc = archive if archive is not None else arc_glob
 
     # 0. copy a file (E127): "make a copy of config.yaml" → cp (WRITE → exit 3).
+    # Task 32: generalize to a destination — "copy X to Y" → cp -- X Y. With no
+    # destination, fall back to the X.bak duplicate.
     if "clipboard" not in low and "windows" not in low and "/mnt/" not in low:
         mc = _ARC_COPY_RE.search(text)
         if mc:
             src = next(g for g in mc.groups() if g)
-            return Frame("copy_file", {"path": src, "dest": src + ".bak"})
+            dest = _dest_after(text)
+            return Frame("copy_file", {"path": src, "dest": dest or (src + ".bak")})
 
     # 1. extract: unpack <archive> into <dir> → mkdir && tar (2-stage). With NO
     # destination (E123/E124 "extract the tarball"), extract into the cwd with a
@@ -1778,6 +1786,14 @@ _NAV_GOTO_RE = re.compile(
     re.IGNORECASE,
 )
 _NAV_STOP = {"the", "my", "a", "an", "it", "here", "there", "where", "back", "this"}
+# Task 32: "<verb> X inside/within/under/in Y" — nested navigation.
+_NAV_NESTED_RE = re.compile(
+    r"\b(?:go\s+to|goto|take\s+me\s+(?:to|into)|navigate\s+to|cd\s+(?:to|into)?"
+    r"|go\s+into|enter|open|change\s+to)\s+"
+    r"(?:the\s+|my\s+)?([\w.+-]+)\s+(?:inside|within|under|in)\s+"
+    r"(?:the\s+|my\s+)?([\w.+-]+)\b",
+    re.IGNORECASE,
+)
 
 
 def _nav_levels(low: str) -> int:
@@ -1807,6 +1823,30 @@ def _parse_navigation(text: str, low: str):
     if _NAV_PWD_RE.search(low):
         return Frame("where_am_i", {})
 
+    # 3b. nested navigation (Task 32): "go to X inside/under/in Y".
+    #   * Y an ANCESTOR of cwd → resolve Y's absolute path, append X.
+    #   * Y a CHILD dir of cwd and X under it → relative `cd -- Y/X`.
+    #   * otherwise → abstain (a fuzzy, elsewhere-on-disk Y is a future
+    #     find-based resolver; don't guess).
+    m = _NAV_NESTED_RE.search(text)
+    if m:
+        x, y = m.group(1), m.group(2)
+        if x.lower() not in _NAV_STOP and y.lower() not in _NAV_STOP:
+            segs = os.getcwd().split(os.sep)
+            idxs = [i for i, s in enumerate(segs) if s and s.lower() == y.lower()]
+            if idxs:
+                # Y is an ancestor. If a segment name repeats (e.g. ~/linuxbuddy
+                # with a src/linuxbuddy under it), prefer the occurrence that
+                # actually contains X; otherwise the nearest one.
+                def _anc(i: int) -> str:
+                    return os.sep.join(segs[: i + 1]) or os.sep
+                chosen = next((i for i in sorted(idxs, reverse=True)
+                               if os.path.isdir(os.path.join(_anc(i), x))), idxs[-1])
+                return Frame("goto", {"path": f"{_anc(chosen)}/{x}"})
+            if os.path.isdir(y) and os.path.isdir(os.path.join(y, x)):
+                return Frame("goto", {"path": f"{y}/{x}"})
+            return _ABSTAIN
+
     # target-based: extract the destination from a goto verb.
     m = _NAV_GOTO_RE.search(text)
     if m:
@@ -1832,11 +1872,99 @@ def _parse_navigation(text: str, low: str):
     return None
 
 
+# --------------------------------------------------------------------------
+# Domain: file_management (Task 32) — move/rename, copy-to-dest, delete, mkdir.
+# ALL destructive (write/delete) → gated to the maze, exit 3, widget warns.
+#
+# Destructive intents keep the STRICT bar (invariant #6): a move/delete only
+# fires on a CONFIDENT target — a quoted/slash/`name.ext` path or a typed
+# definite reference ("the old logs" → *.log, "the image" → an image glob). A
+# bare, type-less word as a source is NOT confident, so we fall through rather
+# than emit a wrong `mv`/`rm`. A delete verb that owns the sentence but names no
+# resolvable target ABSTAINS (never a guessed `rm`).
+#
+# copy stays in _parse_archives (generalized there to take a destination);
+# this parser runs just before archives so move/delete/mkdir win first, while
+# "make a copy of X" / "copy X to Y" still reach the archives copy branch.
+# --------------------------------------------------------------------------
+
+# "<verb> <source> <to|into|in> <dest>" — source and dest captured off the
+# ORIGINAL text (IGNORECASE) so filename case is preserved.
+_FM_MOVE_RE = re.compile(
+    r"\b(?:move|rename|put)\s+(.+?)\s+(?:to|into|in)\s+(.+?)\s*$",
+    re.IGNORECASE,
+)
+_FM_DELETE_RE = re.compile(
+    r"\b(?:delete|remove|rm|get\s+rid\s+of|trash)\b", re.IGNORECASE,
+)
+_FM_MKDIR_RE = re.compile(
+    r"\b(?:make|create|new|add)\s+(?:a\s+|an\s+|the\s+)?(?:new\s+)?"
+    r"(?:folder|dir|directory)\s+(?:called\s+|named\s+)?([\w./-]+)",
+    re.IGNORECASE,
+)
+# A destination named after "to"/"into" (for copy X to Y). The dest is a plain
+# directory/file token — never a glob.
+_DEST_AFTER_RE = re.compile(
+    r"\b(?:into|to)\s+(?:the\s+|my\s+)?([\w./+-]+)", re.IGNORECASE,
+)
+
+
+def _dest_after(text: str) -> str | None:
+    """The destination after a 'to'/'into' in a copy/move request, or None."""
+    m = _DEST_AFTER_RE.search(text)
+    return m.group(1) if m else None
+
+
+def _fm_dest(frag: str) -> str | None:
+    """Clean a destination fragment to a single dir/file token: drop a trailing
+    folder noun and a leading article, prefer a concrete path/name, else the
+    last bare token."""
+    d = re.sub(r"\s+(?:folder|dir|directory)\s*$", "", frag.strip(), flags=re.IGNORECASE)
+    d = re.sub(r"^(?:the|my|a|an|this)\s+", "", d, flags=re.IGNORECASE)
+    p = _detect_path_arg(d, d.lower())
+    if p is not None and not isinstance(p, Raw):   # a dest is never a glob
+        return p
+    m = re.search(r"([\w./+-]+)\s*$", d)
+    return m.group(1) if m else None
+
+
+def _parse_file_management(text: str, low: str):
+    # 1. move / rename / put  — needs a confident source AND a destination.
+    m = _FM_MOVE_RE.search(text)
+    if m:
+        src_frag, dest_frag = m.group(1), m.group(2)
+        src = _detect_path_arg(src_frag, src_frag.lower())  # path/name.ext/definite
+        dest = _fm_dest(dest_frag)
+        if src is not None and dest:
+            return Frame("move_file", {"path": src, "dest": dest})
+
+    # 2. delete / remove — chmod ("remove the executable bit") and the text-
+    #    domain ops ("remove duplicates/blank lines") are NOT deletions.
+    if _FM_DELETE_RE.search(low):
+        if not any(w in low for w in ("execut", "duplicat", "blank line")):
+            tgt = _detect_path_arg(text, low)
+            if tgt is not None:
+                return Frame("delete_file", {"path": tgt})
+            # a delete verb owning the sentence but no resolvable target →
+            # refuse (destructive + unclear target = abstain, never a guess).
+            return _ABSTAIN
+
+    # 3. make a folder/dir X  (noun-then-name; name-then-noun stays in workspace).
+    #    Yield "project/workspace" phrasing to workspace's setup_project.
+    if "project" not in low and "workspace" not in low:
+        m = _FM_MKDIR_RE.search(text)
+        if m:
+            return Frame("make_dir", {"path": m.group(1)})
+
+    return None
+
+
 _ROUTER = (
     _parse_file_inspection,
     _parse_python,
     _parse_text_and_logs,
     _parse_processes,
+    _parse_file_management,
     _parse_archives,
     _parse_wsl,
     _parse_navigation,

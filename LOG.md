@@ -1562,3 +1562,91 @@ the one remaining manual confirmation (the Readline redraw), but the persistence
 bug itself is now covered by an automated cross-process test.
 
 Committed on `v2-multiturn` (not pushed).
+
+## 2026-11-10 — Task 32: file-management intents (move/copy/delete/mkdir) + nested navigation
+
+Two dogfooding gaps, all deterministic rules (no model). Branch `v2-multiturn`.
+
+**Part A — new `file_management` domain (all destructive-tier).** New KB
+`kb/commands/fileops.yaml` (`manage_files`): `move_file` → `mv -- {path} {dest}`
+(risk write), `delete_file` → `rm -- {path}` (risk delete). copy and mkdir were
+NOT re-added — a KB intent name must be unique across capabilities, so I REUSE
+the existing `copy_file` (archive.yaml) and `make_dir` (workspace.yaml). New NLU
+parser `_parse_file_management`, inserted in the router just before
+`_parse_archives` (so move/delete/mkdir win first while copy still reaches the
+archives branch). Everything renders through the unchanged v1 planner/render/gate
+(shlex round-trip, `--` guard) and exits 3, maze-gated.
+
+- **move/rename/put**: `_FM_MOVE_RE` captures `<verb> <src> <to|into|in> <dest>`
+  off the original (case-preserving) text. The source must be a CONFIDENT target
+  (quoted / slash path / `name.ext` / a typed definite-ref) or we fall through —
+  a bare type-less word as a source is not confident, and invariant #6 says a
+  destructive op with a less-than-confident parse must not emit. dest is cleaned
+  to a single dir/file token.
+- **copy**: generalized the existing archives copy branch to take a destination —
+  `copy X to Y` → `cp -- X Y`; with no dest, the old `cp -- X X.bak` duplicate.
+  (`_dest_after` finds a `to/into Y`.) The clipboard/windows/mnt guards are
+  unchanged, so "copy to clipboard"/"copy … to windows" still defer to wsl.
+- **delete**: `delete/remove/rm/get rid of/trash` + a resolvable target → `rm --`.
+  Guarded so "remove the executable bit" stays chmod a-x, and "remove
+  duplicates/blank lines" stay the text-domain ops (which also route first). A
+  delete verb that owns the sentence but names no resolvable target ABSTAINS
+  (`delete everything` / `remove them`) — never a guessed `rm`.
+- **mkdir**: handle the noun-then-name phrasings the old `_WS_MKDIR_RE` missed —
+  "make a folder X" / "create a directory X" / "new folder X" → the existing
+  `make_dir`. name-then-noun ("make a logs folder") still falls through to
+  workspace. Yields "project/workspace" phrasing to workspace's setup_project.
+
+**Definite-ref additions (Task-22 table):** "the OLD logs" now resolves (allowed
+an optional adjective: `the (old )?logs?` → `*.log`); "the image/picture/photo" →
+`*.{jpg,png}`, a brace-expansion glob emitted as a trusted Raw.
+
+**Delete-safety decision (documented in fileops.yaml):** plain `rm -- X`, NO `-f`
+and NO `-i`. `-f` would silently swallow the one natural signal we keep (a file
+that isn't there should error, not be forced past); `-i` is redundant for a tool
+whose entire model is review-before-Enter. The exit-3 warning + maze gate +
+manual Enter are the safety net.
+
+**Planner fix (needed by the image glob):** the unresolved-`{placeholder}` guard
+now SKIPS `Raw` elements. `*.{jpg,png}` is a legitimate brace-expansion glob, but
+`_PLACEHOLDER_RE` read `{jpg,png}` as an unresolved template slot and raised. A
+genuinely-unresolved `{slot}` is always a plain (non-Raw) str, so skipping Raw is
+safe — render's `_SAFE_RAW_RE` already permits `{ } ,`.
+
+**Part B — nested navigation ("X inside Y").** Added to `_parse_navigation`
+(before the plain goto): `_NAV_NESTED_RE` matches `<goto-verb> X <inside|within|
+under|in> Y`.
+- Y an ANCESTOR of cwd → resolve Y's absolute path + X → `cd -- <Yabs>/X`.
+- Y a CHILD dir of cwd and X under it → relative `cd -- Y/X` (checked with
+  os.path.isdir).
+- else → abstain (a fuzzy elsewhere-on-disk Y is a future find-based resolver;
+  don't guess).
+- **Repeated-segment disambiguation (found by the live test):** from
+  `~/linuxbuddy/src/linuxbuddy`, "test_02 inside linuxbuddy" must mean the OUTER
+  repo root (test_02 lives there), but a plain nearest-ancestor (`max(idx)`)
+  picked the inner `linuxbuddy`. Fixed: among repeated Y occurrences, prefer the
+  one whose `<anc>/X` actually exists, else nearest. Single-occurrence behavior
+  (the common case) is unchanged.
+
+**Tests (first):** `tests/test_file_ops_nested_nav.py`, 32 tests — a render +
+exit-3 case per intent, the containment gate (refused outside the maze / emitted
+inside), definite-ref cases ("move the image to photos", "remove the old logs"),
+the unclear-target abstains, the chmod-not-rm guard, and Part B (ancestor
+absolute, the "in" connector, unresolvable abstains, child relative, existing nav
+unregressed). Full suite **340 pass** (was 308).
+
+**Regression:** 139-scenario single-turn sweep → `sweep_results_v7.csv`. COMMAND
+134 / ABSTAIN 5, integrity PASS, **0 routing diffs vs v6** (the new intents
+aren't in the 139; the router/definite-ref changes shifted nothing existing).
+Multi-turn chain (Task 31) still accumulates — verified live and via the full
+suite.
+
+**Manual (maze):** move/copy/delete/mkdir inside the maze emit + warn (exit 3);
+the same outside are refused (exit 1). "go to test_02 inside linuxbuddy" from
+`src/linuxbuddy` → `cd -- /home/sambi/linuxbuddy/test_02`.
+
+**Note:** the optional ~10 sweep-coverage rows for the new intents were NOT added
+(prompt marks them optional) — a good small follow-up so future sweeps regress
+these too. `ROADMAP_V2.md` still absent (built to the inline spec).
+
+Committed on `v2-multiturn` (not pushed).
