@@ -138,6 +138,45 @@ class IntentIndex:
                    model=model, mode=mode, query_prefix=q_prefix,
                    model_name=model_name)
 
+    @classmethod
+    def cached(cls, mode: str = "desc", model_name: str = DEFAULT_MODEL,
+               cache_path=None, descs: dict | None = None) -> "IntentIndex":
+        """Like build(), but load the 85 description embeddings from disk when a
+        valid cache exists (Guardrail 5 — keep the model off re-encoding the fixed
+        descriptions on every abstain call). The utterance is still encoded live.
+        The cache is invalidated by a fingerprint over model+mode+descriptions."""
+        import hashlib
+        import json as _json
+
+        import numpy as np
+        descs = descs if descs is not None else load_descriptions()
+        fp = hashlib.sha256(
+            (model_name + "|" + mode + "|"
+             + _json.dumps({k: (v or {}) for k, v in descs.items()}, sort_keys=True)
+             ).encode()).hexdigest()[:16]
+        cache_path = Path(cache_path) if cache_path else None
+        if cache_path and cache_path.exists():
+            try:
+                data = np.load(cache_path, allow_pickle=False)
+                if str(data["fp"]) == fp:
+                    return cls(intent_ids=[str(x) for x in data["intent_ids"]],
+                               matrix=data["matrix"].astype("float32"),
+                               model=load_model(model_name), mode=mode,
+                               query_prefix=str(data["query_prefix"]),
+                               model_name=model_name)
+            except Exception:
+                pass  # corrupt/old cache → rebuild
+        idx = cls.build(mode=mode, model_name=model_name, descs=descs)
+        if cache_path:
+            try:
+                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                np.savez(cache_path, matrix=idx.matrix,
+                         intent_ids=np.array(idx.intent_ids),
+                         query_prefix=np.array(idx.query_prefix), fp=np.array(fp))
+            except Exception:
+                pass  # caching is best-effort; never fail the lookup over it
+        return idx
+
     def rank(self, utterance: str) -> list[tuple[str, float]]:
         """All intents ranked by cosine similarity (desc)."""
         import numpy as np

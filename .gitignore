@@ -21,3 +21,8 @@ data/eval_cache.jsonl
 # Task 38 fine-tune: checkpoint is too big for git; regenerates from the script +
 # seed + tracked data/train.jsonl (see finetune_report.md "Reproduce").
 models/
+
+# Task 39 housekeeping: a stray 126MB manual fixture dir (not the maze); and the
+# Windows WSL "Zone.Identifier" alternate-stream files that show up on copied files.
+test_02/
+*:Zone.Identifier

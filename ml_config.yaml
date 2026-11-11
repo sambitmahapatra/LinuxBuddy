@@ -1,0 +1,15 @@
+# LinuxBuddy encoder (Task 39) — the fine-tuned intent encoder used ONLY as the
+# rules fallback (consulted after the rules abstain). Core `lb` stays pure-stdlib;
+# this file is read only on the abstain path. Env override: LINUXBUDDY_ENCODER=0
+# forces pure-rules even when the model is present.
+#
+# Two thresholds carry v1's read/destructive asymmetry into the model path:
+#   t_read        — a READ intent emits at cosine >= this (T* from Task 38).
+#   t_destructive — a WRITE/DELETE/chmod intent needs a HIGHER bar AND margin_min,
+#                   or it abstains honestly (never a guessed rm/mv/chmod).
+encoder:
+  enabled: true
+  model_path: models/ft-minilm-l6
+  t_read: 0.55
+  t_destructive: 0.68
+  margin_min: 0.05

@@ -2051,3 +2051,62 @@ scikit-learn. Checkpoint `models/` gitignored (regenerates from script + seed + 
 T\*=0.55 as the abstain gate; intent-only (slots stay rule-based).
 
 Committed on `v2-multiturn` (not pushed).
+
+## 2026-11-11 — Task 39: wire the fine-tuned encoder as the rules fallback (hybrid)
+
+First task to touch `lb`'s runtime. Single-turn, intent-only. Main suite **408
+pass + 11 skipped**; `.venv-ml` **18 pass**. All five guardrails verified.
+
+**The seam (one point):** `cli._run_single_turn`, where the rules return `frame is
+None`. Refactored the compile→gate→render tail into `_emit_frame(frame, info)` so a
+rule frame and an encoder frame take the IDENTICAL safe pipeline. On abstain,
+`hybrid.classify_fallback(request)` is consulted; if it returns a frame, it flows
+through `_emit_frame`, else the normal v1 abstain prints. The session/multi-turn
+path is untouched (it already delegates to `_run_single_turn` for its fallback).
+
+**Guardrail results:**
+1. **Rules first / 0 regressions.** `tests/test_hybrid.py` runs the 147-row sweep
+   encoder-on vs -off: **0 diffs on every rule-handled row** (rc≠1). The encoder is
+   only consulted on true abstains, so rule-handled/misrouted rows can't change.
+2. **Intent, not command.** The encoder returns an intent id; a new rule-reusing
+   slot filler (`hybrid.fill_slots`, reusing nlu's own `_detect_*` detectors) builds
+   the Frame; the EXISTING planner/renderer/gate build and vet the command. The
+   security boundary did not move.
+3. **Read/destructive asymmetry (the key safety call).** Two thresholds in
+   `ml_config.yaml`: `t_read=0.55` (= Task-38 T\*), `t_destructive=0.68` +
+   `margin_min=0.05`. A destructive intent below its bar (or with no extractable
+   concrete target) abstains honestly — never a guessed rm/mv/chmod. **Safety metric:
+   destructive-on-nonsense = 0 / 22** (and 0/22 nonsense fired ANY command). Also
+   applied invariant #6 in the filler: a find_* whose defining slot (ext/days/size/
+   name) isn't extracted abstains rather than emit a match-everything `find .`.
+4. **Graceful degradation.** Missing checkpoint/deps or `LINUXBUDDY_ENCODER=0` →
+   pure v1 (one-line stderr note at most, no traceback). In the main Python-3.14
+   venv the encoder is simply absent, which the whole suite exercises.
+5. **Off the fast path.** `hybrid`'s top-level imports are stdlib-only; torch/ST are
+   lazy-imported ONLY on the abstain path (a subprocess test asserts `torch` not in
+   `sys.modules` after a rule hit). The 85 description embeddings are disk-cached
+   (`IntentIndex.cached` → `models/ft-minilm-l6/index_desc.npz`).
+
+**Confidence surfacing:** when a command came from the encoder, a one-line stderr
+hint ("interpreted (language model) — review…", a stronger line for destructive).
+stdout stays EXACTLY the command, so the widget buffer contract is unchanged.
+
+**End-to-end eval (`hybrid_eval_report.md`, through real `lb`):**
+- Coverage: of 14 rules-abstain probe phrasings (gap set + honest-5), the hybrid
+  resolves **10** to meaningful bounded commands (ls -la, ps aux, `find . -name
+  '*.csv'`, `find . -type f -mtime -1`), correctly leaving 4 abstained (honest-5 /
+  match-everything).
+- Safety: 0 destructive on nonsense; gate integrity intact (encoder-chosen
+  destructive refused outside the maze, exit 3 inside — a test asserts both).
+- **Latency: fast path ~0.12 s (v1, no ML import); cold abstain path ~10 s** per
+  fresh process (torch import + model load dominate; the embedding cache can't help
+  per-process). **Too slow for a snappy widget on abstain** — flagged; recommended
+  follow-up is a resident helper (load once, serve many), explicitly NOT built here.
+
+**Config/kill switch:** `ml_config.yaml` (`encoder.enabled/model_path/t_read/
+t_destructive/margin_min`); `LINUXBUDDY_ENCODER=0` forces pure-rules.
+
+**Housekeeping:** gitignored the stray 126MB `test_02/` and Windows `*:Zone.Identifier`
+files; committed the `Prompts/31–37` task specs (38/39 were never saved as files).
+
+**Milestone:** this is a good checkpoint. Committed on `v2-multiturn`.

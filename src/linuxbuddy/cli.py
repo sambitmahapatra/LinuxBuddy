@@ -19,7 +19,7 @@ from __future__ import annotations
 import os
 import sys
 
-from . import gate, session
+from . import gate, hybrid, session
 from .nlu import parse, abstain_hint
 from .planner import compile, risk_ops, PlanError
 from .render import to_shell, RenderError
@@ -54,14 +54,27 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run_single_turn(request: str) -> int:
-    """The v1 pipeline, unchanged: parse -> compile -> gate -> render."""
+    """The v1 pipeline, unchanged: parse -> compile -> gate -> render. When the
+    rules abstain, the OPTIONAL encoder fallback is consulted at this one seam
+    (Task 39); if it too declines, we abstain exactly as v1 did."""
     frame = parse(request)
     if frame is None:
+        # Rules abstained — the single seam for the encoder fallback. The encoder
+        # picks an intent + slots; it runs through the SAME pipeline below.
+        enc_frame, info = hybrid.classify_fallback(request)
+        if enc_frame is not None:
+            return _emit_frame(enc_frame, info)
         # Prefer a specific hint ("how big? try ...") when we can tell which
         # defining slot was missing; otherwise the generic message.
         print(abstain_hint(request) or _ABSTAIN_MSG, file=sys.stderr)
         return 1
+    return _emit_frame(frame, None)
 
+
+def _emit_frame(frame, info) -> int:
+    """compile -> gate -> render for a frame, from the rules (info=None) or the
+    encoder (info carries source/score). Same exit-code contract either way; a
+    compile/render failure or a gate denial abstains (no command on stdout)."""
     try:
         argv_plan = compile(frame)
     except PlanError:
@@ -71,7 +84,7 @@ def _run_single_turn(request: str) -> int:
     # Destructive-containment gate (P2.0): a write/delete/chmod plan may only
     # be emitted when cwd is inside the maze (prototype mode). Checked AFTER
     # compile, BEFORE rendering/printing — so nothing destructive reaches
-    # stdout from the wrong place.
+    # stdout from the wrong place. Encoder-chosen destructives are gated too.
     denied = gate.check(risk_ops(frame.intent), os.getcwd())
     if denied:
         print(denied, file=sys.stderr)
@@ -82,6 +95,17 @@ def _run_single_turn(request: str) -> int:
     except RenderError:
         print(_ABSTAIN_MSG, file=sys.stderr)
         return 1
+
+    # Confidence surfacing (Guardrail): when the command came from the encoder
+    # rather than the rules, nudge the human to review. Goes to STDERR so stdout
+    # stays EXACTLY the command (the widget's buffer contract is unchanged).
+    if info and info.get("source") == "encoder":
+        if info.get("destructive"):
+            print("LinuxBuddy ~ interpreted (language model) — DESTRUCTIVE, "
+                  "double-check the target before you run it", file=sys.stderr)
+        else:
+            print("LinuxBuddy ~ interpreted (language model) — review before running",
+                  file=sys.stderr)
 
     print(command)
     # Exit code signals risk to the shell widget: 3 = destructive (it warns),

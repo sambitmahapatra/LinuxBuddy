@@ -1,11 +1,32 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-11 (Task 38 — **v2 Phase 1: base-model bake-off +
-contrastive fine-tune; measurement/model only, no source changes**)
+**Last updated:** 2026-11-11 (Task 39 — **hybrid: fine-tuned encoder wired as the
+rules fallback in `lb`; single-turn, intent-only**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**.
+
+**Task 39 (hybrid — encoder as rules fallback; FIRST runtime-path change).**
+Single-turn, intent-only. The encoder is consulted at ONE seam
+(`cli._run_single_turn`, where the rules abstain) and its intent flows through the
+EXISTING slot filler → planner → renderer → gate. Main suite **408 pass + 11
+skipped**; `.venv-ml` **18 pass**. All five guardrails verified by
+`tests/test_hybrid.py`.
+- **0 regressions:** 147-sweep rule-handled rows byte-identical encoder on vs off.
+- **Safety:** destructive-on-nonsense **0/22**; read/destructive asymmetry via two
+  thresholds (`t_read=0.55`, `t_destructive=0.68`+`margin_min=0.05` in
+  `ml_config.yaml`); invariant-#6 guard stops match-everything finds.
+- **Graceful degradation:** missing model/deps or `LINUXBUDDY_ENCODER=0` → pure v1;
+  fast path never imports torch (asserted).
+- **Coverage (end-to-end, `hybrid_eval_report.md`):** 10/14 rules-abstain probe
+  phrasings now resolve to meaningful commands (ls -la, ps aux, find by type/time).
+- **Latency:** fast path ~0.12s (unchanged); **cold abstain path ~10s/process** —
+  too slow for the widget; **recommended follow-up = a resident helper** (load once,
+  serve many); NOT built here.
+- **Milestone:** good checkpoint — **this branch can be pushed** (owner's call).
+- **Next:** multi-turn dialogue-act head / unify `session.classify()` (old Phase 2);
+  and/or the resident helper for abstain-path latency.
 
 **Task 38 (Phase 1 — bake-off + contrastive fine-tune; model/measurement only).**
 The Siamese step. **No rules/router/planner/KB changes; nothing wired into `lb`.**
