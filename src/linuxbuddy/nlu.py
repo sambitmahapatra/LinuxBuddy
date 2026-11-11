@@ -336,6 +336,32 @@ def _largest_path(text: str, low: str) -> str:
     return "."
 
 
+# --------------------------------------------------------------------------
+# Coverage-check (Task 42, workstream #1a). A bare filename must NOT hijack the
+# request into a `find -name <file>` when the user actually asked for some other
+# operation the rules can't route (stat/delete/sort/run/…). Require positive
+# evidence that discovery/search was asked; otherwise abstain, so the encoder
+# fallback (cli seam) gets the request instead of a confident wrong `find`.
+# Pure wording signal — independent of what was extractable.
+# --------------------------------------------------------------------------
+_DISCOVERY_CUE_RE = re.compile(
+    r"\b(?:find|finding|locate|locating|search(?:ing)?|grep|list(?:ing)?|where|"
+    r"which|look\s+for|look\s+up|how\s+many|named|called|files)\b",
+    re.IGNORECASE,
+)
+
+
+def _discovery_requested(text: str, low: str) -> bool:
+    """True when the request actually asked to find/search/list: a discovery
+    verb/phrase, the plural 'files', a glob, or a size/time constraint."""
+    if _DISCOVERY_CUE_RE.search(low):
+        return True
+    if "*" in text:
+        return True
+    _, size_cue = _detect_size(low)
+    return bool(size_cue or _TIME_CUE_RE.search(low))
+
+
 def _parse_file_discovery(text: str, low: str) -> Frame | None:
     ext = _detect_ext(low)
     size_bytes, size_cue = _detect_size(low)
@@ -407,6 +433,12 @@ def _parse_file_discovery(text: str, low: str) -> Frame | None:
         slots["days"] = days
         return Frame("find_by_time", slots)
     if pattern is not None:
+        # Coverage-check (Task 42, #1a): a bare filename alone is NOT a find
+        # request. Emit find_by_name only when discovery/search was actually asked
+        # for; otherwise abstain, so the encoder fallback (cli seam) gets the real
+        # intent (stat/delete/run/…) instead of a confident wrong `find -name`.
+        if not _discovery_requested(text, low):
+            return None
         slots["pattern"] = pattern
         return Frame("find_by_name", slots)
     if ext is not None:
@@ -728,6 +760,9 @@ _SEARCHVERB_RE = re.compile(
     re.IGNORECASE,
 )
 _VAGUE_PAT = {"stuff", "things", "thing", "something", "anything", "it", "them", "that"}
+# Task 42: articles/"file" captured by a search verb mean the request is actually
+# file-discovery ("look for a file named X"), not a grep for the literal article.
+_ARTICLE_WORDS = {"a", "an", "the", "file", "files"}
 
 _DIR_NOUN_RE = re.compile(r"\b([\w./-]+)\s+(?:folder|directory|dir|tree)\b", re.IGNORECASE)
 _PREP_DIR_RE = re.compile(
@@ -750,16 +785,23 @@ def _grep_pattern(text: str, low: str) -> str | None:
     m = _SEARCHVERB_RE.search(text)
     if m:
         tok = m.group(1).strip(".,!?;:")
-        if tok.lower() not in _VAGUE_PAT:
+        # Task 42: "look for a file named X" is file-discovery, not a grep for the
+        # article "a"/"the"/"file" — skip those so the discovery parser handles it.
+        if tok.lower() not in _VAGUE_PAT and tok.lower() not in _ARTICLE_WORDS:
             return tok
     m = _ALLCAPS_RE.search(text)   # TODO, FIXME, API_URL, SUCCESS
-    if m and m.group(1) not in _ENVVAR_NAMES:
+    if m and m.group(1) not in _ENVVAR_NAMES and text[m.end():m.end() + 1] != ".":
         # A bare env-var name ("what's my PATH") is an env_var query, not a grep
         # for the literal word — leave it for workspace (Task 27). An intentional
         # grep for PATH uses a verb/quote, caught by the branches above.
+        # Task 42: an all-caps token that is part of a FILENAME (README.md, API.py)
+        # is a file, not a grep pattern — the "." guard above excludes it, so
+        # "is there a README.md" no longer hijacks into `grep README`.
         return m.group(1)
     m = _LOG_WORD_RE.search(low)
-    if m:
+    # Task 42: a log WORD inside a filename ("error.log", "debug.log") is a file,
+    # not a grep pattern — the "." guard stops "delete error.log" → `grep error`.
+    if m and low[m.end():m.end() + 1] != ".":
         return _LOG_CANON[m.group(1).lower()]
     return None
 
