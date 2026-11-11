@@ -1,11 +1,32 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-10 (Task 35 — **autonomous adaptive stress test;
-testing only, no source changes**)
+**Last updated:** 2026-11-11 (Task 36 — **v2 Phase 0: training-data generation;
+data only, no source/KB changes**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**.
+
+**Task 36 (Phase 0 — training data; data only).** Built the labeled corpus for
+the Phase-1 intent encoder. **No source/rules/KB changed** — added
+`src/linuxbuddy/ml/` (reproducible generator + KB label builder) and tracked
+`data/` artifacts. Reproducible: `python -I -m linuxbuddy.ml.make_dataset` (seed
+20261111). **Full suite 401 pass** (389 + 12 new `tests/test_data.py`).
+- **Label space (frozen):** 85 KB intent ids (plain `frame.intent` keys, not
+  domain-dotted) + 5 dialogue acts + `_ABSTAIN` → `data/label_space.json`.
+- **Drift handled:** sweep's intent column is a different coarser vocabulary
+  (57/59 don't match the KB). Reported it (drift guard), owner approved
+  reconciling by *runtime behavior* (label = what `lb` actually fires). Auditable
+  `data/sweep_intent_map.json` committed.
+- **Corpus:** single-turn train **688** / val **55** (`_ABSTAIN` ~12%); multi-turn
+  **40/9** turns across 20 chains. Augmentation is train-only + group-level (no
+  leakage, asserted by tests). `data/DATA_CARD.md` has the full balance.
+- **Phase-1 watchlist:** **27 of 85 intents have ZERO single-turn data** (sweep+
+  stress never exercised them); 45 more have <3 raw train seeds. Listed in the
+  data card for the confusion matrix. Owner has seen the class balance (their gate
+  before committing to the encoder).
+- **Next (Phase 1):** the hybrid router + intent encoder trains on these files.
+  The encoder can only fall back for the 58 covered intents until the corpus grows.
 
 **Task 35 (stress test — testing only).** Added `tests/stress_test.py`: a 5-agent
 adaptive harness (Environment Builder / Explorer / Adversary / Session Tester /

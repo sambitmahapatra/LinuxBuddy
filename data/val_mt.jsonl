@@ -1,0 +1,9 @@
+{"chain_id": "HC02", "dialogue_act": "new", "frame_delta": {"size": "+100M"}, "prev_frame": {}, "source": "hand", "text": "find files over 100mb", "turn": 1}
+{"chain_id": "HC02", "dialogue_act": "operate", "frame_delta": {"modifier": "max-by-size", "op": "show"}, "prev_frame": {"size": "+100M"}, "source": "hand", "text": "the biggest one", "turn": 2}
+{"chain_id": "HC07", "dialogue_act": "new", "frame_delta": {"name": "*.md"}, "prev_frame": {}, "source": "hand", "text": "find the markdown files", "turn": 1}
+{"chain_id": "HC07", "dialogue_act": "new", "frame_delta": {"name": "*.yaml"}, "prev_frame": {"name": "*.md"}, "source": "hand", "text": "actually find the yaml files", "turn": 2}
+{"chain_id": "HC10", "dialogue_act": "new", "frame_delta": {"name": "*.csv"}, "prev_frame": {}, "source": "hand", "text": "find the csv files", "turn": 1}
+{"chain_id": "HC10", "dialogue_act": "fallback", "frame_delta": {}, "prev_frame": {"name": "*.csv"}, "source": "hand", "text": "delete them", "turn": 2}
+{"chain_id": "S02", "dialogue_act": "new", "frame_delta": {"size": "+1M"}, "prev_frame": {}, "source": "stress_session", "text": "find files over 1mb", "turn": 1}
+{"chain_id": "S02", "dialogue_act": "refine", "frame_delta": {"name": "*.json"}, "prev_frame": {"size": "+1M"}, "source": "stress_session", "text": "only the json ones", "turn": 2}
+{"chain_id": "S02", "dialogue_act": "operate", "frame_delta": {"modifier": "count", "op": "count"}, "prev_frame": {"name": "*.json", "size": "+1M"}, "source": "stress_session", "text": "how many", "turn": 3}

@@ -1852,3 +1852,72 @@ more actionable than a silent abstain.
 
 Full existing suite still **389 pass** (unchanged — no src edits). Committed on
 `v2-multiturn` (not pushed); output files gitignored.
+
+## 2026-11-11 — Task 36: v2 Phase 0 — training-data generation (data only, no src/KB changes)
+
+Built the labeled corpus the Phase-1 intent encoder will train on. **No LinuxBuddy
+source, rules, or KB contents were modified** — added a new `src/linuxbuddy/ml/`
+package (generator + label builder) and `data/` artifacts. No torch/transformers.
+Generator is reproducible: `python -I -m linuxbuddy.ml.make_dataset` (fixed seed
+20261111); `tests/test_data.py` green (12 tests); full suite **401 pass** (389 + 12).
+
+**Part A — the frozen label space (`data/label_space.json`).** Enumerated intents
+straight from `load_kb()` (the planner's `_lookup` space): **85 intent ids**, plain
+globally-unique KB keys (NOT domain-dotted — e.g. `copy_file`, not
+`file_management.copy`; the task's dotted example was illustrative). Plus 5
+dialogue acts (new/refine/operate/reset/fallback, exactly what `session.classify`
+returns) and `_ABSTAIN`. Carried an intent→domain map for stratification.
+
+**The drift guard fired — reported, reconciled with sign-off.** `sweep_scenarios.csv`
+labels rows in a different, coarser vocabulary (59 labels) than the KB; **57 of 59
+don't match by name**. Per the task I STOPPED and reported rather than silently
+remapping. The owner approved reconciling, with the governing rule: *a row's label
+= the KB intent id that actually FIRES for that utterance at runtime*. So I built
+`data/sweep_intent_map.json` by **running `lb`** on the phrasings, not by name —
+e.g. `cat`→`preview_head` (verified: "show me config.yaml" → `head -n 10`; there is
+no cat/view intent in the KB, confirmed by grep + `nlu.py:662`), `cd_*`→`goto`/
+`go_back`, per-row `kill`→`kill_pid`/`kill_process`, `resource`→`top_by_*`,
+`extract`→`extract_tar`/`extract_zip`. E110 "stop whatever's on port 8000" fires
+`ss -ltnp` (process_on_port, a read) — labeled by what fires, noted as a divergence
+(no kill-by-port intent exists). The 5 sweep ABSTAIN rows (honest-5: E056/E060/E073/
+E138/E139) → `_ABSTAIN`. The reconciliation is an auditable committed file; the
+regression floor is untouched (the 147-row sweep compares emitted commands, not
+intent labels).
+
+**Part B — single-turn (204 raw).** Sources: `sweep` (147, reconciled), `stress_gap`
+(27, hand-labeled from the Task-35 gaps — the misrouted/abstained reads + the
+destructive synonyms labeled with the intent they SHOULD hit: clone→`copy_file`,
+erase→`delete_file`, "set up a folder"→`make_dir`), `stress_abstain` (12) +
+`hand_abstain` (18) → `_ABSTAIN`. Raw abstain 17.2%.
+
+**Part C — multi-turn (49 turns, 20 chains).** ROADMAP_V2.md does not exist (noted
+in STATUS), so the golden chain C001 is authored directly; 8 chains reconstructed
+from the Task-35 session run; 11 hand-authored (HC*) to top up thin acts (reset/
+operate/new-replaces/cross-domain), since the stress agents under-explored the
+multi-turn edge. Acts imbalanced by design: new 23 / operate 9 / refine 7 / reset 6
+/ fallback 4 — Phase-2 should weight the loss. `prev_frame` accumulates per turn.
+
+**Part D — augmentation (train-only, group-level, seeded).** Deterministic bank in
+`data/synonyms.json` (synonym sub, filler/politeness, word dropout, filename/ext
+swap — the last never on `_ABSTAIN`). Cap ≤4 per positive seed, ≤2 per abstain
+(filler/dropout only). Applied AFTER the split to train seeds only, so no variant
+of a val example can leak.
+
+**Part E — split + files.** Group-level 80/20 stratified by intent (seeds, then
+their augmentations, stay on one side; whole chains for mt). Final single-turn
+**train 688 / val 55** (`_ABSTAIN` 12.2% / 12.7% — in the 8–20% band); mt **train 40
+/ val 9 turns**. Files: `train.jsonl`, `val.jsonl`, `train_mt.jsonl`, `val_mt.jsonl`,
+the two `*.raw.jsonl`, `label_space.json`, `sweep_intent_map.json`, `synonyms.json`,
+`DATA_CARD.md`.
+
+**Coverage reality (for Phase-1 watchlist).** **27 of 85 intents have ZERO
+single-turn data** (the sweep+stress simply never exercised them — e.g.
+`python_version`, `who_am_i`, `which_shell`, `show_size`, `show_owner`,
+`find_process`, `find_smallest`, extract/archive reads, the `session_*` trio which
+the mt set covers instead). The encoder cannot be a fallback for these until the
+corpus grows; the rules still handle them. 45 more intents have <3 raw train seeds.
+Both lists are in the DATA_CARD for the confusion matrix. Showed the owner the class
+balance before Phase-1 commits to the encoder (their requested gate).
+
+Committed on `v2-multiturn` (not pushed). **data/ files ARE tracked** (training
+input, belongs in git) — unlike the ephemeral stress outputs.

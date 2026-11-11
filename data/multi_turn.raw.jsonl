@@ -1,0 +1,49 @@
+{"chain_id": "C001", "dialogue_act": "new", "frame_delta": {"name": "*.csv"}, "prev_frame": {}, "source": "golden_seed", "text": "find all the csv files", "turn": 1}
+{"chain_id": "C001", "dialogue_act": "refine", "frame_delta": {"size": "+1M"}, "prev_frame": {"name": "*.csv"}, "source": "golden_seed", "text": "only the ones over 1mb", "turn": 2}
+{"chain_id": "C001", "dialogue_act": "operate", "frame_delta": {"modifier": "max-by-size", "op": "show"}, "prev_frame": {"name": "*.csv", "size": "+1M"}, "source": "golden_seed", "text": "which one is biggest", "turn": 3}
+{"chain_id": "S02", "dialogue_act": "new", "frame_delta": {"size": "+1M"}, "prev_frame": {}, "source": "stress_session", "text": "find files over 1mb", "turn": 1}
+{"chain_id": "S02", "dialogue_act": "refine", "frame_delta": {"name": "*.json"}, "prev_frame": {"size": "+1M"}, "source": "stress_session", "text": "only the json ones", "turn": 2}
+{"chain_id": "S02", "dialogue_act": "operate", "frame_delta": {"modifier": "count", "op": "count"}, "prev_frame": {"name": "*.json", "size": "+1M"}, "source": "stress_session", "text": "how many", "turn": 3}
+{"chain_id": "S03", "dialogue_act": "new", "frame_delta": {"name": "*.log"}, "prev_frame": {}, "source": "stress_session", "text": "find the log files", "turn": 1}
+{"chain_id": "S03", "dialogue_act": "reset", "frame_delta": {}, "prev_frame": {"name": "*.log"}, "source": "stress_session", "text": "never mind", "turn": 2}
+{"chain_id": "S04", "dialogue_act": "new", "frame_delta": {"name": "*.csv"}, "prev_frame": {}, "source": "stress_session", "text": "find the csv files", "turn": 1}
+{"chain_id": "S04", "dialogue_act": "new", "frame_delta": {"name": "*.json"}, "prev_frame": {"name": "*.csv"}, "source": "stress_session", "text": "find the json files", "turn": 2}
+{"chain_id": "S05", "dialogue_act": "new", "frame_delta": {"name": "*.log"}, "prev_frame": {}, "source": "stress_session", "text": "find the log files", "turn": 1}
+{"chain_id": "S05", "dialogue_act": "fallback", "frame_delta": {}, "prev_frame": {"name": "*.log"}, "source": "stress_session", "text": "delete them", "turn": 2}
+{"chain_id": "S07", "dialogue_act": "new", "frame_delta": {"name": "*.csv"}, "prev_frame": {}, "source": "stress_session", "text": "find the csv files", "turn": 1}
+{"chain_id": "S07", "dialogue_act": "fallback", "frame_delta": {}, "prev_frame": {"name": "*.csv"}, "source": "stress_session", "text": "what's the weather", "turn": 2}
+{"chain_id": "S07", "dialogue_act": "refine", "frame_delta": {"size": "+1M"}, "prev_frame": {"name": "*.csv"}, "source": "stress_session", "text": "only the ones over 1mb", "turn": 3}
+{"chain_id": "S08", "dialogue_act": "new", "frame_delta": {"name": "*.csv"}, "prev_frame": {}, "source": "stress_session", "text": "find the csv files", "turn": 1}
+{"chain_id": "S08", "dialogue_act": "fallback", "frame_delta": {}, "prev_frame": {"name": "*.csv"}, "source": "stress_session", "text": "only the big ones", "turn": 2}
+{"chain_id": "S08", "dialogue_act": "operate", "frame_delta": {"modifier": "max-by-size", "op": "show"}, "prev_frame": {"name": "*.csv"}, "source": "stress_session", "text": "which is biggest", "turn": 3}
+{"chain_id": "S09", "dialogue_act": "new", "frame_delta": {"size": "+1M"}, "prev_frame": {}, "source": "stress_session", "text": "find files bigger than 1mb", "turn": 1}
+{"chain_id": "S09", "dialogue_act": "refine", "frame_delta": {"name": "*.csv"}, "prev_frame": {"size": "+1M"}, "source": "stress_session", "text": "only the csv ones", "turn": 2}
+{"chain_id": "S09", "dialogue_act": "operate", "frame_delta": {"modifier": "count", "op": "count"}, "prev_frame": {"name": "*.csv", "size": "+1M"}, "source": "stress_session", "text": "how many are there", "turn": 3}
+{"chain_id": "HC01", "dialogue_act": "new", "frame_delta": {"name": "*.py"}, "prev_frame": {}, "source": "hand", "text": "find the python files", "turn": 1}
+{"chain_id": "HC01", "dialogue_act": "refine", "frame_delta": {"mtime": "0"}, "prev_frame": {"name": "*.py"}, "source": "hand", "text": "just the ones from today", "turn": 2}
+{"chain_id": "HC01", "dialogue_act": "operate", "frame_delta": {"modifier": "count", "op": "count"}, "prev_frame": {"mtime": "0", "name": "*.py"}, "source": "hand", "text": "how many", "turn": 3}
+{"chain_id": "HC02", "dialogue_act": "new", "frame_delta": {"size": "+100M"}, "prev_frame": {}, "source": "hand", "text": "find files over 100mb", "turn": 1}
+{"chain_id": "HC02", "dialogue_act": "operate", "frame_delta": {"modifier": "max-by-size", "op": "show"}, "prev_frame": {"size": "+100M"}, "source": "hand", "text": "the biggest one", "turn": 2}
+{"chain_id": "HC03", "dialogue_act": "new", "frame_delta": {"name": "*.csv"}, "prev_frame": {}, "source": "hand", "text": "show me the csv files", "turn": 1}
+{"chain_id": "HC03", "dialogue_act": "operate", "frame_delta": {"modifier": "count", "op": "count"}, "prev_frame": {"name": "*.csv"}, "source": "hand", "text": "count them", "turn": 2}
+{"chain_id": "HC04", "dialogue_act": "new", "frame_delta": {"name": "*.json"}, "prev_frame": {}, "source": "hand", "text": "find the json files", "turn": 1}
+{"chain_id": "HC04", "dialogue_act": "reset", "frame_delta": {}, "prev_frame": {"name": "*.json"}, "source": "hand", "text": "start over", "turn": 2}
+{"chain_id": "HC05", "dialogue_act": "new", "frame_delta": {"size": "+50M"}, "prev_frame": {}, "source": "hand", "text": "find big files over 50mb", "turn": 1}
+{"chain_id": "HC05", "dialogue_act": "reset", "frame_delta": {}, "prev_frame": {"size": "+50M"}, "source": "hand", "text": "forget it", "turn": 2}
+{"chain_id": "HC06", "dialogue_act": "new", "frame_delta": {"name": "*.txt"}, "prev_frame": {}, "source": "hand", "text": "find the txt files", "turn": 1}
+{"chain_id": "HC06", "dialogue_act": "reset", "frame_delta": {}, "prev_frame": {"name": "*.txt"}, "source": "hand", "text": "scratch that", "turn": 2}
+{"chain_id": "HC07", "dialogue_act": "new", "frame_delta": {"name": "*.md"}, "prev_frame": {}, "source": "hand", "text": "find the markdown files", "turn": 1}
+{"chain_id": "HC07", "dialogue_act": "new", "frame_delta": {"name": "*.yaml"}, "prev_frame": {"name": "*.md"}, "source": "hand", "text": "actually find the yaml files", "turn": 2}
+{"chain_id": "HC08", "dialogue_act": "new", "frame_delta": {"mtime": "0"}, "prev_frame": {}, "source": "hand", "text": "find files modified today", "turn": 1}
+{"chain_id": "HC08", "dialogue_act": "refine", "frame_delta": {"name": "*.log"}, "prev_frame": {"mtime": "0"}, "source": "hand", "text": "only the logs", "turn": 2}
+{"chain_id": "HC08", "dialogue_act": "operate", "frame_delta": {"modifier": "max-by-size", "op": "show"}, "prev_frame": {"mtime": "0", "name": "*.log"}, "source": "hand", "text": "biggest", "turn": 3}
+{"chain_id": "HC09", "dialogue_act": "new", "frame_delta": {"name": "*.pdf"}, "prev_frame": {}, "source": "hand", "text": "find the pdf files", "turn": 1}
+{"chain_id": "HC09", "dialogue_act": "refine", "frame_delta": {"size": "+10M"}, "prev_frame": {"name": "*.pdf"}, "source": "hand", "text": "the ones over 10mb", "turn": 2}
+{"chain_id": "HC09", "dialogue_act": "operate", "frame_delta": {"modifier": "count", "op": "count"}, "prev_frame": {"name": "*.pdf", "size": "+10M"}, "source": "hand", "text": "how many", "turn": 3}
+{"chain_id": "HC10", "dialogue_act": "new", "frame_delta": {"name": "*.csv"}, "prev_frame": {}, "source": "hand", "text": "find the csv files", "turn": 1}
+{"chain_id": "HC10", "dialogue_act": "fallback", "frame_delta": {}, "prev_frame": {"name": "*.csv"}, "source": "hand", "text": "delete them", "turn": 2}
+{"chain_id": "HC11", "dialogue_act": "new", "frame_delta": {"name": "*.log"}, "prev_frame": {}, "source": "hand", "text": "find the log files", "turn": 1}
+{"chain_id": "HC11", "dialogue_act": "reset", "frame_delta": {}, "prev_frame": {"name": "*.log"}, "source": "hand", "text": "never mind", "turn": 2}
+{"chain_id": "HC11", "dialogue_act": "new", "frame_delta": {"name": "*.csv"}, "prev_frame": {}, "source": "hand", "text": "find the csv files", "turn": 3}
+{"chain_id": "HC12", "dialogue_act": "new", "frame_delta": {"name": "*.yaml"}, "prev_frame": {}, "source": "hand", "text": "find the yaml files", "turn": 1}
+{"chain_id": "HC12", "dialogue_act": "reset", "frame_delta": {}, "prev_frame": {"name": "*.yaml"}, "source": "hand", "text": "reset", "turn": 2}
