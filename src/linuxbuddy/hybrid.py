@@ -246,18 +246,19 @@ def classify_fallback(request: str):
         return None, {}
 
     model_dir = REPO_ROOT / str(cfg["model_path"])
-    if not (model_dir / "config.json").exists():
-        return None, {}  # no checkpoint → pure v1, silently
+    if not (model_dir / "onnx" / "encoder.onnx").exists():
+        return None, {}  # no ONNX artifact → pure v1, silently
 
     try:
-        from .ml.zeroshot import ABSTAIN, IntentIndex
+        from .ml.onnx_encoder import ABSTAIN, OnnxIntentIndex
     except Exception:
         _note_once("encoder dependencies unavailable; using rules only")
         return None, {}
 
     try:
-        idx = IntentIndex.cached(mode="desc", model_name=str(model_dir),
-                                 cache_path=str(model_dir / "index_desc.npz"))
+        # Torch-free: imports only onnxruntime + tokenizers + numpy (Task 40). The
+        # heavy trio (torch/transformers/ST) never loads at runtime.
+        idx = OnnxIntentIndex.cached(model_dir)
         ranked = idx.rank(request)
     except Exception:
         _note_once("encoder unavailable; using rules only")

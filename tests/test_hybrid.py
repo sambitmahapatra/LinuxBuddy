@@ -123,14 +123,18 @@ def test_gate_holds_for_encoder_chosen_destructive(maze, monkeypatch):
     assert rc2 == 1 and out2.getvalue().strip() == ""
 
 
-# --- Guardrail 5: fast path never imports the ML stack -----------------------
-def test_fast_path_does_not_import_torch(maze):
+# --- Guardrail 5: fast path never imports ANY of the ML stack ----------------
+def test_fast_path_does_not_import_ml_stack(maze):
+    """After a rule hit, none of torch/transformers/sentence_transformers/
+    onnxruntime are loaded — the encoder (now ONNX) stays entirely off the hot
+    path (Task 40 extends this from torch-only to the full set)."""
     import subprocess
     code = (
         "import sys; from linuxbuddy import cli; "
         "cli.main(['find all csv files in data']); "
-        "assert 'torch' not in sys.modules, 'torch imported on rule hit'; "
-        "assert 'sentence_transformers' not in sys.modules, 'ST imported on rule hit'; "
+        "heavy = [m for m in ('torch','transformers','sentence_transformers',"
+        "'onnxruntime') if m in sys.modules]; "
+        "assert not heavy, f'ML modules imported on rule hit: {heavy}'; "
         "print('clean')"
     )
     env = dict(os.environ, LINUXBUDDY_MAZE_ROOT=maze)
@@ -139,21 +143,49 @@ def test_fast_path_does_not_import_torch(maze):
     assert r.returncode == 0 and "clean" in r.stdout, r.stderr
 
 
-# --- ML-only: the encoder actually fires + asymmetry + safety ----------------
+# --- Guardrail 4 (Task 40): ONNX artifact absent → pure v1, no crash ---------
+def test_degrades_when_onnx_artifact_absent(maze, monkeypatch):
+    """If the .onnx file is missing (here: model_path points nowhere), the encoder
+    silently yields to pure rules — runs in ANY venv, imports no ML."""
+    from linuxbuddy import hybrid
+    base = hybrid._load_config()
+    monkeypatch.setattr(hybrid, "_load_config",
+                        lambda: {**base, "model_path": "models/does-not-exist"})
+    frame, info = hybrid.classify_fallback("what processes are running")
+    assert frame is None and info == {}
+    # and end-to-end the request simply abstains like v1 (rc 1, empty buffer)
+    out, rc = _run_lb("what processes are running", maze, encoder_on=True)
+    assert rc == 1 and out == "", (out, rc)
+
+
+# --- ONNX runtime path: the encoder actually fires + asymmetry + safety ------
+# These exercise the SHIPPED torch-free path (onnxruntime + tokenizers), so they
+# need onnxruntime + the exported .onnx; they run in .venv-ml after onnx_export.
+ONNX_FILE = CKPT / "onnx" / "encoder.onnx"
+
+
 @pytest.fixture(scope="module")
-def _ml():
-    pytest.importorskip("sentence_transformers", reason="ML env only (.venv-ml)")
+def _onnx():
+    pytest.importorskip("onnxruntime", reason="ONNX runtime only (.venv-ml)")
+    pytest.importorskip("tokenizers", reason="ONNX runtime only (.venv-ml)")
+    if not ONNX_FILE.exists():
+        pytest.skip("no .onnx artifact; run linuxbuddy.ml.onnx_export first")
+
+
+@pytest.fixture(scope="module")
+def _torch():
+    pytest.importorskip("sentence_transformers", reason="torch reference only (.venv-ml)")
     if not (CKPT / "config.json").exists():
         pytest.skip("no fine-tuned checkpoint; run linuxbuddy.ml.finetune first")
 
 
-def test_fallback_resolves_a_true_abstain(_ml, maze):
+def test_fallback_resolves_a_true_abstain(_onnx, maze):
     """A read phrasing the rules abstain on now resolves through the gate at rc 0."""
     out, rc = _run_lb("what processes are running", maze, encoder_on=True)
     assert rc == 0 and out == "ps aux", (out, rc)
 
 
-def test_destructive_threshold_asymmetry(_ml, monkeypatch):
+def test_destructive_threshold_asymmetry(_onnx, monkeypatch):
     from linuxbuddy import hybrid
     req = "delete the file scratch.tmp"
     # default thresholds: clearly destructive above the bar → a delete_file frame
@@ -168,7 +200,7 @@ def test_destructive_threshold_asymmetry(_ml, monkeypatch):
     assert frame2 is None, "destructive emitted below its (raised) confidence bar"
 
 
-def test_safety_zero_destructive_on_nonsense(_ml):
+def test_safety_zero_destructive_on_nonsense(_onnx):
     """THE safety metric: the encoder emits zero destructive intents on nonsense."""
     from linuxbuddy import hybrid
     probe = [__import__("json").loads(l)
@@ -180,3 +212,66 @@ def test_safety_zero_destructive_on_nonsense(_ml):
             destructive.append((r["text"], info["intent"]))
     assert not destructive, f"destructive command(s) on nonsense: {destructive}"
     print(f"\n[safety] destructive-on-nonsense = 0 / {len(probe)}")
+
+
+# --- Task 40 fidelity + decision parity (ONNX must match the torch model) -----
+_PARITY_PROBE = [
+    "what processes are running", "where are the spreadsheets",
+    "delete the file scratch.tmp", "what changed in the last day",
+    "list everything here", "show me the largest files",
+    "count the python files", "make a new folder called out",
+    "kill whatever is on port 8080", "asdfqwer zxcv", "fix this", "clean up",
+    "the quick brown fox", "how big is this directory", "extract the tarball",
+]
+
+
+def test_onnx_torch_embedding_fidelity(_onnx, _torch):
+    """ONNX embeddings must match the torch reference per-pair cosine ≥ 0.999
+    (pooling/precision parity). A drop here means silent accuracy loss."""
+    import numpy as np
+    from sentence_transformers import SentenceTransformer
+    from linuxbuddy.ml.onnx_encoder import OnnxEncoder
+
+    ref = np.asarray(SentenceTransformer(str(CKPT)).encode(
+        _PARITY_PROBE, normalize_embeddings=True, show_progress_bar=False), dtype="float32")
+    enc = OnnxEncoder.load(str(ONNX_FILE), str(CKPT / "tokenizer.json"))
+    got = enc.encode(_PARITY_PROBE)
+    cos = (got * ref).sum(axis=1)
+    assert float(cos.min()) >= 0.999, f"embedding drift: min cosine {cos.min():.5f}"
+    print(f"\n[fidelity] ONNX-vs-torch cosine min={cos.min():.5f} mean={cos.mean():.5f}")
+
+
+def _decide(ranked, cfg):
+    """Replicate hybrid's emit/abstain decision from a ranking (for parity)."""
+    from linuxbuddy import gate
+    from linuxbuddy.planner import risk_ops
+    top1_i, top1 = ranked[0]
+    top2 = ranked[1][1] if len(ranked) > 1 else 0.0
+    try:
+        destructive = gate.is_destructive(risk_ops(top1_i))
+    except Exception:
+        return "_ABSTAIN"
+    T = cfg["t_destructive"] if destructive else cfg["t_read"]
+    if top1 < T or (destructive and (top1 - top2) < cfg["margin_min"]):
+        return "_ABSTAIN"
+    return top1_i
+
+
+def test_onnx_torch_decision_parity(_onnx, _torch):
+    """Row for row, the ONNX index makes the SAME emit/abstain decision and picks
+    the SAME intent as the torch index — swapping the backend moves no decision."""
+    from linuxbuddy import hybrid
+    from linuxbuddy.ml.onnx_encoder import OnnxIntentIndex
+    from linuxbuddy.ml.zeroshot import IntentIndex
+    cfg = hybrid._load_config()
+    onnx_idx = OnnxIntentIndex.cached(CKPT)
+    torch_idx = IntentIndex.cached(mode="desc", model_name=str(CKPT),
+                                   cache_path=str(CKPT / "index_desc.npz"))
+    diffs = []
+    for u in _PARITY_PROBE:
+        o = _decide(onnx_idx.rank(u), cfg)
+        t = _decide(torch_idx.rank(u), cfg)
+        if o != t:
+            diffs.append((u, t, o))
+    assert not diffs, f"ONNX changed a decision vs torch: {diffs}"
+    print(f"\n[parity] {len(_PARITY_PROBE)}/{len(_PARITY_PROBE)} decisions identical")

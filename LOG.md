@@ -2110,3 +2110,72 @@ t_destructive/margin_min`); `LINUXBUDDY_ENCODER=0` forces pure-rules.
 files; committed the `Prompts/31–37` task specs (38/39 were never saved as files).
 
 **Milestone:** this is a good checkpoint. Committed on `v2-multiturn`.
+
+## 2026-11-11 — Task 40: cut abstain-path latency (ONNX, torch-free hot path)
+
+Pure performance task — same behaviour, much faster cold start. **No intent
+decision, threshold, gate, rule, or router change.** Main suite **409 pass + 13
+skipped**; `.venv-ml` **21 pass**. All five Task-39 guardrails re-verified.
+
+**Part A — profile first (know the enemy).** Broke down the ~10 s cold abstain
+path on the WSL box:
+
+| stage | cost |
+|---|---|
+| import numpy | 165 ms |
+| import torch | 1248 ms |
+| import transformers | 1140 ms |
+| **import sentence_transformers** | **4527 ms** |
+| load checkpoint weights | 187 ms |
+| encode utterance (warm) | 5 ms |
+| cosine match (85 vecs) | 0.1 ms |
+
+The strong prior held: **imports are ~7.1 s of the ~10 s; inference is ~5 ms.**
+So the win is dropping the torch/transformers/ST imports, not quantizing the model.
+
+**Part B — export to ONNX.** `ml/onnx_export.py` exports the fine-tuned MiniLM body
+with `torch.onnx.export` (optimum's exporter is incompatible with torch 2.15 — it
+imports a symbolic torch removed — so I bypassed it) and int8-quantizes with
+`onnxruntime.quantization`. Pooling + normalization are reimplemented in the numpy
+wrapper to match the SentenceTransformer exactly: mean-pool over the attention mask,
+then L2-normalize. The 85 description embeddings are re-embedded through the ONNX
+path into `index_onnx.npz` (the matrix must come from the same model that scores
+utterances).
+
+**Part C — torch-free runtime.** `ml/onnx_encoder.py` (`OnnxEncoder` +
+`OnnxIntentIndex`) imports only `onnxruntime` + `tokenizers` + `numpy`, lazily on
+the abstain path. `hybrid.classify_fallback` now loads `OnnxIntentIndex.cached`
+instead of the torch `IntentIndex`; the checkpoint check is now the `.onnx` file.
+The heavy trio (torch/transformers/ST) never loads at runtime at all — kept in
+`.venv-ml` only for the one-time export and the eval reference.
+
+**Part D — fidelity (the gate on this task).** int8 dynamic quant measured per-pair
+cosine **min 0.958** vs the torch reference — below the 0.999 bar — so per the spec
+I fell back to **fp32 ONNX**, which measured **cosine 1.00000 (min and mean)** on a
+15-utterance sample. Decision parity: on a fixed probe set the ONNX hybrid makes the
+**same emit/abstain decision and same intent as the torch hybrid, 15/15**. The
+shipped precision is fp32 (the latency win is the dropped imports; fp32 vs int8
+inference differs by ~0 ms here, so there's no reason to trade away exactness).
+Both fidelity and parity are asserted by new tests.
+
+**Part E — re-measure.** Cold abstain path (fresh process): **~258 ms**, down from
+~10 s (**~40× faster**), well under the ~2 s target. Fast rule-hit path: ~49 ms,
+still importing none of the ML stack (test extended to assert torch/transformers/
+sentence_transformers/onnxruntime all absent after a rule hit). **Decision: no
+daemon / resident helper needed** — the hybrid is now dogfoodable.
+
+**Guardrails re-verified:** 147-sweep rule-handled rows byte-identical on/off (0
+diffs); encoder returns an intent only (planner/gate unchanged); thresholds
+unchanged (t_read 0.55 / t_destructive 0.68 / margin 0.05) and destructive-on-
+nonsense still 0/22; degradation now also covers onnxruntime/tokenizers/.onnx
+absent → pure v1 (the main Python-3.14 venv has neither numpy nor onnxruntime, so
+the whole 409-test suite IS the degradation proof, plus an explicit
+artifact-absent test); fast path imports none of the ML stack.
+
+**Deps/artifacts:** `requirements-ml.txt` adds onnxruntime, tokenizers, onnxscript
+(export tooling), with the regenerate command. The `.onnx` + `index_onnx.npz` live
+under `models/` (already gitignored). optimum was installed during dev but is NOT
+required (and downgraded transformers 5.22.2→4.53.3, which ST 5.7 and all tests
+tolerate).
+
+**Milestone:** good checkpoint. Committed on `v2-multiturn`.

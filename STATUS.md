@@ -1,11 +1,31 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-11 (Task 39 — **hybrid: fine-tuned encoder wired as the
-rules fallback in `lb`; single-turn, intent-only**)
+**Last updated:** 2026-11-11 (Task 40 — **abstain-path latency: ONNX, torch-free
+hot path; ~10s → ~0.26s, no daemon**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**.
+
+**Task 40 (abstain-path latency — ONNX, torch-free runtime; PERFORMANCE only).**
+Same behaviour, much faster cold start — **no intent/threshold/gate/rule/router
+change**. Main suite **409 pass + 13 skipped**; `.venv-ml` **21 pass**. All five
+Task-39 guardrails re-verified.
+- **Profile (Part A):** imports were ~7.1s of the old ~10s cold path (ST 4.5s,
+  torch 1.25s, transformers 1.14s); inference ~5ms. So the fix is dropping imports.
+- **ONNX export:** fine-tuned MiniLM → `torch.onnx` (optimum's exporter is broken on
+  torch 2.15, bypassed) → fp32 ONNX; pooling/normalize reimplemented in numpy to
+  match ST exactly. Runtime (`ml/onnx_encoder.py`) imports only onnxruntime +
+  tokenizers + numpy — torch/transformers/ST never load at runtime.
+- **Fidelity:** int8 cosine 0.958 (< 0.999 gate) → shipped **fp32**, cosine
+  **1.00000** vs torch; **decision parity 15/15** (same intent + emit/abstain).
+- **Latency:** cold abstain **~258ms** (was ~10s, **~40× faster**), under the ~2s
+  target → **no daemon needed**; fast rule-hit path ~49ms, imports no ML stack.
+- **Degradation:** now also covers onnxruntime/tokenizers/.onnx absent → pure v1
+  (the main 3.14 venv has neither numpy nor onnxruntime, so the full suite proves
+  it) + an explicit artifact-absent test.
+- **Milestone:** good checkpoint — **this branch can be pushed** (owner's call).
+- **Next:** multi-turn dialogue-act head / unify `session.classify()` (old Phase 2).
 
 **Task 39 (hybrid — encoder as rules fallback; FIRST runtime-path change).**
 Single-turn, intent-only. The encoder is consulted at ONE seam
@@ -21,12 +41,9 @@ skipped**; `.venv-ml` **18 pass**. All five guardrails verified by
   fast path never imports torch (asserted).
 - **Coverage (end-to-end, `hybrid_eval_report.md`):** 10/14 rules-abstain probe
   phrasings now resolve to meaningful commands (ls -la, ps aux, find by type/time).
-- **Latency:** fast path ~0.12s (unchanged); **cold abstain path ~10s/process** —
-  too slow for the widget; **recommended follow-up = a resident helper** (load once,
-  serve many); NOT built here.
+- **Latency:** fast path ~0.12s (unchanged); cold abstain path was ~10s/process —
+  **fixed in Task 40 (ONNX): now ~0.26s, no daemon.**
 - **Milestone:** good checkpoint — **this branch can be pushed** (owner's call).
-- **Next:** multi-turn dialogue-act head / unify `session.classify()` (old Phase 2);
-  and/or the resident helper for abstain-path latency.
 
 **Task 38 (Phase 1 — bake-off + contrastive fine-tune; model/measurement only).**
 The Siamese step. **No rules/router/planner/KB changes; nothing wired into `lb`.**

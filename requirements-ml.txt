@@ -32,3 +32,28 @@ transformers==5.22.2
 accelerate==1.15.0
 datasets==5.2.0
 scikit-learn==1.9.1
+
+# ---------------------------------------------------------------------------
+# Task 40 — ONNX export + torch-free runtime abstain path.
+#
+# RUNTIME (lb's abstain path imports ONLY these, never torch/transformers/ST —
+# profiling showed those imports were ~7 s of the old ~10 s cold start):
+onnxruntime==1.31.1
+tokenizers==0.21.4          # standalone Rust tokenizer; also pulled by transformers
+#
+# EXPORT tooling (one-time, offline — torch.onnx on torch 2.15 needs onnxscript):
+onnxscript==0.7.2
+#
+# NOTE: `optimum[onnxruntime]`'s ONNX exporter is INCOMPATIBLE with torch 2.15 (it
+# imports a symbolic torch removed), so the export uses torch.onnx.export +
+# onnxruntime.quantization directly (ml/onnx_export.py) — optimum is NOT required.
+# It was installed during development and downgraded transformers 5.22.2→4.53.3 and
+# tokenizers 0.23.3→0.21.4; sentence-transformers 5.7.0 works on both, and the
+# export (a plain BERT AutoModel through torch.onnx) is transformers-version-robust.
+# int8 dynamic quant measured cosine 0.958 (< the 0.999 fidelity gate), so the
+# shipped precision is fp32 ONNX — cosine 1.00000 vs the torch model, and still
+# torch-free at runtime (the latency win is the dropped imports, not quantization).
+#
+# Regenerate the ONNX artifact (writes models/ft-minilm-l6/onnx/encoder.onnx and
+# index_onnx.npz; the whole models/ tree is gitignored):
+#   .venv-ml/bin/python -I -m linuxbuddy.ml.onnx_export
