@@ -1979,3 +1979,75 @@ then wire as the rules fallback. `eval_cache.jsonl` + `.venv-ml/` are gitignored
 (ephemeral); the descriptions file, report, code and tests are tracked.
 
 Committed on `v2-multiturn` (not pushed).
+
+## 2026-11-11 — Task 38: v2 Phase 1 — base-model bake-off + contrastive fine-tune
+
+The Siamese step (rubric concept #2). Still measurement + model work only: **no
+rules/router/planner/KB changes**, nothing wired into `lb`. All ML in `.venv-ml`.
+Suite **403 pass + 8 skipped** (main venv; the ML tests run in `.venv-ml`, 10 pass).
+
+**VERDICT: WIREABLE.** The fine-tuned MiniLM-L6 clears every bar. Base = Part-A
+winner `all-MiniLM-L6-v2`; abstain = a train-fit threshold (T\*=0.55), with the
+logistic gate (option b) equivalent.
+
+**Part A — bake-off (5 bases, zero-shot, each with its documented input convention;
+`bakeoff_report.md`).** No base separated nonsense zero-shot: best feasible was
+MiniLM-L6 at **FP 31% @ gap 85%**; MiniLM-L12 and bge-small similar; gte-small and
+e5-small-v2 could not even be thresholded (cosines compressed high → FP ~100%).
+Winner by the task's criterion (lowest FP at gap≥80%, tie val top-1) =
+**`all-MiniLM-L6-v2`** — also the smallest/fastest for CPU deployment. bge-small had
+the best top-3 ceiling (85%), noted as runner-up. → fine-tuning warranted.
+
+**Part B — fine-tune (`models/ft-minilm-l6/`, gitignored).** MultipleNegativesRanking
+Loss (in-batch negatives = the Siamese contrastive objective) on utterance↔description
++ utterance↔utterance pairs. **seed 42, 3 epochs, lr 2e-5, batch 32** (2 epochs left
+val top-1 at 67%, under the bar; 3 crossed it — selected on val). Abstain = **option
+(b)**: a balanced logistic gate on `[max_sim, margin]`. Justification: MNRL contracts
+the space (nonsense can still score high in absolute cosine), but after fine-tuning
+the *margin* becomes discriminative, so a 2-feature gate (or, it turns out, a plain
+train-fit threshold) separates abstain — the Task-37 blocker is gone.
+
+**GPU:** attempted a CUDA build for the RTX 3050, but torch 2.15.0 has no wheel on the
+pytorch cu124/cu126 indexes for this env; per the task's "don't rabbit-hole" guidance,
+trained on **CPU** (~1041 pairs × 3 epochs, under a minute). Deployment is CPU
+inference regardless.
+
+**Part C — three states, all on held-out data (`finetune_report.md`):**
+| state | gap rec. | nonsense FP | val top-1 | val top-3 |
+|---|---|---|---|---|
+| MiniLM-L6 zero-shot | 19% | 0% | 26% | 76% |
+| fine-tuned + threshold | 93% | 3% | 72% | 89% |
+| fine-tuned + gate | 93% | 3% | 72% | 89% |
+
+Read the zero-shot row honestly: with a train-fit threshold forced to low FP, recovery
+*collapses* (gap 19%, val 26%) — the zero-shot space simply can't be thresholded,
+which is why fine-tuning was needed. Fine-tuned clears FP<15% @ gap≥80%, val top-1≥70%.
+
+**Zero-data guardrail (12 untrained intents, 24 utterances, tracked probe):** top-3
+**88% → 96%** (top-1 62% → 71%) — the zero-data tail was NOT degraded; it improved.
+
+**Two integrity catches, both fixed before reporting:**
+1. The Task-36 split had salted `train.jsonl` with **21 of the 27 gap phrasings** (+2
+   val rows). Training on them would make "gap recovery" a training-set number.
+   `build_pairs()` and the gate now exclude all gap/val utterances via
+   `heldout_texts()`; a test asserts it. Gap recovery stayed **93% even held-out** —
+   fine-tuning genuinely generalizes to the rules-ceiling phrasings.
+2. Nonsense FP is measured on a fresh, hand-authored nonsense probe + the 7 held-out
+   val abstains (clean for all three states, incl. the gate); threshold operating
+   points are fit on TRAIN, not on the eval nonsense set — so all three states are
+   measured identically. (A first pass had tuned T on the eval set; corrected.)
+
+**Determinism:** two independent CPU train+eval runs gave byte-identical eval numbers
+(seed 42).
+
+**Deliverables:** `ml/bakeoff.py`, `ml/finetune.py`, `ml/finetune_eval.py`,
+`tests/test_finetune.py`, `data/zero_data_probe.jsonl`, `data/nonsense_probe.jsonl`,
+`bakeoff_report.md`, `finetune_report.md`; `kb/intent_descriptions.yaml`/`zeroshot.py`
+gained per-model input conventions. `requirements-ml.txt` += accelerate/datasets/
+scikit-learn. Checkpoint `models/` gitignored (regenerates from script + seed + data).
+
+**Next (if approved):** wire the fine-tuned encoder as the rules fallback in `lb`
+(the WIREABLE next task) — encoder runs only after the rules abstain; threshold
+T\*=0.55 as the abstain gate; intent-only (slots stay rule-based).
+
+Committed on `v2-multiturn` (not pushed).

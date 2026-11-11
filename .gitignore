@@ -17,3 +17,7 @@ stress_test_report.md
 # Task 37 zero-shot spike: isolated ML venv + ephemeral eval cache
 .venv-ml/
 data/eval_cache.jsonl
+
+# Task 38 fine-tune: checkpoint is too big for git; regenerates from the script +
+# seed + tracked data/train.jsonl (see finetune_report.md "Reproduce").
+models/

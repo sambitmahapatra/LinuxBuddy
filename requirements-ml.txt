@@ -1,21 +1,34 @@
-# ML dependencies for the v2 Phase-1 zero-shot bi-encoder spike (Task 37).
+# ML dependencies for the v2 Phase-1 intent encoder (Tasks 37–38: zero-shot spike,
+# base-model bake-off, contrastive fine-tune).
 #
 # These are NOT runtime deps of `lb` — the rules engine stays pure-stdlib (CLAUDE.md
 # invariant #1). This file installs ONLY into an isolated env used for offline
-# measurement, so `lb`'s venv is never touched. A bi-encoder is a local embedding
-# model (MiniLM, ~22M params), not a generative LLM: one-time model download, then
-# fully offline, and nothing auto-executes.
+# measurement + training, so `lb`'s venv is never touched. A bi-encoder is a local
+# embedding model (MiniLM, ~22M params), not a generative LLM: one-time model
+# download, then fully offline, and nothing auto-executes.
 #
-# Install (CPU torch — no CUDA; GPU only matters for fine-tuning, a later task):
+# Install (CPU torch):
 #
 #   uv venv --python 3.12 .venv-ml
 #   UV_TORCH_BACKEND=cpu uv pip install --python .venv-ml -r requirements-ml.txt
 #
 # (The repo's main venv is Python 3.14, which torch has no wheels for yet, hence
 # the separate uv-managed 3.12 env.)
+#
+# GPU note (Task 38): fine-tuning is tiny (~1k pairs, MiniLM-L6) and ran on CPU in
+# under a minute. A CUDA build was attempted for the RTX 3050 but torch==2.15.0 has
+# no matching wheel on the pytorch cu124/cu126 indexes for this env; CPU was the
+# sanctioned fallback. Deployment is CPU inference regardless. To try GPU later,
+# install a torch version that HAS a CUDA wheel, e.g.:
+#   uv pip install --python .venv-ml --torch-backend=cu126 torch
 
 sentence-transformers==5.7.0
 torch==2.15.0            # CPU build (torch==2.15.0+cpu via UV_TORCH_BACKEND=cpu)
 
 # Pulled transitively, pinned here for reproducibility of the spike:
 transformers==5.22.2
+
+# Fine-tune (Task 38): training loop, dataset plumbing, and the logistic abstain gate.
+accelerate==1.15.0
+datasets==5.2.0
+scikit-learn==1.9.1

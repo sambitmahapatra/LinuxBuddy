@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .zeroshot import ABSTAIN, MODES, IntentIndex, load_descriptions
+from .zeroshot import ABSTAIN, DEFAULT_MODEL, MODES, IntentIndex, load_descriptions
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DATA = REPO_ROOT / "data"
@@ -80,9 +80,9 @@ def _ceiling(scored, k):
     return hit / len(scored) if scored else 0.0
 
 
-def evaluate_mode(mode: str):
+def evaluate_mode(mode: str, model_name: str = DEFAULT_MODEL):
     gap, neg, val, val_cov = _datasets()
-    index = IntentIndex.build(mode=mode)
+    index = IntentIndex.build(mode=mode, model_name=model_name)
     sg, sn, sv = _rank_all(index, gap), _rank_all(index, neg), _rank_all(index, val_cov)
     val_top1 = _ceiling(sv, 1)
     val_top3 = _ceiling(sv, 3)
@@ -158,8 +158,8 @@ def _verdict(best) -> tuple[str, str]:
             "re-use this harness to measure the lift.")
 
 
-def run_all():
-    results = {m: evaluate_mode(m) for m in MODES}
+def run_all(model_name: str = DEFAULT_MODEL):
+    results = {m: evaluate_mode(m, model_name) for m in MODES}
     best = max(results.values(),
               key=lambda r: (r["tstar"]["gap_recovery"], r["val_top1"]))
 

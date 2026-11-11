@@ -1,11 +1,33 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-11 (Task 37 — **v2 Phase 1 spike: zero-shot bi-encoder;
-measurement only, no source changes**)
+**Last updated:** 2026-11-11 (Task 38 — **v2 Phase 1: base-model bake-off +
+contrastive fine-tune; measurement/model only, no source changes**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**.
+
+**Task 38 (Phase 1 — bake-off + contrastive fine-tune; model/measurement only).**
+The Siamese step. **No rules/router/planner/KB changes; nothing wired into `lb`.**
+All ML in `.venv-ml`. Suite **403 pass + 8 skipped** (main venv; ML tests run in
+`.venv-ml`, 10 pass).
+- **VERDICT: WIREABLE.** Fine-tuned MiniLM-L6 clears every bar on held-out data:
+  **gap recovery 93%, nonsense FP 3%, val top-1 72% / top-3 89%**, zero-data tail
+  intact (top-3 88%→96%). Abstain = train-fit threshold **T\*=0.55** (the logistic
+  gate, option b, is equivalent).
+- **Bake-off (Part A):** 5 bases, zero-shot, each with its documented input
+  convention. No base separated nonsense zero-shot (best MiniLM-L6 FP 31%@gap85%;
+  gte/e5 un-thresholdable). Winner = `all-MiniLM-L6-v2` (`bakeoff_report.md`).
+- **Fine-tune (Part B):** MultipleNegativesRankingLoss, seed 42, 3 epochs, lr 2e-5,
+  CPU (~1min; GPU had no matching torch wheel — CPU fallback, deploy is CPU anyway).
+  Checkpoint `models/ft-minilm-l6/` **gitignored** (regenerates from script+seed+data).
+- **Integrity:** the Task-36 split had salted train.jsonl with 21/27 gap phrasings
+  (+2 val); `build_pairs()`/gate now exclude all gap/val via `heldout_texts()` (a
+  test asserts it). Gap recovery stayed 93% held-out. Nonsense FP measured on a
+  fresh clean probe + held-out val abstains; thresholds fit on train not eval.
+- **Next (if approved):** wire the fine-tuned encoder as the rules fallback in `lb`
+  (encoder runs only after the rules abstain; intent-only; slots stay rule-based).
+  Report: `finetune_report.md`.
 
 **Task 37 (Phase 1 spike — zero-shot bi-encoder; measurement only).** Measured a
 *pretrained* MiniLM (all-MiniLM-L6-v2, CPU) against the 85 intent descriptions,

@@ -27,6 +27,29 @@ DESCRIPTIONS_PATH = REPO_ROOT / "kb" / "intent_descriptions.yaml"
 DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 ABSTAIN = "_ABSTAIN"
 
+# Per-model input conventions (query = utterance, doc = intent description).
+# Using the wrong convention rigs the bake-off, so each follows its model card:
+#   e5-*          : REQUIRE "query: " / "passage: " prefixes.
+#   bge-*-en-v1.5 : query gets the retrieval instruction; passages get none.
+#   gte-*         : no instruction/prefix per the thenlper card (symmetric).
+#   all-MiniLM-*  : no prefix.
+# Matched by substring of the model name; falls back to no prefix.
+_CONVENTIONS = [
+    ("e5-", ("query: ", "passage: ")),
+    ("bge-", ("Represent this sentence for searching relevant passages: ", "")),
+    ("gte-", ("", "")),
+    ("minilm", ("", "")),
+]
+
+
+def conventions(model_name: str) -> tuple[str, str]:
+    """(query_prefix, doc_prefix) for a model, by its documented convention."""
+    low = model_name.lower()
+    for key, pair in _CONVENTIONS:
+        if key in low:
+            return pair
+    return ("", "")
+
 # Anchor-text strategies (Part A asks us to try both and report which is better):
 #   "desc"     — embed the description only (one vector per intent)
 #   "desc+ex"  — embed description AND each example separately, mean-pool them
@@ -89,6 +112,8 @@ class IntentIndex:
     matrix: "any"          # (n_intents, dim) float32, L2-normalized
     model: "any"
     mode: str
+    query_prefix: str = ""
+    model_name: str = DEFAULT_MODEL
 
     @classmethod
     def build(cls, mode: str = "desc", model_name: str = DEFAULT_MODEL,
@@ -96,11 +121,13 @@ class IntentIndex:
         import numpy as np
         descs = descs if descs is not None else load_descriptions()
         model = load_model(model_name)
+        q_prefix, d_prefix = conventions(model_name)
         texts_by_intent = anchor_texts(descs, mode)
         intent_ids = sorted(texts_by_intent)          # stable order
         vecs = []
         for intent in intent_ids:
-            emb = model.encode(texts_by_intent[intent], normalize_embeddings=True,
+            texts = [d_prefix + t for t in texts_by_intent[intent]]
+            emb = model.encode(texts, normalize_embeddings=True,
                                show_progress_bar=False)
             emb = np.atleast_2d(np.asarray(emb, dtype="float32"))
             pooled = emb.mean(axis=0)                  # mean-pool anchors
@@ -108,13 +135,14 @@ class IntentIndex:
             vecs.append(pooled / n if n else pooled)
         return cls(intent_ids=intent_ids,
                    matrix=np.vstack(vecs).astype("float32"),
-                   model=model, mode=mode)
+                   model=model, mode=mode, query_prefix=q_prefix,
+                   model_name=model_name)
 
     def rank(self, utterance: str) -> list[tuple[str, float]]:
         """All intents ranked by cosine similarity (desc)."""
         import numpy as np
-        q = self.model.encode([utterance], normalize_embeddings=True,
-                              show_progress_bar=False)
+        q = self.model.encode([self.query_prefix + utterance],
+                              normalize_embeddings=True, show_progress_bar=False)
         q = np.asarray(q, dtype="float32")[0]
         sims = self.matrix @ q                         # cosine (both normalized)
         order = np.argsort(-sims)
