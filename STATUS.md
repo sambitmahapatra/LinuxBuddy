@@ -1,11 +1,34 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-11 (Task 40 — **abstain-path latency: ONNX, torch-free
-hot path; ~10s → ~0.26s, no daemon**)
+**Last updated:** 2026-11-11 (Task 41 — **inspection + 587-scenario dogfood +
+remaining-work proposal; measure & plan only, awaiting review**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**.
+
+**Task 41 (inspect + measure + propose — NO implementation).** Confirmed the live
+`lb` reaches the ONNX encoder, read the as-built code (`asbuilt_summary.md`), ran a
+**587-scenario diversified dogfood** through the real hybrid (`tests/dogfood500.py`
+→ `dogfood500_diversity.md`), and wrote **`v2_remaining_proposal.md`** (awaits
+review before any build).
+- **Dogfood:** 587 scenarios, leakage-clean vs train (0 dups), all 85 intents
+  (27/27 zero-data), diversity self-audited. **Behaved-as-expected 75.5%**
+  (CORRECT 382 + ABSTAIN_OK 61). **0 GATE_LEAK** (safety intact; outside-maze
+  destructive refused 11/12, 12th safely degraded to a read). Multi-turn 48/49.
+- **Headline problem:** **MISROUTE_SILENT_DROP 99 (17%)** — rules emit a confident
+  wrong command (88 = "filename-hijack" → catch-all `find`/`grep`; 11 =
+  constraint-drop). The **encoder fired on only 5.3%** (87% correct when it did):
+  it's consulted only on *abstain*, but the rules rarely abstain — they guess.
+- **#1 lever (proposed):** a rules **coverage-check** (abstain instead of
+  half-right) to both kill the dangerous class and unlock the encoder.
+- **Proposed order:** 1 rules-robustness → 5 packaging → 3 continual-learning
+  (the missing graded concept) → 4 polish/tag → 2 (defer learned dialogue-act;
+  rules session layer works at 98% on ~40 turns of data).
+- **Decision for the owner:** approve the sequence; optionally freeze the 587-set as
+  a tracked real-eval corpus under `data/eval/`. **7 commits unpushed** (35–41).
+- **Open:** `ROADMAP_V2.md` is referenced by task specs but absent from the repo
+  (only a stray `:Zone.Identifier`); using `ROADMAP.md`.
 
 **Task 40 (abstain-path latency — ONNX, torch-free runtime; PERFORMANCE only).**
 Same behaviour, much faster cold start — **no intent/threshold/gate/rule/router

@@ -2179,3 +2179,52 @@ required (and downgraded transformers 5.22.2→4.53.3, which ST 5.7 and all test
 tolerate).
 
 **Milestone:** good checkpoint. Committed on `v2-multiturn`.
+
+## 2026-11-11 — Task 41: inspection + 587-scenario dogfood + remaining-work proposal
+
+Inspect + measure + propose — **no implementation** (no rules/encoder/router/KB/
+threshold changes, no retraining). Deliverables: `asbuilt_summary.md`,
+`tests/dogfood500.py` (harness), `dogfood500_diversity.md`, `v2_remaining_proposal.md`.
+
+**Precondition confirmed:** the live `lb` (from `.venv`, which now has numpy +
+onnxruntime + tokenizers, torch-free) reaches the encoder — `lb "what processes are
+running"` → `ps aux` with the "interpreted (language model)" marker. The dogfood
+tests the real hybrid, not pure rules.
+
+**As-built (read from code):** two NLU paths — single-turn `nlu.parse` (ordered
+router; file_discovery is the catch-all last) and multi-turn `session.classify`
+(rules dialogue-act) + compositional `SessionFrame`; both render through the same
+`compile → gate → render`. The encoder is consulted **only on a single-turn
+abstain**. Corrected a prior assumption: single-turn DOES compose type+size and
+type+time (the ext slot rides the precedence return); it drops only the **second of
+{size,time}** (size wins) and the **second extension** ("csv and json").
+
+**Dogfood — 587 scenarios, leakage-clean vs train (0 dups), all 85 intents (27/27
+zero-data), diversity self-audited:**
+- **Behaved-as-expected 443/587 = 75.5%** (CORRECT 382 + ABSTAIN_OK 61).
+- **Safety intact: 0 GATE_LEAK**; 11/12 outside-maze destructive refused (12th
+  safely degraded to a read); no destructive at wrong exit — the asymmetric-abstain
+  invariant holds in the wild.
+- **MISROUTE_SILENT_DROP = 99 (17%)** — the dangerous class: 88 "filename-hijack"
+  (unrecognised op verb + a named file → the catch-all emits `find`/`grep` at rc 0,
+  e.g. `delete error.log` → `grep error error.log`), + 11 constraint-drops.
+- **ABSTAIN_GAP 38 (6.5%), WRONG_TARGET 4, ENCODER_MISFIRE 2, OVEREAGER 1.**
+- **Central finding:** the encoder fired on only **31/587 (5.3%)** and was right
+  **27/31 (87%)** — hamstrung because it's consulted only on abstain, while the
+  dominant failure is the rules emitting a *confident wrong command*. The #1 lever
+  is a rules **coverage-check** (abstain instead of guessing → hand the miss to the
+  encoder), not a better encoder.
+- **Multi-turn: 48/49 chain turns correct** — the rules session layer is solid.
+
+**Proposal (awaits your review before any build):** (1) rules robustness, lead with
+the coverage-check; (2) **defer** the learned dialogue-act head (only ~40 multi-turn
+turns; rules work at 98%); (3) continual-learning pipeline — the missing graded
+concept, seeded by this 587-set + a runtime feedback log; (4) submission polish
+(attention-viz, real rules-vs-hybrid eval, `v2.0.0` tag) after (1); (5) packaging —
+an `[ml]` extra in `pyproject.toml`, pure-rules still default. Recommended order:
+1 → 5 → 3 → 4 → 2.
+
+**Housekeeping:** the ephemeral `dogfood500_results.csv` is gitignored (like the
+Task-35 stress CSV); the generator, diversity audit, as-built, and proposal are
+committed. **Not pushed, nothing implemented** — awaiting review. 6 prior commits
+(Tasks 35–40) + this = 7 unpushed on `v2-multiturn`.
