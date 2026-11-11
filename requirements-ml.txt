@@ -1,0 +1,21 @@
+# ML dependencies for the v2 Phase-1 zero-shot bi-encoder spike (Task 37).
+#
+# These are NOT runtime deps of `lb` — the rules engine stays pure-stdlib (CLAUDE.md
+# invariant #1). This file installs ONLY into an isolated env used for offline
+# measurement, so `lb`'s venv is never touched. A bi-encoder is a local embedding
+# model (MiniLM, ~22M params), not a generative LLM: one-time model download, then
+# fully offline, and nothing auto-executes.
+#
+# Install (CPU torch — no CUDA; GPU only matters for fine-tuning, a later task):
+#
+#   uv venv --python 3.12 .venv-ml
+#   UV_TORCH_BACKEND=cpu uv pip install --python .venv-ml -r requirements-ml.txt
+#
+# (The repo's main venv is Python 3.14, which torch has no wheels for yet, hence
+# the separate uv-managed 3.12 env.)
+
+sentence-transformers==5.7.0
+torch==2.15.0            # CPU build (torch==2.15.0+cpu via UV_TORCH_BACKEND=cpu)
+
+# Pulled transitively, pinned here for reproducibility of the spike:
+transformers==5.22.2

@@ -1921,3 +1921,61 @@ balance before Phase-1 commits to the encoder (their requested gate).
 
 Committed on `v2-multiturn` (not pushed). **data/ files ARE tracked** (training
 input, belongs in git) — unlike the ephemeral stress outputs.
+
+## 2026-11-11 — Task 37: v2 Phase 1 spike — zero-shot bi-encoder (measurement only)
+
+Measured how far a *pretrained* MiniLM gets with good descriptions, before
+spending any GPU-minute. **No fine-tuning, no GPU, no rules/router/planner/KB
+changes.** The rules engine stays pure-stdlib: all ML lives in an isolated
+`.venv-ml` (uv-managed Python 3.12 + CPU torch), so `lb`'s Python-3.14 venv is
+untouched. Full suite **402 pass + 4 skipped** in the main venv (the 4 model tests
+skip where sentence-transformers isn't installed; all 5 pass in `.venv-ml`).
+
+**VERDICT: NEEDS FINE-TUNING.** Operating point T\*=0.275 (desc-only anchors, the
+knee of gap×nonsense). The embedding space is roughly right but not wireable as-is.
+
+**Headline numbers (honest, after removing anchor leakage — see below):**
+- Gap set (the 27 stress-test rules-ceiling phrasings): **23/27 (85%) recovered at
+  top-1** at T\*. The 4 misses are neighbouring-intent confusions
+  (find_by_type↔run_script/list_all, make_dir↔setup_project), not weak descriptions.
+- Val ceiling: **top-1 58%, top-3 77%** (48 covered rows). Top-3 ≫ top-1 ⇒ the
+  space groups correctly but can't separate at rank 1.
+- Nonsense abstain: **69% correct (31% false-positive)** at T\*. **Nonsense is NOT
+  separable by an absolute cosine threshold** — FP only drops below ~15% near
+  T=0.55, where gap recovery collapses to ~26%. The top1−top2 **margin did not
+  help** (best margin = 0). This abstain softness is the main blocker.
+
+**Why NEEDS FINE-TUNING (not GOOD ENOUGH, not just better descriptions):** both
+failure modes — soft top-1 and non-separable nonsense — are concentrated between
+*adjacent* intents, exactly what a contrastive fine-tune on the Task-36 labeled
+pairs pulls apart. More description tuning hits diminishing returns (the misses are
+semantic neighbours, not vocabulary gaps).
+
+**An integrity catch worth recording.** My first run looked great (gap 96%, val
+77%) — because several `examples:` anchors in intent_descriptions.yaml were
+*verbatim copies of the gap/val test utterances* (erase scratch.tmp, "list
+everything here", etc.): teaching-to-the-test. I added a leakage check (16 exact
+collisions found), replaced every colliding anchor with a non-test paraphrase
+(synonyms stay in the *descriptions*, which is the legitimate place to bank them),
+and re-ran. The honest numbers above are post-fix. Lesson banked for Phase-3.
+
+**Description strategy:** compared desc-only vs desc+examples. Post-leak-fix,
+**desc-only wins on gap recovery** (85% vs 59%); desc+ex edges val top-1 (65% vs
+58%). Report keeps both.
+
+**Deliverables:** `kb/intent_descriptions.yaml` (all 85 intents, durable reusable
+artifact — descriptions fold in the synonyms the rules miss: erase/nuke/wipe→delete,
+clone/replicate→copy), `src/linuxbuddy/ml/zeroshot.py` (pure matcher, abstain by
+threshold+margin), `src/linuxbuddy/ml/eval_zeroshot.py` (harness: val/gap/nonsense +
+threshold & margin sweep), `tests/test_zeroshot.py`, `requirements-ml.txt` (pinned:
+sentence-transformers 5.7.0, torch 2.15.0+cpu), `zeroshot_spike_report.md`. The
+27 zero-data intents all have descriptions (reachable zero-shot); none appear in
+the 55-row val set, so they're not directly measured — kept description-served,
+to be judged by a broader Phase-1 eval / the targeted collection pass.
+
+**Next (if approved):** contrastive fine-tune the bi-encoder on the Task-36 pairs
+(the 688 train rows / augmented set), re-run THIS harness to measure the lift,
+then wire as the rules fallback. `eval_cache.jsonl` + `.venv-ml/` are gitignored
+(ephemeral); the descriptions file, report, code and tests are tracked.
+
+Committed on `v2-multiturn` (not pushed).

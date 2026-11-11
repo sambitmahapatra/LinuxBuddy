@@ -1,11 +1,31 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-11 (Task 36 — **v2 Phase 0: training-data generation;
-data only, no source/KB changes**)
+**Last updated:** 2026-11-11 (Task 37 — **v2 Phase 1 spike: zero-shot bi-encoder;
+measurement only, no source changes**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**.
+
+**Task 37 (Phase 1 spike — zero-shot bi-encoder; measurement only).** Measured a
+*pretrained* MiniLM (all-MiniLM-L6-v2, CPU) against the 85 intent descriptions,
+NO fine-tuning. **No rules/router/planner/KB changes**; all ML is isolated in
+`.venv-ml` (uv Python 3.12 + CPU torch) so `lb`'s 3.14 venv is untouched. Suite
+**402 pass + 4 skipped** (main venv; model tests run in `.venv-ml`).
+- **VERDICT: NEEDS FINE-TUNING** at T\*=0.275. Space is roughly right but not
+  wireable as-is.
+- **Gap set: 23/27 (85%) recovered at top-1**; **val top-1 58% / top-3 77%**;
+  **nonsense abstain 69% (31% FP)**. Nonsense is NOT separable by absolute cosine
+  threshold, and the top1−top2 margin doesn't help — the main blocker. Failures
+  are neighbouring-intent confusions → what contrastive fine-tuning fixes.
+- **Integrity note:** removed example-anchor leakage (16 anchors were verbatim
+  gap/val test utterances) before measuring; numbers above are honest post-fix.
+- **Durable artifact:** `kb/intent_descriptions.yaml` (all 85, synonyms folded in)
+  — reused by fine-tuning and Phase-3. Report: `zeroshot_spike_report.md`.
+- **Next (if approved):** contrastive fine-tune on the Task-36 pairs, re-run the
+  `eval_zeroshot` harness to measure the lift, then wire as the rules fallback.
+  The 27 zero-data intents are description-served (not in the val set; judge via a
+  broader eval / the targeted collection pass).
 
 **Task 36 (Phase 0 — training data; data only).** Built the labeled corpus for
 the Phase-1 intent encoder. **No source/rules/KB changed** — added

@@ -13,3 +13,7 @@ __pycache__/
 # Task 35 stress-test outputs (ephemeral — deliver for review, don't track)
 stress_test_results.csv
 stress_test_report.md
+
+# Task 37 zero-shot spike: isolated ML venv + ephemeral eval cache
+.venv-ml/
+data/eval_cache.jsonl
