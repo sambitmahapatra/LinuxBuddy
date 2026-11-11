@@ -2291,3 +2291,67 @@ plan of record (stale `ROADMAP_V2.md` was never committed). `*:Zone.Identifier` 
 already gitignored. Three separate commits (eval freeze / coverage-check /
 housekeeping). **Not pushed** — 9 unpushed on `v2-multiturn` (35–42); push after #1
 fully lands + the v2.0.0 tag.
+
+**(Later, same day) Pushed to GitHub** at Sambit's request: `origin/v2-multiturn`
+advanced f81e942 → e0343a8, so Tasks 41–42 (the 4 commits) are now on the remote
+alongside 35–40. Branch in sync with origin.
+
+## 2026-11-11 — Task 43: DESIGN PROPOSAL — attention-based context retention
+
+Research/design task — **no implementation**, nothing in src/rules/encoder/gate/
+session/KB/model changed. Ran AFTER Task 42 was merged+pushed. Deliverable:
+`attention_context_proposal.md`, grounded in the code and a throwaway probe
+(`experiments/task43_attention/probe.py`, run against the real fine-tuned torch
+model in `.venv-ml`). Awaits review before any build.
+
+**Why the task:** the project's grade headline is "attention for context-aware
+multi-turn," but today context retention is done entirely by the rules-based
+`SessionFrame` accumulator + rules `classify()` (48/49 on the dogfood chains) — there
+is no attention in the multi-turn path. Attention exists only as a black box inside
+the MiniLM bi-encoder on the single-turn fallback, never visualized. The task: figure
+out how to make attention do real, visible multi-turn work without the 49-turn data
+problem and without regressing the 48/49 rules path.
+
+**Probe findings (the evidence that shaped the recommendation):**
+1. **Cross-turn attention is real & visualizable.** On "find the csv files → only the
+   ones modified yesterday → show the biggest one", turn-3 tokens put 0.71 of their
+   attention mass on turns 1–2 (layer 3 head 1). Token-level, the pronoun **"one"**
+   attends to **"files" (0.626)** and **"csv" (0.20)** from turn 1 — attention
+   literally resolving coreference across turns. The showcase figure exists
+   (`attention_map.svg`). This is the grade centerpiece and it's genuinely there.
+2. **Context helps resolve elliptical objects (zero-shot).** "count them" alone is a
+   4-way near-tie (count files/matches/lines?); "find the python files. count them"
+   → count_files 0.794 clear. "only the ones modified yesterday" sharpens
+   0.691→0.872.
+3. **Cautionary — naive whole-embedding concatenation REGRESSES the act decision.**
+   "show the biggest one" alone ranks session_find_biggest #1 (0.608); with the full
+   history prepended it drops to #4 and find_by_time (the turn-2 filter) rises to #1
+   (0.775). Mean-pooling blends the turns, so the short operate turn gets outvoted by
+   the filter-heavy history. So the *cheapest* approach ("concatenate, match the
+   whole embedding") is the wrong way to pick the act/intent — the rules get this
+   right at 48/49.
+
+**Recommendation:** spectrum **option 1.5** — attention owns the one thing it
+demonstrably wins and the rules can't: **cross-turn coreference/reference
+resolution** ("one/them/the ones" → which prior target), reusing the existing
+fine-tuned encoder zero-shot (no new training), plus the attention-map figure. The
+rules `SessionFrame` keeps state accumulation and dialogue-act/modifier detection
+(the 48/49 path the probe shows the encoder would regress). Dialogue-act head stays
+deferred (49 turns; refine 7 / fallback 4). Full option 3 (bespoke current→history
+cross-attention head) named as the "standout" stretch goal but deferred behind data
++ regression risk. Proposed thin-slice spike: a dev-time reference-resolver that
+pools the *current-turn span* (sidestepping finding 3), measured against the rules on
+a NEW frozen held-out multi-turn chain eval (the analogue of the frozen 587). Honest
+"what attention buys": robustness to phrasings the regex misses (turns that today
+fall to fallback→abstain), learned coreference, and interpretability — not
+necessarily beating the rules on in-vocabulary chains.
+
+**Safety:** stated explicitly in the proposal — multi-turn destructive ("delete
+them") still goes through the same gate + exit-3 + human-review; attention resolves
+the referent, it never lowers the bar to run `rm`; an unclear destructive referent
+still abstains (invariant #6). The probe confirmed the encoder still recognises
+delete_file from context, so nothing is lost.
+
+**Housekeeping:** probe + figures live in `experiments/task43_attention/` (not wired
+in; pytest testpaths=["tests"] excludes it; __pycache__ gitignored). Committed the
+proposal + probe + both SVGs on `v2-multiturn`. **Not pushed** (awaiting Sambit).

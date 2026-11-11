@@ -1,12 +1,37 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-11 (Task 42 — **#1a rules coverage-check landed; eval
-frozen; MISROUTE 99→51, CORRECT 382→403**)
+**Last updated:** 2026-11-11 (Task 43 — **attention-context DESIGN PROPOSAL
+delivered (research only); probe proved cross-turn attention is real & visualizable**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**. **`v2_remaining_proposal.md` is the v2 plan
 of record** (the never-committed `ROADMAP_V2.md` is stale — ignore it).
+
+**Task 43 (DESIGN PROPOSAL — attention-based context retention; NO implementation).**
+Research/design task; nothing in src/rules/encoder/gate/session/KB changed.
+Deliverable `attention_context_proposal.md` (+ a throwaway probe in
+`experiments/task43_attention/`), **awaits review before any build**.
+- **Probe findings (on the real fine-tuned model):** (1) cross-turn attention is
+  real & visualizable — the pronoun "one" in "show the biggest **one**" attends to
+  "csv files" from turn 1 (0.626); the showcase figure exists
+  (`experiments/task43_attention/attention_map.svg`). (2) context helps resolve
+  elliptical *objects* ("count them"→count_files once the history is seen). (3)
+  **cautionary:** naive whole-embedding concatenation *dilutes* the current turn's
+  act ("biggest one" gets outvoted by the turn-2 filter) — so don't match the whole
+  pooled embedding for the decision.
+- **Recommendation:** spectrum **option 1.5** — attention owns **coreference/
+  reference resolution** (where it wins, zero-shot, no new data) + the figure; the
+  rules `SessionFrame` keeps **state accumulation** and **dialogue-act/modifier**
+  (the 48/49 path the encoder would regress). Dialogue-act head stays deferred
+  (49 turns, acts imbalanced). Safety unchanged (gate + exit-3 + destructive
+  asymmetry intact).
+- **Decision for the owner:** approve option 1.5 + the thin-slice spike, or overrule
+  toward option 3 (bespoke cross-attention head — more standout, but needs data we
+  lack and risks the 48/49 baseline).
+- **Tasks 35–42 are pushed to GitHub** (origin `v2-multiturn` at the Task-42
+  commit). This Task-43 proposal commit is the only one ahead of origin. **Do not
+  push unless Sambit says.**
 
 **Task 42 (workstream #1a — the rules coverage-check).** First v2 implementation
 after the proposal. Froze the 587-scenario dogfood as a static, eval-only benchmark
