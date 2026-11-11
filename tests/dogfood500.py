@@ -41,6 +41,7 @@ from linuxbuddy.planner import risk_ops          # noqa: E402
 
 ENCODER_MARKER = "interpreted (language model)"
 GATE_REFUSED = "only run inside the test maze"
+EVAL_PATH = REPO_ROOT / "data" / "eval" / "dogfood_eval.jsonl"
 
 # ---- KB-derived truth: intent -> (head verb, risk bucket) -------------------
 _DESTRUCTIVE = {"write", "delete", "privilege"}
@@ -1035,6 +1036,54 @@ def judge(sc: Scen, out: str, err: str, rc: int) -> tuple[str, str, str]:
 # --------------------------------------------------------------------------
 # Leakage check
 # --------------------------------------------------------------------------
+def freeze_eval():
+    """Write the labeled corpus to data/eval/dogfood_eval.jsonl (eval-only, frozen).
+    The benchmark then can't drift when build_scenarios/build_chains are edited —
+    the runner reads this file, not the generators."""
+    sc = build_scenarios()
+    ch = build_chains()
+    EVAL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(EVAL_PATH, "w") as f:
+        f.write(json.dumps({"_comment": "Task 41/42 frozen eval set — EVAL ONLY, "
+                            "never migrated into train.jsonl. Regenerate: "
+                            "python tests/dogfood500.py --freeze"}) + "\n")
+        for s in sc:
+            f.write(json.dumps({
+                "type": "single", "request": s.request, "expected_intent": s.intent,
+                "risk": s.risk or RISK.get(s.intent, "read"), "must": list(s.must),
+                "token_kind": s.token_kind, "register": s.register, "vocab": s.vocab,
+                "complexity": s.complexity, "reference": s.reference, "cwd": s.cwd,
+                "note": s.note}) + "\n")
+        for name, turns in ch:
+            f.write(json.dumps({"type": "chain", "chain": name,
+                                "turns": [{"request": r, "kind": k, "must": m}
+                                          for (r, k, m) in turns]}) + "\n")
+    print(f"[freeze] wrote {len(sc)} single-turn + {len(ch)} chains -> {EVAL_PATH}")
+
+
+def load_eval():
+    """Load the frozen eval set (the benchmark). Falls back to the generators only
+    if the frozen file is absent."""
+    if not EVAL_PATH.exists():
+        print("[warn] frozen eval missing; using generators (run --freeze)")
+        return build_scenarios(), build_chains()
+    sc, ch = [], []
+    for line in EVAL_PATH.read_text().splitlines():
+        if not line.strip():
+            continue
+        d = json.loads(line)
+        if d.get("_comment"):
+            continue
+        if d["type"] == "single":
+            sc.append(Scen(d["request"], d["expected_intent"], d["register"], d["vocab"],
+                           d["complexity"], d["reference"], d["cwd"], d["risk"],
+                           tuple(d["must"]), d["token_kind"], d["note"]))
+        else:
+            ch.append((d["chain"], [(t["request"], t["kind"], t["must"])
+                                    for t in d["turns"]]))
+    return sc, ch
+
+
 def train_utterances() -> set[str]:
     out = set()
     for line in (REPO_ROOT / "data" / "train.jsonl").read_text().splitlines():
@@ -1051,6 +1100,9 @@ MAZE_ROOT = ""
 
 def main():
     global MAZE_ROOT
+    if "--freeze" in sys.argv:
+        freeze_eval()
+        return 0
     if shutil.which("lb") is None:
         raise SystemExit("`lb` not on PATH")
     # Precondition: encoder live.
@@ -1064,8 +1116,7 @@ def main():
     maze = MAZE_ROOT
     cwds = {"maze": maze, "deep": deep}
 
-    scenarios = build_scenarios()
-    chains = build_chains()
+    scenarios, chains = load_eval()      # read the FROZEN benchmark, not generators
     train = train_utterances()
 
     rows: list[Row] = []
