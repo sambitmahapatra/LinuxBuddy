@@ -2228,3 +2228,66 @@ an `[ml]` extra in `pyproject.toml`, pure-rules still default. Recommended order
 Task-35 stress CSV); the generator, diversity audit, as-built, and proposal are
 committed. **Not pushed, nothing implemented** — awaiting review. 6 prior commits
 (Tasks 35–40) + this = 7 unpushed on `v2-multiturn`.
+
+## 2026-11-11 — Task 42: workstream #1a, the rules coverage-check
+
+First v2 implementation after the proposal. Thin slice of workstream #1 — ONLY the
+coverage-check (multi-constraint slot-filling #1b and definite-reference #1c are
+separate, deliberately left out so this change's effect is measurable alone).
+
+**Froze the eval first.** Extracted the 587-scenario dogfood into a static
+`data/eval/dogfood_eval.jsonl` (eval-only, never migrated into train, in a path
+clearly separate from train). `dogfood500.py` now reads this frozen file
+(`load_eval`) rather than the generators, so the benchmark can't drift when the
+generators are edited; `--freeze` regenerates it deliberately. Spot-audited the
+labels (MISROUTE/ABSTAIN_GAP + debatable rows like "wipe the terminal"→clear_screen,
+"back up notes.txt"→copy_file, "toss out scratch.tmp"→delete_file): all sound, none
+wrong. Left the one quibble (echo $USER is a valid who_am_i render that the judge
+scores strictly, ~1 row) untouched so the measurement isn't tuned to flatter.
+
+**The fix.** The 587-dogfood's dominant failure was MISROUTE_SILENT_DROP (99/587,
+17%), mostly the "filename-hijack": an unrecognised op verb + a concrete filename →
+a catch-all emits a confident wrong find/grep at exit 0, which never reaches the
+encoder (consulted only on abstain). Two surgical rule changes, no encoder/
+threshold/gate/router change:
+- `_discovery_requested()` — positive evidence discovery/search was actually asked
+  (a discovery verb/phrase, plural "files", a glob, or a size/time cue). The
+  `find_by_name` branch of `_parse_file_discovery` now gates on it: a bare filename
+  with no discovery cue returns None (abstain → encoder) instead of `find -name`.
+- `_grep_pattern()` filename-awareness — an all-caps token or log word that is part
+  of a filename (README.md, error.log) is a file, not a grep pattern (a "." guard
+  after the match). So "delete error.log" now routes to delete_file and "arrange the
+  lines of README.md in order" to sort_lines, instead of a spurious grep. Also
+  stopped a search verb capturing an article ("look for a file named X" → was
+  `grep a`).
+
+**Measured delta (baseline on HEAD vs after, both on the frozen eval):**
+
+| judgment | before | after | Δ |
+|---|---|---|---|
+| CORRECT | 382 | 403 | +21 |
+| MISROUTE_SILENT_DROP | 99 | 51 | −48 |
+| ABSTAIN_GAP | 38 | 62 | +24 |
+| ENCODER_MISFIRE | 2 | 5 | +3 |
+| encoder firings (reach) | 31 | 50 | +19 |
+
+Transition analysis: every change came OUT of the MISROUTE bucket (48 removed → 21
+CORRECT, 24 honest ABSTAIN_GAP, 3 ENCODER_MISFIRE). **0 CORRECT regressions** —
+genuine discovery (find/where/locate/how-many/grep) is byte-unchanged; the +24
+ABSTAIN_GAP are freed hijacks where the encoder didn't confidently recover, now an
+honest "not sure" rather than a wrong command the user can't judge (exactly the
+asymmetric-abstain philosophy). **147-sweep: 0 routing diffs. GATE_LEAK: 0.** All
+414+ tests green, including the new `tests/test_coverage_check.py`.
+
+**Residual (51 MISROUTE) belongs to later tasks:** other-parser grabs (file_inspection
+head, navigation/workspace cd, who_am_i echo) and the constraint-drop / bare-name
+classes — #1b and #1c. Logged, not fixed here (per the brief: "if you find yourself
+composing constraints, stop").
+
+**Housekeeping:** added an `[ml]` optional extra to `pyproject.toml` (onnxruntime,
+tokenizers, numpy) so `pip install -e '.[ml]'` reproduces the hybrid; pure-rules
+stays the default (degradation tests prove it). `v2_remaining_proposal.md` is the v2
+plan of record (stale `ROADMAP_V2.md` was never committed). `*:Zone.Identifier` was
+already gitignored. Three separate commits (eval freeze / coverage-check /
+housekeeping). **Not pushed** — 9 unpushed on `v2-multiturn` (35–42); push after #1
+fully lands + the v2.0.0 tag.

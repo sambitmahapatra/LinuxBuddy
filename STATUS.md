@@ -1,11 +1,35 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-11 (Task 41 — **inspection + 587-scenario dogfood +
-remaining-work proposal; measure & plan only, awaiting review**)
+**Last updated:** 2026-11-11 (Task 42 — **#1a rules coverage-check landed; eval
+frozen; MISROUTE 99→51, CORRECT 382→403**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
-underway on branch **`v2-multiturn`**.
+underway on branch **`v2-multiturn`**. **`v2_remaining_proposal.md` is the v2 plan
+of record** (the never-committed `ROADMAP_V2.md` is stale — ignore it).
+
+**Task 42 (workstream #1a — the rules coverage-check).** First v2 implementation
+after the proposal. Froze the 587-scenario dogfood as a static, eval-only benchmark
+(`data/eval/dogfood_eval.jsonl`, separate from train; `dogfood500.py` reads it), then
+added the coverage-check so a bare filename stops hijacking into a confident wrong
+`find`/`grep`.
+- **Two surgical rule changes** (no encoder/threshold/gate/router change): gate
+  `find_by_name` on `_discovery_requested` (abstain when no discovery cue → encoder
+  seam), and make `_grep_pattern` filename-aware (a filename's all-caps/log word is
+  not a grep pattern).
+- **Measured delta (frozen eval):** MISROUTE_SILENT_DROP **99→51** (−48), CORRECT
+  **382→403** (+21), encoder firings **31→50** (reach up), ABSTAIN_GAP 38→62 (freed
+  hijacks now honestly abstain). **0 CORRECT regressions** (genuine discovery
+  unchanged), **147-sweep 0 diffs**, **0 GATE_LEAK** (safety intact).
+- **Housekeeping:** `[ml]` extra in `pyproject.toml` (`pip install -e '.[ml]'`
+  reproduces the hybrid; pure-rules still the default). `*:Zone.Identifier` already
+  gitignored.
+- **Follow-ups logged, NOT done here:** #1b multi-constraint slot-filling
+  (size+time, multi-extension) and #1c definite-reference / bare-name resolution
+  (e.g. `locate notes`, `the config file`). The residual MISROUTE (51) is now mostly
+  other parsers (head/cd/echo grabs) + these two classes.
+- **Do NOT push yet** (push after #1 fully lands + the `v2.0.0` tag). **9 commits
+  unpushed** (35–42).
 
 **Task 41 (inspect + measure + propose — NO implementation).** Confirmed the live
 `lb` reaches the ONNX encoder, read the as-built code (`asbuilt_summary.md`), ran a
