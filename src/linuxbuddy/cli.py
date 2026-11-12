@@ -19,7 +19,7 @@ from __future__ import annotations
 import os
 import sys
 
-from . import gate, hybrid, session
+from . import gate, hybrid, session, session_resolver
 from .nlu import parse, abstain_hint
 from .planner import compile, risk_ops, PlanError
 from .render import to_shell, RenderError
@@ -166,6 +166,25 @@ def _session_dispatch(request: str, frame, key: str) -> int:
         sf = frame
         sf.merge(delta)
     else:  # fallback
+        # The value-add seam (Task 45): an elliptical turn the rules can't place,
+        # but a live frame exists. Consult the context-aware resolver (torch-free,
+        # ONNX) to recover an operate act the rules miss; everything still renders
+        # through to_command_plan -> compile -> gate -> render. Destructive turns
+        # are never recovered (resolver returns None) -> they fall to single-turn,
+        # which abstains (invariant #6). Any encoder absence/failure -> None -> the
+        # unchanged single-turn fallback, exactly as before.
+        if frame is not None:
+            delta, info = session_resolver.resolve_fallback(request, frame)
+            if delta is not None:
+                frame.merge(delta)
+                frame.record(request, info.get("act", "operate"))
+                if info.get("source") == "encoder":
+                    print("LinuxBuddy ~ interpreted (language model) — review "
+                          "before running", file=sys.stderr)
+                rc, emitted = _emit_plan_frame(frame.to_command_plan())
+                if emitted:
+                    session.save(key, frame)
+                    return rc
         return _run_single_turn(request)
 
     sf.record(request, act)

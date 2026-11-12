@@ -2411,3 +2411,66 @@ sharpening the act, not architecture. Figures:
 **Housekeeping:** resolver/eval/figures live in `experiments/task44_spike/` (not
 wired; pytest testpaths=["tests"] excludes it; __pycache__ gitignored). Committed on
 `v2-multiturn`. **Not pushed** (awaiting Sambit).
+
+## 2026-11-12 — Task 45: wire context-aware resolution into the session path (option 1.5, A)
+
+Productionized the Task-44 spike: the encoder now resolves elliptical multi-turn
+turns the rules can't, **inside `lb`**, torch-free. Additive, fallback-only, same
+guardrail discipline as the Task-39 single-turn wire. Three commits: descriptions,
+the resolver module, the session seam.
+
+**The seam.** In `cli._session_dispatch`, the `fallback` branch used to drop to
+single-turn and LOSE the frame — "which of those is heaviest" was parsed
+context-free and MISFIRED (e.g. `which of` -> `command -v of`). Now: when the rules
+`fallback` AND a live `SessionFrame` exists AND the turn is elliptical, consult
+`session_resolver.resolve_fallback` first; it returns an operate delta (or None) that
+merges into the existing frame and renders through the UNCHANGED
+`to_command_plan -> compile -> gate -> render`. `session.py` is byte-identical;
+`onnx_encoder.py` is unchanged (the resolver pools via its already-public
+session/tokenizer).
+
+**The runtime resolver (torch-free).** Embed the CURRENT-TURN SPAN pooled out of the
+*contextual* sequence `history . current` (NOT the current turn alone — that tested
+1/14 — and NOT the whole blended embedding, Finding 3) with the ONNX encoder; match
+intent descriptions; map a READ operate intent (find_largest/count_* + the session_*
+twins) -> a max-by-size/count delta. The reference is the frame's accumulated target
+(single-target chains; no multi-target disambiguation). The L4H4 attention stays
+dev-time (the figure + 98% coref metric). Lazy ONNX import on the fallback turn only.
+
+**The act-gap fix (descriptions, gated on BOTH evals).** Enriched find_largest/
+find_smallest in `kb/intent_descriptions.yaml` with size synonyms (heaviest, fattest,
+chunkiest, bulkiest, beefiest, hefty, weightiest / tiniest, lightest, slimmest).
+Gate: diffed the frozen 587 baseline-vs-enriched per scenario -> **0 regressions**,
+1 improvement ("point me at the fattest files" ABSTAIN_GAP->CORRECT), 0 command diffs
+on rule-handled rows. Multi-turn novel recovery jumped 36% -> 79%. Because the ONNX
+index uses `desc` mode, only descriptions (not examples) matter; no eval phrase was
+used as an anchor (held-out kept clean).
+
+**Acceptance (measured).**
+- `multiturn_eval` end-to-end through the real `lb` (encoder ON): **in-vocab
+  no-regression 24/24 read turns byte-exact** (+ the in-vocab reset turn) — **0
+  regressions**; **NOVEL recovery 11/14 (79%)**, up from the spike's 36%;
+  **destructive elliptical 3/3 abstain**, 0 command emitted (invariant #6). The 3
+  misses ("the fat one", "add them all up", "total them up") sit below t_read=0.55 —
+  honest residual.
+- 587 single-turn: **0 regressions** (CORRECT 403->404). Dogfood chains **48/49**
+  (unchanged). 147-sweep **0 diffs** (test_hybrid green). **0 GATE_LEAK**.
+- Suites: main venv **437 passed, 8 skipped**; `.venv-ml` **445 passed** (both +
+  the new `tests/test_session_resolver.py`, 9 tests). Fast-path purity asserted: a
+  rule-handled session turn imports no torch/onnxruntime.
+- **Live widget (`.venv-ml/bin/lb`, Ctrl-G turns):** golden chain `find csv -> only
+  modified yesterday -> show the biggest one` rules-handled end-to-end; NOVEL chain
+  `pull up the csv files -> only the ones over 2mb -> which of those is heaviest`
+  recovers to `find . -name '*.csv' -size +2M -printf '%s\t%p\n' | sort -rn | head -1`
+  (rc 0, "interpreted (language model)" note); `get rid of those` -> abstain (rc 1,
+  no rm).
+
+**Safety.** Destructive elliptical turns are refused BEFORE any model call (a
+destructive-cue guard) and the operate map contains only READ intents, so an rm/mv
+target is never guessed from context. A resolved read still passes the normal gate.
+
+**Housekeeping.** New `src/linuxbuddy/session_resolver.py`; `cli.py` seam; enriched
+descriptions; `tests/test_session_resolver.py`; `experiments/task45_wire/eval_e2e.py`
+(reproducible acceptance runner, not wired). dogfood CSVs gitignored. **Not pushed.**
+Next = B (continual learning). Out of scope kept out: no torch runtime, no bespoke
+head, no learned dialogue-act head, no multi-target disambiguation.

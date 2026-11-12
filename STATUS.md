@@ -1,13 +1,44 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-12 (Task 44 — **option-1.5 spike built (dev-time, unwired):
-attention reference-resolver + frozen multi-turn eval; coref 100%/98%, novel recovery
-5/14, safety 3/3**)
+**Last updated:** 2026-11-12 (Task 45 — **context-aware resolver WIRED into `lb`
+(option 1.5, torch-free): novel multi-turn recovery 36%→79%, 0 single-turn
+regression, destructive 3/3 abstain, live chains work**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**. **`v2_remaining_proposal.md` is the v2 plan
 of record** (the never-committed `ROADMAP_V2.md` is stale — ignore it).
+
+**Task 45 (wire context-aware resolution into the session path — option 1.5, part A).**
+Productionized the Task-44 spike **inside `lb`**, torch-free; additive, fallback-only.
+Three commits (descriptions, resolver module, session seam). **Awaits review.**
+- **Seam:** `cli._session_dispatch` fallback branch — when the rules `fallback` AND a
+  live `SessionFrame` exists AND the turn is elliptical, consult
+  `session_resolver.resolve_fallback` (ONNX, torch-free) → an operate delta that
+  merges into the frame → the UNCHANGED `to_command_plan → compile → gate → render`.
+  `session.py` byte-identical; `onnx_encoder.py` unchanged.
+- **Resolver:** embeds the CURRENT-TURN SPAN pooled from the contextual sequence
+  `history . current` (not the turn alone — that was 1/14 — and not the whole blended
+  embedding, Finding 3); maps a READ operate intent → max-by-size/count. The L4H4
+  attention stays dev-time (figure + 98% coref). Reference = the frame's single target.
+- **Descriptions enriched** (`kb/intent_descriptions.yaml`, find_largest/_smallest size
+  synonyms), gated on BOTH evals: **587 single-turn 0 regressions** (CORRECT 403→404,
+  per-scenario diff), multi-turn novel recovery **36%→79%**.
+- **Acceptance (measured):** multiturn_eval end-to-end through real `lb` — in-vocab
+  **24/24 byte-exact (0 regressions)**, **novel recovery 11/14 (79%)**, **destructive
+  3/3 abstain** (0 command, invariant #6). Dogfood chains **48/49** (unchanged),
+  147-sweep **0 diffs**, **0 GATE_LEAK**. Suites: main **437 passed/8 skipped**,
+  `.venv-ml` **445 passed** (+ `tests/test_session_resolver.py`, 9). Fast-path purity
+  held (rule-handled session turn imports no ML).
+- **Live widget confirmed:** golden chain rules-handled; novel chain `pull up the csv
+  files → only the ones over 2mb → which of those is heaviest` → correct
+  `session_find_biggest` (rc 0); `get rid of those` → abstain (rc 1, no rm).
+- **Residual:** 3 terse novel turns ("the fat one", "add them all up", "total them up")
+  below t_read=0.55 — candidates for option 2 (light tuning) if pursued; deferred.
+- **Decision for the owner:** approve → proceed to **B (continual learning)**, the
+  missing graded concept; or request option 2 for the last-mile act gap first.
+- **Not pushed.** Tasks 43–45 (proposal + spike + wire) are ahead of origin
+  `v2-multiturn` (35–42 pushed). **Do not push unless Sambit says.**
 
 **Task 44 (option-1.5 spike — attention as cross-turn reference resolver; DEV-TIME,
 NOT WIRED).** Built the spike the Task-43 proposal recommended. **Nothing wired into
