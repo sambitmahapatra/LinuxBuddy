@@ -2607,3 +2607,54 @@ result, gate never weakened.
 (`tests/test_retrain.py`, 13). main venv **466 passed, 8 skipped**; `.venv-ml` green.
 `continual_learning_report.md` extended with the complete arc (Part 2). Candidates
 cached under `models/cl_candidates/` (gitignored). **Not pushed.**
+
+---
+
+## 2026-11-12 — Task 48: v2 submission polish (release artifacts, no runtime change)
+
+Docs + figures + one measurement run; **no rules/encoder/gate/session/threshold change.**
+Produces the artifacts that make `v2.0.0` a documented, gradeable release. The
+merge→main + tag is Sambit's manual git step after this.
+
+**A — attention showcase at L4H4.** Regenerated the figure at the resolver's REAL head
+(`experiments/task44_spike/eval_spike.py --figure`): L4H4 = the swept-best signal
+(phrase 1.00, **type-specific coreference 98% = 41/42 held-out**), vs the old probe
+default L3H1 (type-specific 5% — binds generic "files"). Four SVGs:
+`attention_{golden,novel}_{L4H4,layer4_avg}.svg` — the elliptical pronoun attending to
+the turn-1 type tokens on both the golden and a novel chain; the single-head L4H4 reads
+most cleanly. Figures now match the mechanism. Old L3H1 SVGs kept as the Task-44 record.
+
+**B — rules-vs-hybrid delta (the honest "what the encoder adds").** New measurement
+harnesses (`experiments/task48_release/`) reuse the frozen eval + judge/runner to run
+rules-only (`LINUXBUDDY_ENCODER=0`) vs hybrid. RAW:
+- 538 single-turn: CORRECT **317 (58.9%) → 361 (67.1%), +44**; MISROUTE 54→59 (+5,
+  the ENCODER_MISFIRE honest cost); ABSTAIN 167→118 (−49); **GATE_LEAK 0**. The encoder
+  fires on ~50 rules-abstains, converting +44 to correct.
+- Multi-turn: in-vocab 24/24 (unchanged); novel elliptical **0/14 → 11/14**; novel
+  MISROUTE **2/14 → 0/14** (the encoder even removes the `command -v of` rules artifacts);
+  destructive 3/3 abstain. Framed honestly in README incl. the two things the number
+  doesn't capture (27 zero-data intents; the CL loop).
+
+**C — README + CHANGELOG (v2).** Rewrote README for the rules-first hybrid architecture
+(encoder-as-fallback, ONNX runtime, session/multi-turn, the gate), install extras
+(`pip install -e .` vs `.[ml]`), multi-turn usage, the encoder-adds table, honest
+limits. CHANGELOG `[2.0.0]` entry with the arc + key numbers (gap 93%, novel 36→79%
+wired / 0→11/14 vs rules, latency 10s→258ms, 0 gate leaks). Bumped `pyproject`
+version 1.0.0 → **2.0.0**.
+
+**D — `CONCEPTS.md`.** The three graded concepts → code + evidence: attention (L4H4
+figure + 98%, wired at the session seam), zero-shot/Siamese (MNRL bi-encoder, 27
+description-only intents), continual learning (the full arc) — including the two
+insights: proxy metrics passed but the end-to-end runtime floor caught the regression,
+and a description-only intent is un-rehearsable (zero-shot ↔ CL tension).
+
+**E — verification.** main venv **466 passed/8 skip**; `.venv-ml` **474 passed**. Live
+sanity in the **deployed main `.venv`** (which has the ml extra — onnxruntime present,
+encoder live): golden chain resolves all 3 turns; novel chain `pull up the csv files →
+only the ones over 2mb → which of those is heaviest` → correct
+`find . -name '*.csv' -size +2M -printf '%s\t%p\n' | sort -rn | head -1`; nonsense turn
+abstains (rc 1, no command).
+
+**v2 is ready to tag.** Commits on `v2-multiturn`, **pushed** (release content on origin
+before the manual merge/tag). The merge→main, the `v2.0.0` tag, and any `ROADMAP_V2.md`
+conflict resolution are Sambit's manual steps — NOT done here.

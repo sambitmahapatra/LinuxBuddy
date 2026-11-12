@@ -1,14 +1,30 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-12 (Task 47 — **continual-learning arc COMPLETE: naive cycle
-forgets (reject) → targeted rehearsal mitigates (587 404→407, plasticity 17→25%) but
-is short by ONE multiturn turn → honest data-scale reject under the unchanged gate;
-nothing adopted, shipped model stands**)
+**Last updated:** 2026-11-12 (Task 48 — **v2 submission polish done: L4H4 figures,
+rules-vs-hybrid delta (single-turn 58.9→67.1%, novel 0→11/14), README/CHANGELOG(v2.0.0)/
+CONCEPTS.md, pyproject→2.0.0, suites green, live chains verified in deployed .venv.
+v2 READY TO TAG — merge/tag is Sambit's manual step**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**. **`v2_remaining_proposal.md` is the v2 plan
 of record** (the never-committed `ROADMAP_V2.md` is stale — ignore it).
+
+**Task 48 — v2 submission polish (release artifacts). DONE.** Docs + figures + one
+measurement run; NO runtime change. **Pushed** so release content is on origin before
+the manual tag.
+- **Figures:** regenerated the attention showcase at **L4H4** (the real head;
+  type-specific coref **98% = 41/42** held-out) on golden + novel chains + head-avg
+  variants (`experiments/task44_spike/attention_*_L4H4.svg`).
+- **Rules-vs-hybrid delta** (`experiments/task48_release/`): single-turn CORRECT
+  **58.9%→67.1% (+44/538)**, novel elliptical **0/14→11/14**, novel misroute 2→0,
+  0 gate leaks, in-vocab 24/24. Plus 27 zero-data intents + the CL loop (not in that %).
+- **Docs:** README rewritten for the rules-first hybrid; CHANGELOG `[2.0.0]`;
+  `CONCEPTS.md` (3 concepts → code + evidence); `pyproject` bumped to **2.0.0**.
+- **Verified:** main **466/8 skip**, `.venv-ml` **474**; live golden + novel chains
+  resolve end-to-end in the deployed `.venv`, nonsense abstains.
+- **v2 ready to tag.** Merge→main, the `v2.0.0` tag, and any `ROADMAP_V2.md` conflict
+  (resolve toward `v2_remaining_proposal.md`) are **Sambit's manual steps**.
 
 **Task 47 — continual learning part 2: balanced rehearsal (completes the arc). DONE,
 awaits review.** One commit. Adds the *solution* half to Task 46's *problem* half;

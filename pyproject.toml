@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "linuxbuddy"
-version = "1.0.0"
-description = "LinuxBuddy — natural-language to a runnable Linux command, for the WSL2 migrant. No LLM, no network: pure rules + a typed-argv security boundary."
+version = "2.0.0"
+description = "LinuxBuddy — natural-language to a runnable Linux command, for the WSL2 migrant. No LLM, no network: rules-first hybrid (rules + a torch-free ONNX encoder fallback) with a typed-argv security boundary."
 requires-python = ">=3.10"
 dependencies = []
 
