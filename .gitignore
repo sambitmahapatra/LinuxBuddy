@@ -30,3 +30,9 @@ models/
 # Windows WSL "Zone.Identifier" alternate-stream files that show up on copied files.
 test_02/
 *:Zone.Identifier
+
+# Task 49: stray local dirs that aren't part of the repo. On main's old .gitignore
+# these were untracked-but-unignored, which is what made the v2→main merge abort
+# ("local changes would be overwritten"). Ignore them so it can't recur.
+checkpoints/
+.claude/
