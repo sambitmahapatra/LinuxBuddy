@@ -51,6 +51,36 @@ def test_fold_appends_and_checks_leakage(tmp_path):
     assert len(rows) == 2 and rows[-1]["text"] == "zero byte files"
 
 
+def test_fold_balanced_upweights_protected_intents(tmp_path):
+    # Task 47: the protected intents' rows are duplicated by their factor; others
+    # appear once; the new misses are appended. Only the training MIX changes.
+    base = tmp_path / "train.jsonl"
+    base.write_text("\n".join(json.dumps(r) for r in [
+        {"text": "a", "intent": "find_largest"},
+        {"text": "b", "intent": "find_recent"},
+        {"text": "c", "intent": "find_by_size"}]) + "\n")
+    out = tmp_path / "cand.jsonl"
+    n, extra = retrain.fold_balanced(
+        [{"text": "newest files", "intent": "find_recent", "source": "feedback"}],
+        base, out, {"find_largest": 3, "find_by_size": 2})
+    rows = [json.loads(l) for l in out.read_text().splitlines()]
+    counts = {}
+    for r in rows:
+        counts[r["intent"]] = counts.get(r["intent"], 0) + 1
+    assert counts["find_largest"] == 3            # upweighted ×3
+    assert counts["find_by_size"] == 2            # upweighted ×2
+    assert counts["find_recent"] == 2             # original + the new miss (unweighted)
+    assert n == 1 and extra == {"find_largest": 2, "find_by_size": 1}
+
+
+def test_fold_balanced_still_asserts_leakage(tmp_path):
+    base = tmp_path / "train.jsonl"
+    base.write_text(json.dumps({"text": "x", "intent": "list_all"}) + "\n")
+    with pytest.raises(AssertionError):      # a frozen-eval utterance still refused
+        retrain.fold_balanced([{"text": "find all the python source files"}],
+                              base, tmp_path / "o.jsonl", {})
+
+
 def _floors(fp=0.03, zero3=0.96, gap=0.93, val1=0.72, held=0.0):
     return {"nonsense_fp": fp, "zero_top3": zero3, "gap_recovery": gap,
             "val_top1": val1, "val_top3": 0.89, "zero_top1": 0.71,

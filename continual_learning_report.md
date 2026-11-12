@@ -45,13 +45,50 @@ Both candidates **regress** the floors: 587 CORRECT 404→403 (−1) and multitu
 
 The encoder-level proxies (gap/val/nonsense/zero-data) **passed** for both cycles — an encoder-only gate would have wrongly shipped a net-negative model. The authoritative 587 + multiturn **0-regression** floors caught the cost and the complete gate **rejected** both. Nothing was adopted; the shipped checkpoint stands. **This is the loop succeeding, not failing:** it proves the human gate + hard floors prevent regression-shipping, and it localizes the fix — the find_recent/find_by_time boundary needs *balanced* rehearsal (and the size-coref turns rehearsed alongside), not more one-sided examples. 147-sweep is rule-handled → encoder-independent → structurally 0 diffs.
 
+---
+
+# PART 2 — the SOLUTION: balanced / targeted rehearsal (Task 47)
+
+The naive reject above is the *problem* half. The standard CL mitigation is **targeted rehearsal**: when folding the new misses, protect the capability the naive cycle forgot by **upweighting the interfered intents in the rehearsal buffer** — here the size-superlative anchors `find_largest`/`find_by_size`/`count_files` (the `_OP_MAP` intents that resolve 'the heavy one'/'the big one') and the find_recent neighbour `find_by_time`. The **gate and the held-out split are unchanged** — only the training MIX moves (a tiny seed-pinned sweep to attribute which knob matters). Every config trains on the SAME full-14 miss stream as naive cycle 2.
+
+| config | mix / drift knob | held-out top1/top3/goldsim | 587 | novel | in-vocab | verdict |
+|---|---|---|---|---|---|---|
+| **targeted** | upweight {'find_largest': 3, 'find_by_size': 2, 'count_files': 2, 'find_by_time': 2}, epochs=3 | 25/83/0.573 | 407 | 10/14 (71%) | 24/24 (100%) | REJECT |
+| **both** | upweight {'find_largest': 3, 'find_by_size': 2, 'count_files': 2, 'find_by_time': 2}, epochs=2 | 8/83/0.530 | 397 | 9/14 (64%) | 24/24 (100%) | REJECT |
+
+**Which knob mattered — the mix, not the epochs.**
+
+- **targeted** (upweight, epochs 3): single-turn interference **reversed** — 587 CORRECT 404→407 (now *above* the shipped floor), val top-1 72%→74%, held-out plasticity 17%→25% (top-1). It **recovered** one of the two naive-forgotten size-coref turns, leaving the multiturn novel floor short by exactly one turn: N02 'show me the heavy one'.
+- **both** (upweight + epochs 2): lowering epochs **under-fit** the whole model — val 72%→63%, 587 404→397, plasticity collapsed. Fewer epochs is the *wrong* lever here: it reduces drift by learning less of everything, old and new alike.
+
+So targeted rehearsal of the interfered region is the decisive, correct mitigation — it fixed the single-turn interference outright (and net-improved 587 and val) while *raising* plasticity. The residual is the multiturn side.
+
+**Honest verdict: the loop does NOT fully close at this data scale — short by one turn.** Targeted rehearsal shrank the interference from the naive 2 forgotten novel turns (N02 'show me the heavy one', N03 'the big one') to 1 (a single soft-synonym size-coref turn — N02 'show me the heavy one' ('heavy' is a weaker size cue than 'big', which targeted *did* recover)), and *improved* every other floor (587 above baseline, val up, plasticity up). But the multiturn novel floor is **0-regression**, so one newly-missed turn is still a REJECT — correctly, under the unchanged bar. The last-mile turn resolves to `session_find_biggest`, which has **zero trainable rows** (description-only), so `find_largest`×3 is the only anchor rehearsal can pull — not enough to fully protect the 'heavy' synonym under a 49-turn multiturn floor. Closing it needs more real size-superlative data (and real accumulated 'heavy'-style misses), **not** a weaker gate or mix-tuning toward the visible eval turn. We did not do that.
+
+---
+
+## The complete arc — one stability–plasticity table
+
+| checkpoint | training mix | PLASTICITY held-out top1/top3 | 587 | novel | zero-data | gate |
+|---|---|---|---|---|---|---|
+| shipped | (baseline) | 0%/67% | 404 | 11/14 (79%) | 96% | floor |
+| naive c1 | +7 raw | 17%/83% | 403 | 10/14 (71%) | 96% | REJECT |
+| naive c2 | +14 raw | 17%/83% | 403 | 9/14 (64%) | 96% | REJECT |
+| balanced targeted | +14, upweighted | 25%/83% | 407 | 10/14 (71%) | 96% | REJECT |
+| balanced both | +14, upweighted | 8%/83% | 397 | 9/14 (64%) | 96% | REJECT |
+
+*Plasticity climbs (0%→17%→25% top-1 as rehearsal targets the phenomenon); stability is the 587/novel/zero-data columns the 0-regression gate enforces. `targeted` is the best point — 587 above baseline, plasticity highest — yet still one novel turn short, so the gate holds the line.*
+
+---
+
 ## What this demonstrates (grade concept #3)
 
-Rehearsal-based continual learning from a real-use feedback stream, measured as the **stability–plasticity tradeoff** — and the tradeoff is *real*, not hand-waved: plasticity rose (held-out find_recent generalization) while stability was spent (size-coref interference), and the **0-regression ship gate** refused the trade. Offline, seed-pinned (42), human-gated, no network. The loop ties the system together: the abstain-capture hook feeds it real misses; the Siamese encoder (#1/#2) is what moves; the frozen 587 + multiturn evals are the floors that make 'don't forget' enforceable rather than aspirational.
+The **complete** stability–plasticity arc: (1) **forgetting is real** — naive cumulative rehearsal raised held-out plasticity but caused catastrophic interference on the size-coref turns, and the 0-regression gate rejected it; (2) **targeted rehearsal is the mitigation** — upweighting the interfered region in the buffer addresses the forgetting directly; (3) **the gate is the honest arbiter** — same frozen floors, same held-out split, never weakened, so the verdict (adopt or an honest data-scale reject) means something. Offline, seed-pinned (42), human-gated, no network. The abstain-capture hook feeds the loop real misses; the Siamese encoder (#1/#2) is what moves; the frozen 587 + multiturn evals make 'don't forget' enforceable rather than aspirational.
 
 ## Reproduce
 
 ```
-.venv-ml/bin/python -I experiments/task46_cl/run_demo.py --runtime
+# full arc (naive problem + balanced solution, all runtime floors):
+.venv-ml/bin/python -I experiments/task46_cl/run_demo.py --balanced
 ```
 

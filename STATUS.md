@@ -1,13 +1,34 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-12 (Task 46 B — **continual-learning loop built + demonstrated;
-the complete 0-regression ship gate REJECTED both retrain candidates (honest
-stability–plasticity tension); nothing adopted, shipped model stands**)
+**Last updated:** 2026-11-12 (Task 47 — **continual-learning arc COMPLETE: naive cycle
+forgets (reject) → targeted rehearsal mitigates (587 404→407, plasticity 17→25%) but
+is short by ONE multiturn turn → honest data-scale reject under the unchanged gate;
+nothing adopted, shipped model stands**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**. **`v2_remaining_proposal.md` is the v2 plan
 of record** (the never-committed `ROADMAP_V2.md` is stale — ignore it).
+
+**Task 47 — continual learning part 2: balanced rehearsal (completes the arc). DONE,
+awaits review.** One commit. Adds the *solution* half to Task 46's *problem* half;
+Task-46 reject evidence preserved; only the training MIX changed, the gate + held-out
+split are unchanged.
+- **Mechanism:** `retrain.fold_balanced` upweights the interfered intents in the
+  rehearsal buffer (size anchors `find_largest`×3/`find_by_size`×2/`count_files`×2 +
+  neighbour `find_by_time`×2); `finetune.train_encoder` gained `epochs`/`lr` drift knobs.
+- **Sweep (raw):** *targeted* (upweight, epochs 3) — 587 **404→407**, val 72→74%, held-out
+  plasticity **17→25%**, recovered N03 'the big one'; multiturn novel **10/14**, still
+  misses N02 'show me the heavy one' → **REJECT by one turn**. *both* (+ epochs 2) —
+  under-fit (587 397, val 63%) → REJECT. **The mix is the lever; lower epochs is wrong.**
+- **Honest verdict:** the loop does NOT fully close at this data scale — short by one
+  soft-synonym multiturn turn (N02; `session_find_biggest` is description-only so
+  `find_largest` is the only anchor). Mitigation direction proven (interference shrank
+  −2→−1, single-turn reversed); closing it needs more real size-superlative data, not a
+  weaker gate. **Did not engineer a pass. Nothing adopted; shipped model stands.**
+- **Arc:** shipped → naive (interference, reject) → targeted rehearsal (mitigated,
+  one-turn residual, reject). `continual_learning_report.md` has the full arc + unified
+  before/after table. main **466 passed/8 skip**, `.venv-ml` green. **Not pushed.**
 
 **Task 46 (B) — continual learning: grow-from-real-use loop (graded concept #3). DONE,
 awaits review.** Three commits (feedback hook / loop / demonstration). Offline,

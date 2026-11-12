@@ -97,12 +97,42 @@ def fold(labelled: list[dict], base_train: Path, out_train: Path) -> int:
     return len(labelled)
 
 
+def fold_balanced(labelled: list[dict], base_train: Path, out_train: Path,
+                  upweight: dict[str, int]) -> tuple[int, dict]:
+    """Balanced / targeted rehearsal (Task 47): fold the new misses AND upweight the
+    rehearsal buffer for the intents the naive cycle *interfered with* — their rows
+    are duplicated ``upweight[intent]`` times, so the contrastive fine-tune keeps
+    pinning that region instead of letting the new phenomenon drift into it. The
+    frozen evals/split/gate are untouched; this only changes the TRAINING MIX.
+    Returns (misses_added, {intent: extra_rows_added})."""
+    assert_leakage_clean(labelled)
+    base = _read(base_train)
+    out_rows: list[dict] = []
+    extra: dict[str, int] = {}
+    for r in base:
+        out_rows.append(r)
+        factor = upweight.get(r.get("intent"), 1)
+        for _ in range(factor - 1):
+            out_rows.append(r)
+            extra[r["intent"]] = extra.get(r["intent"], 0) + 1
+    out_rows += labelled
+    out_train.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in out_rows) + "\n")
+    return len(labelled), extra
+
+
 # --------------------------------------------------------------------------
 # 3. retrain — reuse the Task-38 fine-tune, seed-pinned, into a candidate dir
 # --------------------------------------------------------------------------
-def retrain(train_path: Path, out_dir: Path) -> Path:
+def retrain(train_path: Path, out_dir: Path, epochs: int | None = None,
+            lr: float | None = None) -> Path:
     from . import finetune
-    finetune.train_encoder(out_dir=out_dir, train_path=train_path)
+    kw = {}
+    if epochs is not None:
+        kw["epochs"] = epochs
+    if lr is not None:
+        kw["lr"] = lr
+    finetune.train_encoder(out_dir=out_dir, train_path=train_path, **kw)
     finetune.train_gate(model_dir=str(out_dir), train_path=train_path)
     return out_dir
 
@@ -241,10 +271,15 @@ def ship_gate(before: dict, after: dict, rt_before: dict | None = None,
 # --------------------------------------------------------------------------
 # optional: runtime-floor confirmation (587 + multiturn) for an adopted candidate
 # --------------------------------------------------------------------------
-def export_candidate_onnx(model_dir: Path) -> None:
+def export_candidate_onnx(model_dir: Path, force: bool = False) -> None:
     """Export a candidate checkpoint to ONNX + build its description index, so `lb`
-    (pointed via LINUXBUDDY_MODEL_DIR) can run the runtime floors against it."""
+    (pointed via LINUXBUDDY_MODEL_DIR) can run the runtime floors against it. Skips
+    (idempotent) when the artifacts already exist, unless ``force``."""
+    model_dir = Path(model_dir)
+    if not force and (model_dir / "onnx" / "encoder.onnx").exists() \
+            and (model_dir / "index_onnx.npz").exists():
+        return
     from . import onnx_export
-    onnx_export.MODEL_DIR = Path(model_dir)
-    onnx_export.ONNX_DIR = Path(model_dir) / "onnx"
+    onnx_export.MODEL_DIR = model_dir
+    onnx_export.ONNX_DIR = model_dir / "onnx"
     onnx_export.run()

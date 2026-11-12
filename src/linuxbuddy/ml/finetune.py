@@ -91,7 +91,10 @@ def build_pairs(train_path: Path = DATA / "train.jsonl") -> list[tuple[str, str]
 
 
 def train_encoder(out_dir: Path = OUT_DIR,
-                  train_path: Path = DATA / "train.jsonl") -> str:
+                  train_path: Path = DATA / "train.jsonl",
+                  epochs: int = EPOCHS, lr: float = LR) -> str:
+    """``epochs``/``lr`` default to the shipped recipe; the continual-learning loop
+    (Task 47) may lower them as an anti-interference (drift-reduction) knob."""
     import torch
     from sentence_transformers import InputExample, SentenceTransformer, losses
     from torch.utils.data import DataLoader
@@ -103,17 +106,17 @@ def train_encoder(out_dir: Path = OUT_DIR,
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     pairs = build_pairs(train_path)
-    print(f"device={device}  pairs={len(pairs)}  epochs={EPOCHS}  lr={LR}  batch={BATCH}")
+    print(f"device={device}  pairs={len(pairs)}  epochs={epochs}  lr={lr}  batch={BATCH}")
 
     model = SentenceTransformer(BASE, device=device)
     examples = [InputExample(texts=[a, b]) for a, b in pairs]
     loader = DataLoader(examples, shuffle=True, batch_size=BATCH,
                         generator=torch.Generator().manual_seed(SEED))
     loss = losses.MultipleNegativesRankingLoss(model)
-    steps = max(1, len(loader) * EPOCHS)
-    model.fit(train_objectives=[(loader, loss)], epochs=EPOCHS,
+    steps = max(1, len(loader) * epochs)
+    model.fit(train_objectives=[(loader, loss)], epochs=epochs,
               warmup_steps=max(1, steps // 10),
-              optimizer_params={"lr": LR}, show_progress_bar=False, use_amp=False)
+              optimizer_params={"lr": lr}, show_progress_bar=False, use_amp=False)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     model.save(str(out_dir))

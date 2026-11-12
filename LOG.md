@@ -2551,3 +2551,59 @@ massage data to force a clean adoption; the tradeoff is the finding. (2) Decisio
 accept this as the concept-#3 demonstration, or ask for a follow-up cycle with balanced
 rehearsal (+ size-coref turns in the buffer) that aims to pass the 0-regression gate.
 **Not pushed.**
+
+---
+
+## 2026-11-12 — Task 47: continual learning part 2 — balanced rehearsal (complete the arc)
+
+Added the **solution** half to Task 46's problem half: apply targeted rehearsal (the
+standard CL mitigation) against the SAME unchanged gate + held-out split, and see
+whether a cycle can pass. Task-46 reject evidence preserved intact; this only changes
+the training MIX, never the bar. One commit. Reuses the Task-46 machinery.
+
+**Mechanism.** `ml/retrain.fold_balanced` upweights the rehearsal-buffer rows of the
+intents the naive cycle interfered with — the size-superlative `_OP_MAP` anchors
+`find_largest`×3 / `find_by_size`×2 / `count_files`×2 (they resolve 'the heavy one' /
+'the big one') and the find_recent neighbour `find_by_time`×2 — so fitting the new
+find_recent phrasings stops drifting the space off them. `finetune.train_encoder`
+gained optional `epochs`/`lr` (drift knobs). Same full-14 miss stream as naive cycle 2.
+
+**Sweep (seed-pinned, 2 configs to attribute the knob). RAW results:**
+- **targeted** (upweight, epochs 3): 587 CORRECT **404→407** (single-turn interference
+  not just fixed but net-POSITIVE), val top-1 72→74%, held-out plasticity top-1
+  **17→25%**. Recovered one of the two naive-forgotten size-coref turns (**N03 'the big
+  one'**). Multiturn novel **10/14** — still misses **N02 'show me the heavy one'**
+  (−1 vs shipped 11/14). Nonsense FP 3%, zero-data 96%, GATE_LEAK 0, in-vocab 24/24.
+  **Ship gate: REJECT — short by exactly one novel turn.**
+- **both** (upweight + epochs 2): lower epochs **under-fit** everything — 587 **397**,
+  val **63%**, plasticity 8%. Fewer epochs is the wrong lever (learns less of old AND
+  new). **REJECT.**
+
+**Finding.** The **mix** (targeted upweight) is the decisive, correct lever: it reversed
+the single-turn interference outright (587 above the shipped floor), improved val, raised
+held-out plasticity, and recovered N03. Lowering epochs is counterproductive. The
+residual is a **single soft-synonym multiturn turn** (N02 'show me the heavy one';
+'heavy' is a weaker size cue than 'big'). Root cause: that turn resolves to
+`session_find_biggest`, which is **description-only (0 trainable rows)**, so `find_largest`
+is the only anchor rehearsal can pull — not enough to fully protect the 'heavy' synonym
+under a thin 49-turn / 14-novel multiturn floor.
+
+**Honest verdict — the loop does NOT fully close at this data scale (short by one turn).**
+Targeted rehearsal shrank the interference (naive forgot N02+N03 → targeted forgets only
+N02) and improved every other floor, but multiturn novel is **0-regression**, so one
+newly-missed turn is correctly a REJECT under the unchanged bar. The mitigation
+*direction* is proven; closing the last turn needs more real size-superlative data (real
+'heavy'-style accumulated misses), **not** a weaker gate or mix-tuning toward the visible
+eval turn — which, per the task's honesty conditions, I did not do. Nothing adopted; the
+shipped checkpoint stands.
+
+**Complete arc (the full canonical CL story):** shipped (floor) → naive cumulative
+(plasticity up, catastrophic interference, 0-regression gate REJECTS) → targeted
+rehearsal (interference mitigated, single-turn reversed, plasticity up, one multiturn
+turn residual, gate REJECTS honestly at this data scale). Problem → mitigation → measured
+result, gate never weakened.
+
+**Tests/suites.** `ml/retrain.fold_balanced` + the gate behaviours covered
+(`tests/test_retrain.py`, 13). main venv **466 passed, 8 skipped**; `.venv-ml` green.
+`continual_learning_report.md` extended with the complete arc (Part 2). Candidates
+cached under `models/cl_candidates/` (gitignored). **Not pushed.**
