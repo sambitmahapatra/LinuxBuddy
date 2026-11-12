@@ -80,6 +80,14 @@ def _load_config() -> dict:
                     cfg[k] = _coerce(v.strip())
     if os.environ.get("LINUXBUDDY_ENCODER") == "0":
         cfg["enabled"] = False
+    # Eval-support (Task 46): point the encoder at a CANDIDATE checkpoint without
+    # touching the shipped model, so the continual-learning loop can measure a
+    # retrain against the runtime floors. Inert in normal use (unset → shipped
+    # model); both this seam and session_resolver (which reuses _load_config) honour
+    # it. Never changes default behaviour.
+    model_dir = os.environ.get("LINUXBUDDY_MODEL_DIR")
+    if model_dir:
+        cfg["model_path"] = model_dir
     return cfg
 
 

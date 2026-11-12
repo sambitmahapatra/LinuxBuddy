@@ -58,13 +58,17 @@ def heldout_texts() -> set[str]:
     return gap | val
 
 
-def build_pairs() -> list[tuple[str, str]]:
+def build_pairs(train_path: Path = DATA / "train.jsonl") -> list[tuple[str, str]]:
     """Positive pairs for MNRL: utterance↔description and utterance↔utterance
     within the same intent. Abstain rows are NOT positives (handled by the gate).
-    Gap-set and val utterances are excluded so those remain genuine held-out eval."""
+    Gap-set and val utterances are excluded so those remain genuine held-out eval.
+
+    ``train_path`` defaults to the shipped train.jsonl; the continual-learning loop
+    (Task 46) passes a CANDIDATE train file (old train + newly-labelled misses) to
+    retrain without touching the shipped data."""
     descs = load_descriptions()
     held = heldout_texts()
-    train = _read(DATA / "train.jsonl")
+    train = _read(train_path)
     by_intent: dict[str, list[str]] = {}
     for r in train:
         it = r["intent"]
@@ -86,7 +90,8 @@ def build_pairs() -> list[tuple[str, str]]:
     return pairs
 
 
-def train_encoder() -> str:
+def train_encoder(out_dir: Path = OUT_DIR,
+                  train_path: Path = DATA / "train.jsonl") -> str:
     import torch
     from sentence_transformers import InputExample, SentenceTransformer, losses
     from torch.utils.data import DataLoader
@@ -97,7 +102,7 @@ def train_encoder() -> str:
         torch.cuda.manual_seed_all(SEED)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    pairs = build_pairs()
+    pairs = build_pairs(train_path)
     print(f"device={device}  pairs={len(pairs)}  epochs={EPOCHS}  lr={LR}  batch={BATCH}")
 
     model = SentenceTransformer(BASE, device=device)
@@ -109,10 +114,11 @@ def train_encoder() -> str:
     model.fit(train_objectives=[(loader, loss)], epochs=EPOCHS,
               warmup_steps=max(1, steps // 10),
               optimizer_params={"lr": LR}, show_progress_bar=False, use_amp=False)
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    model.save(str(OUT_DIR))
-    print(f"saved fine-tuned encoder → {OUT_DIR}")
-    return str(OUT_DIR)
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    model.save(str(out_dir))
+    print(f"saved fine-tuned encoder → {out_dir}")
+    return str(out_dir)
 
 
 # --------------------------------------------------------------------------
@@ -129,9 +135,10 @@ def _features(index, rows):
     return np.asarray(X, dtype="float64")
 
 
-def train_gate(model_dir: str = str(OUT_DIR)) -> dict:
+def train_gate(model_dir: str = str(OUT_DIR),
+               train_path: Path = DATA / "train.jsonl") -> dict:
     """Fit a logistic gate on TRAIN rows (in-domain=1 vs abstain=0) using the
-    fine-tuned space. Saves weights; the decision is p(in-domain) >= 0.5."""
+    fine-tuned space. Saves weights (to ``model_dir``); decision is p(in-domain)>=0.5."""
     import numpy as np
     from sklearn.linear_model import LogisticRegression
 
@@ -139,7 +146,7 @@ def train_gate(model_dir: str = str(OUT_DIR)) -> dict:
 
     descs = load_descriptions()
     held = heldout_texts()
-    train = [r for r in _read(DATA / "train.jsonl") if r["text"] not in held]
+    train = [r for r in _read(train_path) if r["text"] not in held]
     pos = [r for r in train if r["intent"] != ABSTAIN and r["intent"] in descs]
     neg = [r for r in train if r["intent"] == ABSTAIN]
 
@@ -162,8 +169,9 @@ def train_gate(model_dir: str = str(OUT_DIR)) -> dict:
         "n_pos": len(pos), "n_neg": len(neg),
         "base": BASE, "seed": SEED,
     }
-    GATE_PATH.write_text(json.dumps(gate, indent=2))
-    print(f"saved abstain gate → {GATE_PATH}  "
+    gate_path = Path(model_dir) / "abstain_gate.json"
+    gate_path.write_text(json.dumps(gate, indent=2))
+    print(f"saved abstain gate → {gate_path}  "
           f"(train acc {clf.score(X, y):.2f}, on {len(pos)} in-domain / {len(neg)} abstain)")
     return gate
 
