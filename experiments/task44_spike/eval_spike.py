@@ -275,16 +275,27 @@ def main():
 # Figure on a novel-phrasing chain
 # --------------------------------------------------------------------------
 def make_figure(chains):
+    """Task 48 — the showcase at L4H4 (the resolver's REAL head; 98% held-out
+    type-specific coref), on BOTH the golden chain and a novel-phrasing chain, plus a
+    head-averaged variant of each. Dev-time only (torch); no runtime dependency."""
     from resolver import ChainEncoding
-    turns = ["pull up the csv files", "only the ones over 2mb", "which of those is heaviest"]
-    enc = ChainEncoding(turns)
-    _svg(enc, enc.attn_matrix(("lh", 3, 1)),
-         HERE / "attention_novel_L3H1.svg",
-         "Novel-phrasing coref  'which of THOSE is heaviest'  (L3H1)")
-    _svg(enc, enc.attn_matrix(("layeravg", 5)),
-         HERE / "attention_novel_lastlayer_avg.svg",
-         "Novel-phrasing coref  'which of THOSE is heaviest'  (last layer, head-avg)")
-    print("wrote figures -> experiments/task44_spike/attention_novel_*.svg")
+
+    L4H4 = ("lh", 4, 4)          # label LxHy == att[x, y] (as with the old "L3H1")
+    # the honest headline: L4H4's type-specific coref accuracy across the held-out set
+    M, _ = evaluate(chains, L4H4)
+    acc = pct(M["coref_type"], M["coref_total"])
+    print(f"L4H4 held-out type-specific coref = {acc}")
+
+    GOLDEN = ["find the csv files", "only the ones modified yesterday", "show the biggest one"]
+    NOVEL = ["pull up the csv files", "only the ones over 2mb", "which of those is heaviest"]
+    for tag, turns, pron in [("golden", GOLDEN, "the biggest ONE"),
+                             ("novel", NOVEL, "which of THOSE")]:
+        enc = ChainEncoding(turns)
+        _svg(enc, enc.attn_matrix(L4H4), HERE / f"attention_{tag}_L4H4.svg",
+             f"{tag.title()} chain · coref '{pron}' → turn-1 type (L4H4 · {acc} held-out)")
+        _svg(enc, enc.attn_matrix(("layeravg", 4)), HERE / f"attention_{tag}_layer4_avg.svg",
+             f"{tag.title()} chain · coref '{pron}' → turn-1 type (layer 4, head-avg)")
+    print("wrote figures -> experiments/task44_spike/attention_{golden,novel}_{L4H4,layer4_avg}.svg")
 
 
 def _svg(enc, A, path, title):
