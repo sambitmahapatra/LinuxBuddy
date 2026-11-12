@@ -1,12 +1,39 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-11 (Task 43 — **attention-context DESIGN PROPOSAL
-delivered (research only); probe proved cross-turn attention is real & visualizable**)
+**Last updated:** 2026-11-12 (Task 44 — **option-1.5 spike built (dev-time, unwired):
+attention reference-resolver + frozen multi-turn eval; coref 100%/98%, novel recovery
+5/14, safety 3/3**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**. **`v2_remaining_proposal.md` is the v2 plan
 of record** (the never-committed `ROADMAP_V2.md` is stale — ignore it).
+
+**Task 44 (option-1.5 spike — attention as cross-turn reference resolver; DEV-TIME,
+NOT WIRED).** Built the spike the Task-43 proposal recommended. **Nothing wired into
+`lb`/`session.py`; no rules/encoder/gate/router change.** Full existing suite green
+(**437 passed, 8 skipped**). **Awaits review before any wiring.**
+- **Deliverables:** `data/eval/multiturn_eval.jsonl` (frozen held-out multi-turn eval
+  — 34 chains / 87 turns / 42 coref, 25 in-vocab + 19 novel; leakage-clean +
+  label-audited), the resolver + eval harness in `experiments/task44_spike/`, a
+  stdlib guard `tests/test_multiturn_eval.py` (+5), `attention_spike_report.md`, and
+  a novel-chain attention figure.
+- **Numbers (best signal L4 H4):** coreference **100% phrase / 98% type-specific**;
+  in-vocab **no-regression 25/25**; **novel recovery 5/14 (36%)** + novel refine 2/2;
+  safety **3/3** (destructive elliptical turns all abstain, 0 commands emitted).
+- **Signal finding:** the Task-43 probe's L3H1 binds to generic "files" (type-specific
+  only 5%); a full sweep picks **L4H4** (98%). One example didn't generalize — the
+  resolver defaults to the swept-best signal.
+- **Verdict:** **coreference/reference resolution confirmed functional + interpretable
+  (the real win); act-recovery is partial → needs the light touch-up (option 2),**
+  gated on this frozen eval. NOT option 3. Terse "the fat one"-style size synonyms are
+  the specific, fixable gap (zero-shot act cross-check, twice mis-picking *smallest*).
+- **Decision for the owner:** approve option 2 (light contrastive touch-up for the act
+  piece, gated on the frozen eval) + a later `session.py` wiring task for the
+  coreference resolver; or keep coref+figure as the showcase and defer the rest.
+- **Not pushed.** This Task-44 commit + the Task-43 proposal commit are the only ones
+  ahead of origin `v2-multiturn` (Tasks 35–42 are pushed). **Do not push unless
+  Sambit says.**
 
 **Task 43 (DESIGN PROPOSAL — attention-based context retention; NO implementation).**
 Research/design task; nothing in src/rules/encoder/gate/session/KB changed.

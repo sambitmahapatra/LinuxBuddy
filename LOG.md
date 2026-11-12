@@ -2355,3 +2355,59 @@ delete_file from context, so nothing is lost.
 **Housekeeping:** probe + figures live in `experiments/task43_attention/` (not wired
 in; pytest testpaths=["tests"] excludes it; __pycache__ gitignored). Committed the
 proposal + probe + both SVGs on `v2-multiturn`. **Not pushed** (awaiting Sambit).
+
+## 2026-11-12 — Task 44: option-1.5 spike — attention as the cross-turn reference resolver
+
+Built the spike the Task-43 proposal recommended. **Dev-time only — nothing wired
+into `lb`/`session.py`; no rules/encoder/gate/router change.** Deliverables: a frozen
+held-out multi-turn eval, an attention reference-resolver, the recovery-vs-rules
+numbers, and a novel-chain attention figure. Full existing suite green (**437 passed,
+8 skipped**, main venv). Awaits review before any wiring.
+
+**The held-out eval (`data/eval/multiturn_eval.jsonl`).** The multi-turn analogue of
+the frozen 587 single-turn dogfood. 34 chains / 87 turns / 42 coref turns, **25
+in-vocab + 19 novel** discriminating turns. The authoring script
+(`experiments/task44_spike/build_eval.py`) runs a label-audit that **asserts**:
+(1) leakage-clean — 0/87 turns duplicate any of the 49 training turns; (2) in-vocab
+gold == what the real `session.classify`+`merge` produce (so the in-vocab half truly
+measures no-regression); (3) novel discriminating turns are ones the rules actually
+miss (→ fallback → abstain). A pure-stdlib guard (`tests/test_multiturn_eval.py`,
++5 tests) keeps it honest in the main suite.
+
+**The resolver (`experiments/task44_spike/resolver.py`, torch/.venv-ml).** Two jobs,
+per the proposal's division of labor: (a) cross-turn **coreference resolution** —
+read the attention from the current turn's pronoun onto prior-turn words; (b) an act/
+modifier **cross-check** by pooling the **current-turn span only** (Finding-3 fix,
+never the whole blended sequence) and matching intent descriptions. Rules keep
+SessionFrame state + dialogue-act detection; the resolver is additive and unwired.
+
+**Results (best attention signal).**
+- **Signal sweep is the first real finding.** Swept all 72 (layer,head) pairs + head-
+  averages. Best = **L4 H4** (coref phrase 100%, type-specific 98%). The Task-43
+  probe's **L3H1** is phrase-98% but **type-specific only 5%** — it binds the pronoun
+  to the generic "files", not the type word. Exactly the task's warning: one example
+  doesn't generalize; pick the signal empirically. The resolver defaults to the
+  swept-best.
+- **In-vocab no-regression: 25/25 (100%)** — the resolver never contradicts the rules
+  where the rules are right.
+- **Coreference: 100% phrase / 98% type-specific** (42 turns). The robust win.
+- **Novel recovery (headline): 5/14 (36%)** strict frame recovery of turns the rules
+  abstain on. **Novel refine (act+ref): 2/2.** Pattern: the attention *reference* is
+  right in ~all misses; the *act cross-check* is the gap — the zero-shot bi-encoder
+  handles every count-synonym and verbose size-synonym ("which hogs the most room")
+  but fails terse "the fat one"/"the beefiest one" (twice picking *smallest*).
+- **Safety (invariant #6): 3/3** — all destructive elliptical turns ("get rid of
+  those", "drop the tiny ones", "trash them") → rules abstain, 0 commands emitted.
+  The resolver never emits (suggest-only; emission stays gated); its destructive
+  *recognition* is 2/3 and a miss degrades to a non-destructive suggestion, never rm.
+
+**Verdict (in `attention_spike_report.md`):** **coreference/reference resolution is
+confirmed functional + interpretable** (the real, visualizable win, zero regression);
+**act-recovery is partial → needs the light touch-up (option 2)**, gated on this
+frozen eval. Do NOT jump to option 3 — the mechanism works zero-shot; the gap is
+sharpening the act, not architecture. Figures:
+`experiments/task44_spike/attention_novel_{L3H1,lastlayer_avg}.svg`.
+
+**Housekeeping:** resolver/eval/figures live in `experiments/task44_spike/` (not
+wired; pytest testpaths=["tests"] excludes it; __pycache__ gitignored). Committed on
+`v2-multiturn`. **Not pushed** (awaiting Sambit).
