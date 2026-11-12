@@ -30,10 +30,10 @@ find_recent:
   description: "find files modified very recently, within the last few minutes or hours"
   examples: ["what did i just change", "files modified in the last 10 minutes"]
 find_largest:
-  description: "find the biggest or largest files, the top files by size, which files are taking the most space"
+  description: "find the biggest or largest files, the top files by size, which files are taking the most space; the heaviest, fattest, chunkiest, bulkiest, beefiest, hefty or weightiest files, the ones hogging the most room"
   examples: ["find the largest files", "which files are biggest", "the top 10 biggest files"]
 find_smallest:
-  description: "find the smallest files, the tiniest files by size, the bottom files ranked by size"
+  description: "find the smallest files, the tiniest, slightest, lightest or slimmest files by size, the bottom files ranked by size"
   examples: ["find the smallest files", "which files are tiniest"]
 count_files:
   description: "count how many files there are, how many files of a type exist, the number of files"
