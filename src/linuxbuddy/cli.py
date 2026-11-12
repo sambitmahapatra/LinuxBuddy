@@ -19,7 +19,7 @@ from __future__ import annotations
 import os
 import sys
 
-from . import gate, session
+from . import feedback, gate, hybrid, session, session_resolver
 from .nlu import parse, abstain_hint
 from .planner import compile, risk_ops, PlanError
 from .render import to_shell, RenderError
@@ -42,6 +42,19 @@ def main(argv: list[str] | None = None) -> int:
         print(fr.to_json() if fr is not None
               else "LinuxBuddy: no active session frame")
         return 0
+    if args == ["--feedback"]:
+        recs = feedback.read()
+        if not recs:
+            print(f"LinuxBuddy: no feedback logged ({feedback.feedback_path()})")
+        else:
+            print(f"# {len(recs)} abstain(s) logged offline at {feedback.feedback_path()}")
+            for r in recs:
+                print(f"  [{r.get('path','?')}] {r.get('request','')!r}")
+        return 0
+    if args == ["--feedback-clear"]:
+        n = feedback.clear()
+        print(f"LinuxBuddy: cleared {n} feedback record(s)")
+        return 0
 
     request = " ".join(args)
 
@@ -54,14 +67,32 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run_single_turn(request: str) -> int:
-    """The v1 pipeline, unchanged: parse -> compile -> gate -> render."""
+    """The v1 pipeline, unchanged: parse -> compile -> gate -> render. When the
+    rules abstain, the OPTIONAL encoder fallback is consulted at this one seam
+    (Task 39); if it too declines, we abstain exactly as v1 did."""
     frame = parse(request)
     if frame is None:
+        # Rules abstained — the single seam for the encoder fallback. The encoder
+        # picks an intent + slots; it runs through the SAME pipeline below.
+        enc_frame, info = hybrid.classify_fallback(request)
+        if enc_frame is not None:
+            return _emit_frame(enc_frame, info)
         # Prefer a specific hint ("how big? try ...") when we can tell which
         # defining slot was missing; otherwise the generic message.
+        # Offline continual-learning capture (Task 46): an abstain is a clean,
+        # high-signal miss — log it locally. "session" when the multi-turn widget
+        # is active (this call came via the session fallback), else "single".
+        feedback.log_abstain(request,
+                             "session" if os.environ.get("LINUXBUDDY_SESSION") else "single")
         print(abstain_hint(request) or _ABSTAIN_MSG, file=sys.stderr)
         return 1
+    return _emit_frame(frame, None)
 
+
+def _emit_frame(frame, info) -> int:
+    """compile -> gate -> render for a frame, from the rules (info=None) or the
+    encoder (info carries source/score). Same exit-code contract either way; a
+    compile/render failure or a gate denial abstains (no command on stdout)."""
     try:
         argv_plan = compile(frame)
     except PlanError:
@@ -71,7 +102,7 @@ def _run_single_turn(request: str) -> int:
     # Destructive-containment gate (P2.0): a write/delete/chmod plan may only
     # be emitted when cwd is inside the maze (prototype mode). Checked AFTER
     # compile, BEFORE rendering/printing — so nothing destructive reaches
-    # stdout from the wrong place.
+    # stdout from the wrong place. Encoder-chosen destructives are gated too.
     denied = gate.check(risk_ops(frame.intent), os.getcwd())
     if denied:
         print(denied, file=sys.stderr)
@@ -82,6 +113,17 @@ def _run_single_turn(request: str) -> int:
     except RenderError:
         print(_ABSTAIN_MSG, file=sys.stderr)
         return 1
+
+    # Confidence surfacing (Guardrail): when the command came from the encoder
+    # rather than the rules, nudge the human to review. Goes to STDERR so stdout
+    # stays EXACTLY the command (the widget's buffer contract is unchanged).
+    if info and info.get("source") == "encoder":
+        if info.get("destructive"):
+            print("LinuxBuddy ~ interpreted (language model) — DESTRUCTIVE, "
+                  "double-check the target before you run it", file=sys.stderr)
+        else:
+            print("LinuxBuddy ~ interpreted (language model) — review before running",
+                  file=sys.stderr)
 
     print(command)
     # Exit code signals risk to the shell widget: 3 = destructive (it warns),
@@ -142,6 +184,25 @@ def _session_dispatch(request: str, frame, key: str) -> int:
         sf = frame
         sf.merge(delta)
     else:  # fallback
+        # The value-add seam (Task 45): an elliptical turn the rules can't place,
+        # but a live frame exists. Consult the context-aware resolver (torch-free,
+        # ONNX) to recover an operate act the rules miss; everything still renders
+        # through to_command_plan -> compile -> gate -> render. Destructive turns
+        # are never recovered (resolver returns None) -> they fall to single-turn,
+        # which abstains (invariant #6). Any encoder absence/failure -> None -> the
+        # unchanged single-turn fallback, exactly as before.
+        if frame is not None:
+            delta, info = session_resolver.resolve_fallback(request, frame)
+            if delta is not None:
+                frame.merge(delta)
+                frame.record(request, info.get("act", "operate"))
+                if info.get("source") == "encoder":
+                    print("LinuxBuddy ~ interpreted (language model) — review "
+                          "before running", file=sys.stderr)
+                rc, emitted = _emit_plan_frame(frame.to_command_plan())
+                if emitted:
+                    session.save(key, frame)
+                    return rc
         return _run_single_turn(request)
 
     sf.record(request, act)

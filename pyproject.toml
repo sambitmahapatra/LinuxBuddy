@@ -4,13 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "linuxbuddy"
-version = "1.0.0"
-description = "LinuxBuddy — natural-language to a runnable Linux command, for the WSL2 migrant. No LLM, no network: pure rules + a typed-argv security boundary."
+version = "2.0.0"
+description = "LinuxBuddy — natural-language to a runnable Linux command, for the WSL2 migrant. No LLM, no network: rules-first hybrid (rules + a torch-free ONNX encoder fallback) with a typed-argv security boundary."
 requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
 test = ["pytest"]
+# The hybrid encoder fallback (Task 39–40). Pure-rules is the DEFAULT and needs
+# none of this — the tool degrades gracefully without the artifact (proven by
+# tests/test_hybrid.py::test_degrades_when_onnx_artifact_absent). Install with
+# `pip install -e '.[ml]'` to reproduce the torch-free ONNX hot path at runtime.
+# torch/transformers/sentence-transformers are EXPORT-ONLY (see requirements-ml.txt),
+# never imported at runtime, so they are deliberately absent here.
+ml = ["onnxruntime", "tokenizers", "numpy"]
 
 [project.scripts]
 lb = "linuxbuddy.cli:main"

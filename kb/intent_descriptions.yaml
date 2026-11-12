@@ -1,0 +1,291 @@
+# intent_descriptions.yaml — natural-language descriptions of every intent, for
+# the Phase-1 zero-shot bi-encoder (Task 37). One entry per intent id in
+# data/label_space.json (all 85). NOT loaded by the runtime KB loader — this is a
+# matching artifact for the embedding model (and Phase-3 zero-shot/continual
+# learning). Keys are the exact plain KB intent ids (frame.intent), not dotted.
+#
+# Descriptions are written in the words a USER would use, deliberately folding in
+# the synonyms the hand-written rules miss (erase/nuke/wipe for delete,
+# clone/replicate for copy, "list all" for find, "what's running" for processes).
+# That is how the 22-gap vocabulary is banked as descriptions instead of regexes.
+# Format (simple so a stdlib regex can extract the top-level keys too):
+#   intent_id:
+#     description: "one or two sentences"
+#     examples: ["anchor 1", "anchor 2"]        # optional
+
+# ------------------------- file_discovery -------------------------
+find_by_type:
+  description: "find or list source files or scripts of a particular type or extension, such as all the python files, csv files, spreadsheets, shell scripts, log files, json, yaml or markdown files in a directory"
+  examples: ["find all the python files", "list all csv files", "show me every .log file", "find the shell scripts"]
+find_by_name:
+  description: "find a file or files by name, locate a file called something, or search for files whose name matches a word"
+  examples: ["find a file called config", "where is report.csv", "locate files named setup"]
+find_by_size:
+  description: "find files by how big they are, files larger or smaller than a given size, big files over a threshold"
+  examples: ["find files bigger than 100mb", "where are the big files", "files under 1kb"]
+find_by_time:
+  description: "find files by when they were last changed or modified, what changed today or yesterday or in the last day, recently edited files"
+  examples: ["what changed today", "files modified yesterday", "recently edited files"]
+find_recent:
+  description: "find files modified very recently, within the last few minutes or hours"
+  examples: ["what did i just change", "files modified in the last 10 minutes"]
+find_largest:
+  description: "find the biggest or largest files, the top files by size, which files are taking the most space; the heaviest, fattest, chunkiest, bulkiest, beefiest, hefty or weightiest files, the ones hogging the most room"
+  examples: ["find the largest files", "which files are biggest", "the top 10 biggest files"]
+find_smallest:
+  description: "find the smallest files, the tiniest, slightest, lightest or slimmest files by size, the bottom files ranked by size"
+  examples: ["find the smallest files", "which files are tiniest"]
+count_files:
+  description: "count how many files there are, how many files of a type exist, the number of files"
+  examples: ["count the python files", "number of log files"]
+
+# ------------------------- file_inspection -------------------------
+preview_head:
+  description: "show or view the contents or beginning of a file, print or display a file, show me what's in a file, the first lines or top of a file"
+  examples: ["show me config.yaml", "print the readme", "what's in notes.txt", "head of the log"]
+preview_tail:
+  description: "show the end or last lines of a file, tail a file, the most recent lines of a log"
+  examples: ["show the last 20 lines of app.log", "tail the error log"]
+count_lines:
+  description: "count how many lines are in a file, the number of lines, line count of a file"
+  examples: ["how many lines in notes.txt", "line count of the csv"]
+show_size:
+  description: "how big a file is in bytes, the byte size or character count of a single file"
+  examples: ["how big is notes.txt", "the size of config.yaml in bytes"]
+detect_type:
+  description: "what kind or type of file something is, identify a file's format, is this text or binary"
+  examples: ["what type of file is model.pkl", "what kind of file is this"]
+show_stat:
+  description: "show detailed metadata or stats about a file, its stat information, timestamps, inode, size and mode together"
+  examples: ["file metadata for report.csv", "when was this file last changed"]
+
+# ------------------------- text_and_logs -------------------------
+search_in_file:
+  description: "search for a word, string or pattern inside a file, grep a file for text, find lines containing something"
+  examples: ["search for TODO in notes.txt", "grep for error in app.log", "find the word import in main.py"]
+search_recursive:
+  description: "search for text across many files in a folder tree, grep recursively through a directory for a pattern"
+  examples: ["search all files for TODO", "grep the whole project for a word"]
+count_matches:
+  description: "count how many times a word or pattern appears in a file, the number of matching lines"
+  examples: ["how many times does TODO appear in notes.txt", "count the error lines"]
+sort_lines:
+  description: "sort the lines of a file into order, alphabetize or order the contents of a file"
+  examples: ["sort the lines in notes.txt", "alphabetize this file"]
+unique_lines:
+  description: "remove duplicate lines from a file, deduplicate, show only the distinct or unique lines"
+  examples: ["remove duplicate lines from notes.txt", "show unique lines", "dedupe the list"]
+
+# ------------------------- workspace_and_shell -------------------------
+where_am_i:
+  description: "show the current directory or working folder, where am i right now, print working directory"
+  examples: ["where am i", "what's my current directory", "pwd"]
+go_home:
+  description: "go to the home directory, change to my home folder"
+  examples: ["take me home", "go to my home directory"]
+cd_parent:
+  description: "go up one or more directory levels, move to the parent folder, go up a directory"
+  examples: ["go up a directory", "cd up", "go to the parent folder"]
+go_back:
+  description: "go back to the previous directory i was in, return to where i was"
+  examples: ["go back to where i was", "cd back"]
+goto:
+  description: "change directory into a named or specified folder or path, go into a folder, navigate to a directory or an absolute path"
+  examples: ["change into the src folder", "navigate to /tmp", "cd into a directory"]
+list_all:
+  description: "list everything in the current folder, show all files and directories here, what's in this folder including hidden files"
+  examples: ["show the directory contents", "ls this folder", "what files are in the current directory"]
+who_am_i:
+  description: "show the current username and the groups i belong to, who am i logged in as"
+  examples: ["who am i", "what user am i"]
+which_shell:
+  description: "show which shell i am using, what shell is running, bash or zsh"
+  examples: ["which shell am i using", "what shell is this"]
+date_time:
+  description: "show the current date and time, what time is it, today's date"
+  examples: ["the current date and time", "today date"]
+env_var:
+  description: "show the value of an environment variable, print an env var like PATH or HOME"
+  examples: ["print the HOME variable", "the value of an environment variable"]
+show_history:
+  description: "show my shell command history, the commands i have run recently"
+  examples: ["show my command history", "what commands have i run"]
+clear_screen:
+  description: "clear the terminal screen, wipe the console"
+  examples: ["clear the screen", "clear the terminal"]
+check_installed:
+  description: "check whether a command-line tool or program is installed and on the PATH, is a CLI available, where is a tool"
+  examples: ["do i have docker", "is node available"]
+make_dir:
+  description: "make or create a new folder or directory, set up or spin up a new directory"
+  examples: ["make a folder called photos", "create a directory logs", "set up a folder named data"]
+setup_project:
+  description: "scaffold a new project directory with standard subfolders like data and reports, then move into it"
+  examples: ["set up a new project called analysis", "scaffold a project folder"]
+
+# ------------------------- filesystem_permissions -------------------------
+check_exists:
+  description: "check whether a file or directory exists, does a path exist, is there a file called"
+  examples: ["does config.yaml exist", "is there a file called data.csv"]
+check_readable:
+  description: "check whether a file is readable, do i have read permission on a file"
+  examples: ["can i read this file", "is notes.txt readable"]
+check_writable:
+  description: "check whether a file is writable, do i have write permission on a file"
+  examples: ["can i write to this file", "is config.yaml writable"]
+show_permissions:
+  description: "show the permissions, access mode or rwx bits of a file or directory, who can read write or execute it"
+  examples: ["what are the permissions on this folder", "the access mode of a file"]
+show_owner:
+  description: "show who owns a file, the user and group owner of a file or directory"
+  examples: ["who owns notes.txt", "what's the owner of this file"]
+disk_usage:
+  description: "how much disk space a file or folder is using, the size on disk of a directory, du of a folder"
+  examples: ["how big is this folder", "how much space does data take up"]
+disk_free:
+  description: "how much free disk space is available on the system, overall disk space remaining"
+  examples: ["how much disk space do i have", "how much free space is left"]
+find_empty:
+  description: "find empty files or empty directories, folders or files with nothing in them"
+  examples: ["find empty folders", "which directories are empty"]
+find_perms:
+  description: "find files that have a particular permission mode, files with specific access bits like 777"
+  examples: ["find files with 777 permissions", "which files are world-writable"]
+make_executable:
+  description: "make a file or script executable, add the execute permission, chmod +x a script"
+  examples: ["make build.sh executable", "add execute permission to the script"]
+remove_executable:
+  description: "remove the executable permission from a file, take away the execute bit, make a file not executable"
+  examples: ["remove the executable bit from script.sh", "make this not executable"]
+set_permission:
+  description: "set or change the permission mode of a file to a specific value, chmod a file to an octal mode like 644 or 755, make a file private"
+  examples: ["set permissions of script.sh to 755", "chmod config to 600", "make this file private"]
+
+# ------------------------- processes -------------------------
+list_processes:
+  description: "list the running processes, show what processes or programs are currently running on the system"
+  examples: ["show my processes", "list running programs"]
+top_by_cpu:
+  description: "show the processes using the most cpu, the top cpu consumers, what's hogging the processor"
+  examples: ["what's using the most cpu", "top cpu processes"]
+top_by_mem:
+  description: "show the processes using the most memory or ram, the top memory consumers"
+  examples: ["what's using the most memory", "top memory processes"]
+find_process:
+  description: "find a running process by name, is a particular program running, look up a process"
+  examples: ["is python running", "find the chrome process"]
+process_on_port:
+  description: "find out what process is listening on or using a particular network port"
+  examples: ["what's using port 8080", "what's listening on port 3000", "what's on port 8000"]
+list_listening:
+  description: "list all listening network ports and the sockets or services bound to them"
+  examples: ["what ports are open", "show listening sockets"]
+show_pid:
+  description: "show details about a process given its pid, info for a specific process id"
+  examples: ["show process 1234", "details for pid 4321"]
+kill_process:
+  description: "kill, stop, end or terminate a running process by its name"
+  examples: ["kill the python process", "stop the server process", "terminate chrome"]
+kill_pid:
+  description: "kill, stop or terminate a process by its numeric process id (pid)"
+  examples: ["kill process 1234", "stop pid 4321"]
+
+# ------------------------- python_environments -------------------------
+python_version:
+  description: "show which version of python is installed and where it is"
+  examples: ["what python version do i have", "python version"]
+where_python:
+  description: "show where python or pip lives, the path to the python interpreter, which python am i using"
+  examples: ["where is python", "which python am i using", "which pip"]
+check_package:
+  description: "check whether a python package or module is installed, is a library like pandas or numpy available"
+  examples: ["is pandas installed", "do i have numpy", "is requests available"]
+pip_list:
+  description: "list the installed python packages, show what pip has installed"
+  examples: ["list my python packages", "show installed pip packages"]
+run_script:
+  description: "run or execute a python script file"
+  examples: ["run main.py", "execute the training script"]
+check_syntax:
+  description: "check a python file for syntax errors, compile-check or validate the syntax of a script"
+  examples: ["check the syntax of main.py", "does this python file compile"]
+
+# ------------------------- wsl_interop -------------------------
+open_vscode:
+  description: "open the current folder in vs code or the code editor"
+  examples: ["open this in vscode", "open the folder in code"]
+open_explorer:
+  description: "open the current folder in windows file explorer"
+  examples: ["open this folder in explorer", "show this in windows explorer"]
+goto_cdrive:
+  description: "go to the windows c drive from wsl, change into /mnt/c"
+  examples: ["take me to the c drive", "go to the windows drive"]
+goto_home:
+  description: "go to the linux home directory from wsl"
+  examples: ["go to my wsl home", "take me to my linux home"]
+path_to_linux:
+  description: "convert a windows file path into its wsl linux path equivalent"
+  examples: ["convert this windows path to linux", "what's the wsl path for C:\\Users"]
+path_to_windows:
+  description: "convert a wsl linux path into its windows path equivalent"
+  examples: ["convert this path to a windows path", "the windows form of this linux path"]
+copy_to_clipboard:
+  description: "copy something such as the current path to the windows clipboard"
+  examples: ["copy this path to the clipboard", "put the current directory on the clipboard"]
+cdrive_space:
+  description: "how much free disk space is on the windows c drive"
+  examples: ["how much space is on the c drive", "free space on the windows drive"]
+home_space:
+  description: "how much free disk space is on the linux home filesystem"
+  examples: ["how much space in my home directory", "free space on my linux home"]
+
+# ------------------------- archives_backup -------------------------
+list_archive:
+  description: "list the contents of a tar or tar.gz archive, what's inside a tarball"
+  examples: ["what's inside backup.tar.gz", "list the contents of the archive"]
+list_zip:
+  description: "list the contents of a zip file, what's inside a zip archive"
+  examples: ["what's in the zip file", "list the zip contents"]
+archive_integrity:
+  description: "check whether an archive or gzip file is valid and not corrupted"
+  examples: ["is this archive ok", "check the tarball for corruption"]
+archive_size:
+  description: "how big an archive file is on disk"
+  examples: ["how big is backup.tar.gz", "the size of the archive"]
+copy_file:
+  description: "copy or duplicate a file, make a backup copy, clone or replicate a file to another name or location"
+  examples: ["duplicate sales.csv", "clone the file", "back up requirements.txt"]
+create_archive:
+  description: "create an archive, compress a folder into a tar.gz, make a tarball or backup of a directory"
+  examples: ["compress the logs folder", "make a tarball of the project", "archive this directory"]
+extract_archive:
+  description: "extract or unpack an archive into a folder"
+  examples: ["extract this archive", "unpack the tarball into a folder"]
+extract_tar:
+  description: "extract or unpack a tar or tar.gz tarball"
+  examples: ["extract the tarball", "untar this file"]
+extract_zip:
+  description: "extract or unzip a zip file"
+  examples: ["unzip the archive", "extract the zip file"]
+compress_file:
+  description: "compress or gzip a single file to make it smaller"
+  examples: ["gzip this file", "compress notes.txt"]
+
+# ------------------------- file_management -------------------------
+delete_file:
+  description: "delete, remove, erase, wipe, nuke, discard, trash or get rid of a file or files"
+  examples: ["delete old.log", "remove temp.txt", "get rid of that file", "trash this file"]
+move_file:
+  description: "move a file to another location or rename a file to a new name"
+  examples: ["rename a.txt to b.txt", "relocate the file to another folder"]
+
+# ------------------------- session (multi-turn composed) -------------------------
+session_find:
+  description: "continue an ongoing multi-turn file search, narrowing the current results by an added filter such as type, size or date"
+  examples: ["only the csv ones", "just the ones over 1mb", "only those modified today"]
+session_count:
+  description: "count the files in the current ongoing multi-turn search result set"
+  examples: ["how many of them", "count those"]
+session_find_biggest:
+  description: "show the single biggest file in the current ongoing multi-turn search result set"
+  examples: ["which one is biggest", "the largest of those"]

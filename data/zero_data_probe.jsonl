@@ -1,0 +1,24 @@
+{"text": "who am i", "intent": "who_am_i"}
+{"text": "what is my username", "intent": "who_am_i"}
+{"text": "what shell am i using", "intent": "which_shell"}
+{"text": "which shell is this", "intent": "which_shell"}
+{"text": "what python version do i have", "intent": "python_version"}
+{"text": "which python am i running", "intent": "python_version"}
+{"text": "clear the screen", "intent": "clear_screen"}
+{"text": "clear my terminal", "intent": "clear_screen"}
+{"text": "find the smallest file here", "intent": "find_smallest"}
+{"text": "which file is the smallest", "intent": "find_smallest"}
+{"text": "does config.yaml exist", "intent": "check_exists"}
+{"text": "is there a file called notes.txt", "intent": "check_exists"}
+{"text": "compress report.csv", "intent": "compress_file"}
+{"text": "gzip the log file", "intent": "compress_file"}
+{"text": "extract data.zip", "intent": "extract_archive"}
+{"text": "unpack the tarball", "intent": "extract_archive"}
+{"text": "how big is report.csv", "intent": "show_size"}
+{"text": "what is the size of this file", "intent": "show_size"}
+{"text": "who owns this file", "intent": "show_owner"}
+{"text": "what is the owner of notes.txt", "intent": "show_owner"}
+{"text": "find the python process", "intent": "find_process"}
+{"text": "is there a node process running", "intent": "find_process"}
+{"text": "convert this windows path to a linux path", "intent": "path_to_linux"}
+{"text": "what is the linux path for this folder", "intent": "path_to_linux"}

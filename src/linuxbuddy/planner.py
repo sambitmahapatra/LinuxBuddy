@@ -115,7 +115,10 @@ def _build_stage(base: list, optional: dict, frame: Frame, slots: dict) -> list[
         if slot_key in frame.slots:
             argv.extend(_sub(elem) for elem in fragment)
     for elem in argv:
-        if _PLACEHOLDER_RE.search(elem):
+        # A Raw element is a trusted, already-final glob/literal — its braces are
+        # a brace-expansion glob (e.g. *.{jpg,png}), not an unresolved template
+        # placeholder. A real unresolved {slot} is always a plain (non-Raw) str.
+        if not isinstance(elem, Raw) and _PLACEHOLDER_RE.search(elem):
             raise PlanError(f"unresolved placeholder in argv element {elem!r}")
     return argv
 

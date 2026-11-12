@@ -25,9 +25,14 @@
 # result. Because the command lands in YOUR buffer, requests that change shell
 # state (`cd`, `export`) work — your own shell runs them when you press Enter.
 
-# Enable the v2 multi-turn session for Ctrl-G calls (see linuxbuddy.bash). A
-# direct `lb "..."` without the widget stays single-turn.
-export LINUXBUDDY_SESSION=1
+# Enable the v2 multi-turn session for Ctrl-G calls, keyed on a stable per-
+# terminal id (see linuxbuddy.bash for the full why). The widget runs `lb` in a
+# $(…) subshell with a different PID each Ctrl-G, so keying on the parent PID
+# would never accumulate. `$$` is this interactive shell's PID (fixed for the
+# terminal); the nanosecond timestamp makes it unique across terminals. Exported
+# once at source time so every `lb` here inherits the SAME id. A direct
+# `lb "..."` without the widget stays single-turn.
+export LINUXBUDDY_SESSION="lb-$$-$(date +%s%N)"
 
 _linuxbuddy_widget() {
   emulate -L zsh

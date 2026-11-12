@@ -1,0 +1,22 @@
+{"text": "velvet thunder biscuit parade", "intent": "_ABSTAIN", "kind": "gibberish"}
+{"text": "wibble wobble flim flam", "intent": "_ABSTAIN", "kind": "gibberish"}
+{"text": "purple monkey dishwasher", "intent": "_ABSTAIN", "kind": "gibberish"}
+{"text": "asdf qwer zxcv hjkl", "intent": "_ABSTAIN", "kind": "gibberish"}
+{"text": "the quux frobnicates gently", "intent": "_ABSTAIN", "kind": "gibberish"}
+{"text": "colorless green ideas sleep furiously", "intent": "_ABSTAIN", "kind": "gibberish"}
+{"text": "book me a flight to tokyo", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "what is the weather tomorrow", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "play some jazz music", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "order a pizza for dinner", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "translate hello into french", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "write me a poem about autumn", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "what is 15 percent of 240", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "remind me to call my mother", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "who won the game last night", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "set an alarm for seven am", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "tell me a funny joke", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "what is the stock price of apple", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "recommend a good italian restaurant", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "convert 100 dollars to euros", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "what time does the pharmacy close", "intent": "_ABSTAIN", "kind": "out-of-scope"}
+{"text": "sing me a song about the ocean", "intent": "_ABSTAIN", "kind": "out-of-scope"}

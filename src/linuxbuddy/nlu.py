@@ -336,6 +336,32 @@ def _largest_path(text: str, low: str) -> str:
     return "."
 
 
+# --------------------------------------------------------------------------
+# Coverage-check (Task 42, workstream #1a). A bare filename must NOT hijack the
+# request into a `find -name <file>` when the user actually asked for some other
+# operation the rules can't route (stat/delete/sort/run/…). Require positive
+# evidence that discovery/search was asked; otherwise abstain, so the encoder
+# fallback (cli seam) gets the request instead of a confident wrong `find`.
+# Pure wording signal — independent of what was extractable.
+# --------------------------------------------------------------------------
+_DISCOVERY_CUE_RE = re.compile(
+    r"\b(?:find|finding|locate|locating|search(?:ing)?|grep|list(?:ing)?|where|"
+    r"which|look\s+for|look\s+up|how\s+many|named|called|files)\b",
+    re.IGNORECASE,
+)
+
+
+def _discovery_requested(text: str, low: str) -> bool:
+    """True when the request actually asked to find/search/list: a discovery
+    verb/phrase, the plural 'files', a glob, or a size/time constraint."""
+    if _DISCOVERY_CUE_RE.search(low):
+        return True
+    if "*" in text:
+        return True
+    _, size_cue = _detect_size(low)
+    return bool(size_cue or _TIME_CUE_RE.search(low))
+
+
 def _parse_file_discovery(text: str, low: str) -> Frame | None:
     ext = _detect_ext(low)
     size_bytes, size_cue = _detect_size(low)
@@ -407,6 +433,12 @@ def _parse_file_discovery(text: str, low: str) -> Frame | None:
         slots["days"] = days
         return Frame("find_by_time", slots)
     if pattern is not None:
+        # Coverage-check (Task 42, #1a): a bare filename alone is NOT a find
+        # request. Emit find_by_name only when discovery/search was actually asked
+        # for; otherwise abstain, so the encoder fallback (cli seam) gets the real
+        # intent (stat/delete/run/…) instead of a confident wrong `find -name`.
+        if not _discovery_requested(text, low):
+            return None
         slots["pattern"] = pattern
         return Frame("find_by_name", slots)
     if ext is not None:
@@ -470,7 +502,12 @@ _FILE_TOKEN_RE = re.compile(r"\b([\w./+-]*\w\.[A-Za-z][A-Za-z0-9]{0,7})\b")
 # --------------------------------------------------------------------------
 
 _DEFINITE_GLOBS = [
-    (re.compile(r"\bthe\s+log\s+file\b|\bthe\s+logs?\b|\bthis\s+log\b|\bmy\s+logs?\b"), "*.log"),
+    # Task 32: allow an adjective before "logs" ("the OLD logs" → *.log) so a
+    # delete/move of them resolves instead of abstaining.
+    (re.compile(r"\bthe\s+log\s+file\b|\bthe\s+(?:old\s+)?logs?\b|\bthis\s+log\b|\bmy\s+logs?\b"), "*.log"),
+    # Task 32: "the image/picture/photo" → an image glob. The brace list is a
+    # trusted Raw (safe charset), emitted unquoted so the shell expands it.
+    (re.compile(r"\bthe\s+(?:image|picture|photo)\b|\bthis\s+(?:image|picture|photo)\b"), "*.{jpg,png}"),
     (re.compile(r"\bgzipp?ed\s+(?:archive|file)\b|\bthe\s+gzip\b|\bthe\s+gz\b"), "*.gz"),
     (re.compile(r"\bthe\s+(?:backup|tarball)\b|\bthis\s+(?:backup|tarball)\b|\bmy\s+(?:backup|tarball)\b"), "*.tar.gz"),
     (re.compile(r"\bthe\s+archive\b|\bthis\s+archive\b"), "*.tar.gz"),
@@ -723,6 +760,9 @@ _SEARCHVERB_RE = re.compile(
     re.IGNORECASE,
 )
 _VAGUE_PAT = {"stuff", "things", "thing", "something", "anything", "it", "them", "that"}
+# Task 42: articles/"file" captured by a search verb mean the request is actually
+# file-discovery ("look for a file named X"), not a grep for the literal article.
+_ARTICLE_WORDS = {"a", "an", "the", "file", "files"}
 
 _DIR_NOUN_RE = re.compile(r"\b([\w./-]+)\s+(?:folder|directory|dir|tree)\b", re.IGNORECASE)
 _PREP_DIR_RE = re.compile(
@@ -745,16 +785,23 @@ def _grep_pattern(text: str, low: str) -> str | None:
     m = _SEARCHVERB_RE.search(text)
     if m:
         tok = m.group(1).strip(".,!?;:")
-        if tok.lower() not in _VAGUE_PAT:
+        # Task 42: "look for a file named X" is file-discovery, not a grep for the
+        # article "a"/"the"/"file" — skip those so the discovery parser handles it.
+        if tok.lower() not in _VAGUE_PAT and tok.lower() not in _ARTICLE_WORDS:
             return tok
     m = _ALLCAPS_RE.search(text)   # TODO, FIXME, API_URL, SUCCESS
-    if m and m.group(1) not in _ENVVAR_NAMES:
+    if m and m.group(1) not in _ENVVAR_NAMES and text[m.end():m.end() + 1] != ".":
         # A bare env-var name ("what's my PATH") is an env_var query, not a grep
         # for the literal word — leave it for workspace (Task 27). An intentional
         # grep for PATH uses a verb/quote, caught by the branches above.
+        # Task 42: an all-caps token that is part of a FILENAME (README.md, API.py)
+        # is a file, not a grep pattern — the "." guard above excludes it, so
+        # "is there a README.md" no longer hijacks into `grep README`.
         return m.group(1)
     m = _LOG_WORD_RE.search(low)
-    if m:
+    # Task 42: a log WORD inside a filename ("error.log", "debug.log") is a file,
+    # not a grep pattern — the "." guard stops "delete error.log" → `grep error`.
+    if m and low[m.end():m.end() + 1] != ".":
         return _LOG_CANON[m.group(1).lower()]
     return None
 
@@ -794,6 +841,16 @@ def _parse_text_and_logs(text: str, low: str):
 
     if pattern is None:
         return None  # not a text-search request — let the next domain try
+
+    # Task 34: a file-copy request can still produce a spurious grep pattern via
+    # the all-caps/filename heuristic ("create a copy of MANIFEST.txt" → pattern
+    # "MANIFEST"). Checked AFTER distinct/sort (so "remove duplicate lines" stays
+    # unique_lines) and only when a pattern exists — defer to the file-copy
+    # parser. Mirror its clipboard/windows/mnt guard so a genuine wsl "copy … to
+    # clipboard" is left for its own domain.
+    if ("clipboard" not in low and "windows" not in low and "/mnt/" not in low
+            and _ARC_COPY_RE.search(text)):
+        return None
 
     ic = bool(_IGNORE_CASE_RE.search(low)) or (pattern.lower() in _CASE_WORDS)
     i = "i" if ic else ""
@@ -1216,9 +1273,13 @@ _ARC_INTEGRITY_RE = re.compile(
 _ARC_COMPRESS_RE = re.compile(r"\b(?:compress|gzip)\b", re.IGNORECASE)
 # Task 25 (E127): "make a copy of X" / "duplicate X" → cp (a WRITE). NOT "copy to
 # clipboard" (wsl) and NOT "copy … to windows" (wsl) — guarded at the call site.
+# Task 34 (last manual synonym patch): also "create a copy of X", "make/create a
+# duplicate of X", and "back up X.ext" (a single file → cp; a folder/project has
+# no extension and still falls through to create_archive below).
 _ARC_COPY_RE = re.compile(
-    r"\bmake\s+a\s+copy\s+of\s+(?:the\s+)?([\w./-]+)"
+    r"\b(?:make|create)\s+(?:a\s+|an\s+)?(?:copy|duplicate)\s+of\s+(?:the\s+)?([\w./-]+)"
     r"|\bduplicate\s+(?:the\s+)?([\w./-]+)"
+    r"|\bback\s+up\s+(?:the\s+)?([\w./-]+\.\w+)"
     r"|\bcopy\s+(?:the\s+)?([\w./-]+\.\w+)", re.IGNORECASE,
 )
 # Task 23 (E084): the thing being archived, e.g. "zip up the project" → project.
@@ -1254,11 +1315,14 @@ def _parse_archives(text: str, low: str):
     arc = archive if archive is not None else arc_glob
 
     # 0. copy a file (E127): "make a copy of config.yaml" → cp (WRITE → exit 3).
+    # Task 32: generalize to a destination — "copy X to Y" → cp -- X Y. With no
+    # destination, fall back to the X.bak duplicate.
     if "clipboard" not in low and "windows" not in low and "/mnt/" not in low:
         mc = _ARC_COPY_RE.search(text)
         if mc:
             src = next(g for g in mc.groups() if g)
-            return Frame("copy_file", {"path": src, "dest": src + ".bak"})
+            dest = _dest_after(text)
+            return Frame("copy_file", {"path": src, "dest": dest or (src + ".bak")})
 
     # 1. extract: unpack <archive> into <dir> → mkdir && tar (2-stage). With NO
     # destination (E123/E124 "extract the tarball"), extract into the cwd with a
@@ -1778,6 +1842,14 @@ _NAV_GOTO_RE = re.compile(
     re.IGNORECASE,
 )
 _NAV_STOP = {"the", "my", "a", "an", "it", "here", "there", "where", "back", "this"}
+# Task 32: "<verb> X inside/within/under/in Y" — nested navigation.
+_NAV_NESTED_RE = re.compile(
+    r"\b(?:go\s+to|goto|take\s+me\s+(?:to|into)|navigate\s+to|cd\s+(?:to|into)?"
+    r"|go\s+into|enter|open|change\s+to)\s+"
+    r"(?:the\s+|my\s+)?([\w.+-]+)\s+(?:inside|within|under|in)\s+"
+    r"(?:the\s+|my\s+)?([\w.+-]+)\b",
+    re.IGNORECASE,
+)
 
 
 def _nav_levels(low: str) -> int:
@@ -1807,6 +1879,30 @@ def _parse_navigation(text: str, low: str):
     if _NAV_PWD_RE.search(low):
         return Frame("where_am_i", {})
 
+    # 3b. nested navigation (Task 32): "go to X inside/under/in Y".
+    #   * Y an ANCESTOR of cwd → resolve Y's absolute path, append X.
+    #   * Y a CHILD dir of cwd and X under it → relative `cd -- Y/X`.
+    #   * otherwise → abstain (a fuzzy, elsewhere-on-disk Y is a future
+    #     find-based resolver; don't guess).
+    m = _NAV_NESTED_RE.search(text)
+    if m:
+        x, y = m.group(1), m.group(2)
+        if x.lower() not in _NAV_STOP and y.lower() not in _NAV_STOP:
+            segs = os.getcwd().split(os.sep)
+            idxs = [i for i, s in enumerate(segs) if s and s.lower() == y.lower()]
+            if idxs:
+                # Y is an ancestor. If a segment name repeats (e.g. ~/linuxbuddy
+                # with a src/linuxbuddy under it), prefer the occurrence that
+                # actually contains X; otherwise the nearest one.
+                def _anc(i: int) -> str:
+                    return os.sep.join(segs[: i + 1]) or os.sep
+                chosen = next((i for i in sorted(idxs, reverse=True)
+                               if os.path.isdir(os.path.join(_anc(i), x))), idxs[-1])
+                return Frame("goto", {"path": f"{_anc(chosen)}/{x}"})
+            if os.path.isdir(y) and os.path.isdir(os.path.join(y, x)):
+                return Frame("goto", {"path": f"{y}/{x}"})
+            return _ABSTAIN
+
     # target-based: extract the destination from a goto verb.
     m = _NAV_GOTO_RE.search(text)
     if m:
@@ -1832,11 +1928,99 @@ def _parse_navigation(text: str, low: str):
     return None
 
 
+# --------------------------------------------------------------------------
+# Domain: file_management (Task 32) — move/rename, copy-to-dest, delete, mkdir.
+# ALL destructive (write/delete) → gated to the maze, exit 3, widget warns.
+#
+# Destructive intents keep the STRICT bar (invariant #6): a move/delete only
+# fires on a CONFIDENT target — a quoted/slash/`name.ext` path or a typed
+# definite reference ("the old logs" → *.log, "the image" → an image glob). A
+# bare, type-less word as a source is NOT confident, so we fall through rather
+# than emit a wrong `mv`/`rm`. A delete verb that owns the sentence but names no
+# resolvable target ABSTAINS (never a guessed `rm`).
+#
+# copy stays in _parse_archives (generalized there to take a destination);
+# this parser runs just before archives so move/delete/mkdir win first, while
+# "make a copy of X" / "copy X to Y" still reach the archives copy branch.
+# --------------------------------------------------------------------------
+
+# "<verb> <source> <to|into|in> <dest>" — source and dest captured off the
+# ORIGINAL text (IGNORECASE) so filename case is preserved.
+_FM_MOVE_RE = re.compile(
+    r"\b(?:move|rename|put)\s+(.+?)\s+(?:to|into|in)\s+(.+?)\s*$",
+    re.IGNORECASE,
+)
+_FM_DELETE_RE = re.compile(
+    r"\b(?:delete|remove|rm|get\s+rid\s+of|trash)\b", re.IGNORECASE,
+)
+_FM_MKDIR_RE = re.compile(
+    r"\b(?:make|create|new|add)\s+(?:a\s+|an\s+|the\s+)?(?:new\s+)?"
+    r"(?:folder|dir|directory)\s+(?:called\s+|named\s+)?([\w./-]+)",
+    re.IGNORECASE,
+)
+# A destination named after "to"/"into" (for copy X to Y). The dest is a plain
+# directory/file token — never a glob.
+_DEST_AFTER_RE = re.compile(
+    r"\b(?:into|to)\s+(?:the\s+|my\s+)?([\w./+-]+)", re.IGNORECASE,
+)
+
+
+def _dest_after(text: str) -> str | None:
+    """The destination after a 'to'/'into' in a copy/move request, or None."""
+    m = _DEST_AFTER_RE.search(text)
+    return m.group(1) if m else None
+
+
+def _fm_dest(frag: str) -> str | None:
+    """Clean a destination fragment to a single dir/file token: drop a trailing
+    folder noun and a leading article, prefer a concrete path/name, else the
+    last bare token."""
+    d = re.sub(r"\s+(?:folder|dir|directory)\s*$", "", frag.strip(), flags=re.IGNORECASE)
+    d = re.sub(r"^(?:the|my|a|an|this)\s+", "", d, flags=re.IGNORECASE)
+    p = _detect_path_arg(d, d.lower())
+    if p is not None and not isinstance(p, Raw):   # a dest is never a glob
+        return p
+    m = re.search(r"([\w./+-]+)\s*$", d)
+    return m.group(1) if m else None
+
+
+def _parse_file_management(text: str, low: str):
+    # 1. move / rename / put  — needs a confident source AND a destination.
+    m = _FM_MOVE_RE.search(text)
+    if m:
+        src_frag, dest_frag = m.group(1), m.group(2)
+        src = _detect_path_arg(src_frag, src_frag.lower())  # path/name.ext/definite
+        dest = _fm_dest(dest_frag)
+        if src is not None and dest:
+            return Frame("move_file", {"path": src, "dest": dest})
+
+    # 2. delete / remove — chmod ("remove the executable bit") and the text-
+    #    domain ops ("remove duplicates/blank lines") are NOT deletions.
+    if _FM_DELETE_RE.search(low):
+        if not any(w in low for w in ("execut", "duplicat", "blank line")):
+            tgt = _detect_path_arg(text, low)
+            if tgt is not None:
+                return Frame("delete_file", {"path": tgt})
+            # a delete verb owning the sentence but no resolvable target →
+            # refuse (destructive + unclear target = abstain, never a guess).
+            return _ABSTAIN
+
+    # 3. make a folder/dir X  (noun-then-name; name-then-noun stays in workspace).
+    #    Yield "project/workspace" phrasing to workspace's setup_project.
+    if "project" not in low and "workspace" not in low:
+        m = _FM_MKDIR_RE.search(text)
+        if m:
+            return Frame("make_dir", {"path": m.group(1)})
+
+    return None
+
+
 _ROUTER = (
     _parse_file_inspection,
     _parse_python,
     _parse_text_and_logs,
     _parse_processes,
+    _parse_file_management,
     _parse_archives,
     _parse_wsl,
     _parse_navigation,

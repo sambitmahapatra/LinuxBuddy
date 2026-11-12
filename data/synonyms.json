@@ -1,0 +1,40 @@
+{
+  "_comment": "Curated, hand-written synonym bank for deterministic offline augmentation (Task 36, Part D). NO LLM / paraphrase model. Each key is a surface phrase; values are interchangeable surface forms that PRESERVE the intent. Substitution is whole-word/phrase, case-insensitive, applied to TRAIN rows only, and never to _ABSTAIN rows. Keep entries intent-preserving — e.g. never map a read verb to a destructive one.",
+  "verb_phrases": {
+    "find": ["locate", "show me", "list", "where are"],
+    "find all": ["locate all", "show me all", "list all"],
+    "show me": ["display", "show", "give me"],
+    "delete": ["remove", "get rid of", "erase"],
+    "make a copy of": ["duplicate", "copy", "clone"],
+    "make a folder": ["create a folder", "create a directory", "set up a folder"],
+    "how many": ["count the", "what's the number of"],
+    "move": ["relocate"],
+    "search for": ["grep for", "look for"]
+  },
+  "nouns": {
+    "folder": ["directory"],
+    "directory": ["folder"],
+    "file": ["files"],
+    "files": ["file"],
+    "spreadsheet": ["csv file"],
+    "script": ["file"]
+  },
+  "fillers_prefix": ["please ", "can you ", "could you ", "hey ", ""],
+  "fillers_suffix": [" for me", " please", ""],
+  "droppable_tokens": ["all", "the", "me", "just"],
+  "filename_pool": {
+    "config.yaml": ["settings.json", "app.conf", "defaults.yaml"],
+    "notes.txt": ["log.txt", "readme.txt", "scratch.txt"],
+    "requirements.txt": ["setup.cfg", "pyproject.toml"],
+    "report.csv": ["data.csv", "metrics.csv", "sales.csv"],
+    "scratch.tmp": ["temp.tmp", "cache.tmp", "old.tmp"],
+    "src/main.py": ["app/run.py", "lib/core.py"]
+  },
+  "ext_pool": {
+    "csv": ["log", "json", "tsv"],
+    "py": ["js", "rb", "go"],
+    "txt": ["md", "rst"],
+    "log": ["csv", "out"],
+    "json": ["yaml", "xml"]
+  }
+}

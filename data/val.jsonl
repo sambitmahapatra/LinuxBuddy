@@ -1,0 +1,55 @@
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE001", "source": "hand_abstain", "text": "send an email to my boss"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE007", "source": "hand_abstain", "text": "summarize this document"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE008", "source": "hand_abstain", "text": "schedule a meeting"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE013", "source": "hand_abstain", "text": "do the thing"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE017", "source": "hand_abstain", "text": "lorem ipsum dolor sit amet"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS006", "source": "stress_abstain", "text": "deal with these files"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS007", "source": "stress_abstain", "text": "what is the meaning of life"}
+{"domain": "navigation", "intent": "goto", "seed_id": "E002", "source": "sweep", "text": "go into src"}
+{"domain": "navigation", "intent": "cd_parent", "seed_id": "E006", "source": "sweep", "text": "take me back"}
+{"domain": "navigation", "intent": "go_home", "seed_id": "E014", "source": "sweep", "text": "home"}
+{"domain": "navigation", "intent": "goto", "seed_id": "E015", "source": "sweep", "text": "take me to project"}
+{"domain": "navigation", "intent": "where_am_i", "seed_id": "E023", "source": "sweep", "text": "show my current directory"}
+{"domain": "file_discovery", "intent": "find_largest", "seed_id": "E029", "source": "sweep", "text": "show me the largest files"}
+{"domain": "file_discovery", "intent": "find_by_name", "seed_id": "E034", "source": "sweep", "text": "find a file called config.yaml"}
+{"domain": "file_discovery", "intent": "find_recent", "seed_id": "E038", "source": "sweep", "text": "recently modified logs"}
+{"domain": "file_discovery", "intent": "find_by_size", "seed_id": "E042", "source": "sweep", "text": "small files under 1kb"}
+{"domain": "file_discovery", "intent": "find_empty", "seed_id": "E043", "source": "sweep", "text": "find empty files"}
+{"domain": "file_discovery", "intent": "count_files", "seed_id": "E045", "source": "sweep", "text": "how many csv files are there"}
+{"domain": "file_inspection", "intent": "preview_head", "seed_id": "E049", "source": "sweep", "text": "display requirements.txt"}
+{"domain": "file_inspection", "intent": "preview_tail", "seed_id": "E054", "source": "sweep", "text": "last lines of the log"}
+{"domain": "file_inspection", "intent": "count_lines", "seed_id": "E058", "source": "sweep", "text": "count the lines in the log"}
+{"domain": "file_inspection", "intent": "show_stat", "seed_id": "E062", "source": "sweep", "text": "when was the log last modified"}
+{"domain": "text_and_logs", "intent": "search_in_file", "seed_id": "E066", "source": "sweep", "text": "which lines mention warning"}
+{"domain": "text_and_logs", "intent": "count_matches", "seed_id": "E068", "source": "sweep", "text": "how many errors in the log"}
+{"domain": "text_and_logs", "intent": "search_recursive", "seed_id": "E070", "source": "sweep", "text": "search all files for API_KEY"}
+{"domain": "text_and_logs", "intent": "unique_lines", "seed_id": "E074", "source": "sweep", "text": "show unique lines in list.txt"}
+{"domain": "workspace_and_shell", "intent": "env_var", "seed_id": "E076", "source": "sweep", "text": "what's my PATH"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "seed_id": "E081", "source": "sweep", "text": "am i running out of disk"}
+{"domain": "workspace_and_shell", "intent": "disk_usage", "seed_id": "E083", "source": "sweep", "text": "size of the project directory"}
+{"domain": "workspace_and_shell", "intent": "where_python", "seed_id": "E085", "source": "sweep", "text": "which pip am i using"}
+{"domain": "workspace_and_shell", "intent": "date_time", "seed_id": "E087", "source": "sweep", "text": "what time is it"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "seed_id": "E090", "source": "sweep", "text": "run.sh needs to be executable"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "seed_id": "E093", "source": "sweep", "text": "only i should be able to read the secrets file"}
+{"domain": "filesystem_permissions", "intent": "show_permissions", "seed_id": "E096", "source": "sweep", "text": "who can read config.yaml"}
+{"domain": "filesystem_permissions", "intent": "find_perms", "seed_id": "E098", "source": "sweep", "text": "anything readable by everyone"}
+{"domain": "processes", "intent": "list_processes", "seed_id": "E101", "source": "sweep", "text": "list the python processes"}
+{"domain": "processes", "intent": "process_on_port", "seed_id": "E103", "source": "sweep", "text": "what's on my port"}
+{"domain": "processes", "intent": "kill_process", "seed_id": "E109", "source": "sweep", "text": "terminate the server process"}
+{"domain": "wsl_interop", "intent": "open_explorer", "seed_id": "E111", "source": "sweep", "text": "open this folder in windows explorer"}
+{"domain": "wsl_interop", "intent": "path_to_windows", "seed_id": "E113", "source": "sweep", "text": "what's the windows path for this folder"}
+{"domain": "wsl_interop", "intent": "goto_cdrive", "seed_id": "E117", "source": "sweep", "text": "take me to my windows downloads"}
+{"domain": "archives_backup", "intent": "create_archive", "seed_id": "E121", "source": "sweep", "text": "bundle the data folder"}
+{"domain": "archives_backup", "intent": "list_archive", "seed_id": "E126", "source": "sweep", "text": "list the contents of the zip"}
+{"domain": "python_environments", "intent": "check_package", "seed_id": "E129", "source": "sweep", "text": "do i have pandas"}
+{"domain": "python_environments", "intent": "check_installed", "seed_id": "E131", "source": "sweep", "text": "is git installed"}
+{"domain": "python_environments", "intent": "pip_list", "seed_id": "E134", "source": "sweep", "text": "what packages are installed"}
+{"domain": "file_management", "intent": "move_file", "seed_id": "E140", "source": "sweep", "text": "move report.csv to archive"}
+{"domain": "file_discovery", "intent": "find_by_type", "seed_id": "E146", "source": "sweep", "text": "find all csv files"}
+{"domain": "file_management", "intent": "copy_file", "seed_id": "E147", "source": "sweep", "text": "make a copy of config.yaml"}
+{"domain": "", "intent": "find_by_type", "seed_id": "SG004", "source": "stress_gap", "text": "got any spreadsheets?"}
+{"domain": "", "intent": "find_by_time", "seed_id": "SG009", "source": "stress_gap", "text": "find the files modified in the last day"}
+{"domain": "", "intent": "list_all", "seed_id": "SG012", "source": "stress_gap", "text": "list everything here in this directory"}
+{"domain": "", "intent": "delete_file", "seed_id": "SG021", "source": "stress_gap", "text": "wipe scratch.tmp"}
+{"domain": "", "intent": "delete_file", "seed_id": "SG023", "source": "stress_gap", "text": "del scratch.tmp"}
+{"domain": "", "intent": "make_dir", "seed_id": "SG025", "source": "stress_gap", "text": "spin up a folder reports"}

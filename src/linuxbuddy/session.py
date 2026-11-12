@@ -8,9 +8,15 @@ pipeline: ``to_command_plan()`` returns a plain :class:`~linuxbuddy.nlu.Frame`
 that ``planner.compile`` + ``render.to_shell`` + ``gate`` handle unchanged.
 
 Design choices (documented in LOG.md):
-  * **Store key** = the parent shell PID (``os.getppid()``), so every Ctrl-G in
-    the same shell shares one frame. File: ``<cache>/session_<PPID>.json``,
-    ``<cache>`` = ``$LINUXBUDDY_CACHE_DIR`` or ``~/.cache/linuxbuddy``.
+  * **Store key** = the per-terminal id the shell widget exports in
+    ``$LINUXBUDDY_SESSION`` (Task 31). The widget runs ``lb`` inside a ``$(…)``
+    command substitution — a fresh subshell with a *different* PID every Ctrl-G —
+    so keying on ``os.getppid()`` gave a new file each turn and nothing
+    accumulated. The exported id is stable for the life of the terminal and is
+    inherited by every subshell, so all of a terminal's Ctrl-G calls share one
+    frame. File: ``<cache>/session_<sanitized-id>.json``, ``<cache>`` =
+    ``$LINUXBUDDY_CACHE_DIR`` or ``~/.cache/linuxbuddy``. A direct ``lb`` call
+    without the widget (no env id) falls back to ``os.getppid()``.
   * **TTL** = 10 min. A stale frame is treated as absent (fresh parse).
   * **Reset** on the words "start over / reset / never mind / forget it", OR on a
     cwd change since the frame was written (a ``cd`` means a fresh context).
@@ -201,6 +207,31 @@ _OP_VERB_RE = re.compile(
 )
 _REFINE_LEAD_RE = re.compile(r"^\s*(only|just|and|also|plus)\b", re.IGNORECASE)
 
+# Task 33: a file-MANAGEMENT verb at the head of the request. These are never
+# discovery queries, so the session layer must NOT claim them as a new/refine
+# find just because the request happens to carry a filename with an extension
+# (the Task-32 regression: "delete old.log" composed `find . -name '*.log'`
+# instead of `rm`). When one leads, we hand the whole request to the v1
+# single-turn path, whose router already routes move/copy/delete/rename to the
+# file_management domain (and "remove the executable bit"/"remove duplicate
+# lines" to chmod/text). Discovery verbs (find/list/locate/where/how many/
+# recently modified/biggest) are disjoint from this set, so discovery is
+# untouched. Anchored at the head so "find files to move" stays a find.
+_FILEOP_LEAD_RE = re.compile(
+    r"^\s*(?:please\s+|pls\s+|can\s+you\s+|could\s+you\s+|would\s+you\s+)?"
+    r"(?:mv|cp|rm"
+    r"|move|copy|rename|delete|remove|trash|put"
+    r"|get\s+rid\s+of"
+    # copy synonyms (Task 34): "create a copy of X", "duplicate X", "make a
+    # duplicate of X", "back up X" — all defer to single-turn, which renders cp.
+    r"|duplicate|back\s+up"
+    r"|(?:make|create)\s+(?:a\s+|an\s+)?(?:copy|duplicate)"
+    # mkdir phrasings: "make a folder logs" would otherwise be hijacked because
+    # "logs" reads as a .log type — keep it a mkdir (single-turn make_dir).
+    r"|(?:make|create|new|add)\s+(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:folder|dir|directory))\b",
+    re.IGNORECASE,
+)
+
 
 def _composable(low: str) -> bool:
     """True if this spike can extract a find query (a type glob, a size, or a
@@ -258,6 +289,14 @@ def classify(text: str, frame: "SessionFrame | None") -> tuple[str, dict]:
         remainder = (low[:m.start()] + low[m.end():]).strip(" ,.")
         return ("reset", {"remainder": remainder})
 
+    # Task 33: a file-management verb owns the sentence → defer to single-turn
+    # (which routes it to the file_management domain). Checked BEFORE the
+    # composable-find checks so a filename extension can't hijack it into a find,
+    # and before operate/refine so a mid-chain "delete old.log" is a fresh
+    # destructive op, not a refinement of the running query.
+    if _FILEOP_LEAD_RE.match(low):
+        return ("fallback", {})
+
     # A self-contained find request (explicit verb + a composable query)
     # replaces the frame, even mid-chain — so "find all json files" is NEW, not a
     # refine of the previous query.
@@ -290,13 +329,45 @@ def cache_dir() -> str:
     )
 
 
+def _sanitize_key(sid: str) -> str:
+    """Make an env-supplied id safe as a filename component — no path separators
+    or spaces can leak into the store path."""
+    safe = re.sub(r"[^A-Za-z0-9._-]", "_", sid)
+    return safe[:128] or "default"
+
+
 def store_key() -> str:
-    """The session key — the parent shell's PID, shared across Ctrl-G calls."""
+    """The session key. Prefer the per-terminal id the widget exports in
+    ``$LINUXBUDDY_SESSION`` (stable across the ``$(lb …)`` subshells each Ctrl-G
+    spawns); fall back to the parent PID only for a direct ``lb`` call with no
+    widget. When present, the env id is authoritative (Task 31)."""
+    sid = os.environ.get("LINUXBUDDY_SESSION")
+    if sid:
+        return _sanitize_key(sid)
     return str(os.getppid())
 
 
 def _store_path(key: str) -> str:
     return os.path.join(cache_dir(), f"session_{key}.json")
+
+
+def _cleanup_stale(ttl: float = TTL_SECONDS) -> None:
+    """Best-effort reaping of session files older than the TTL, so the cache
+    doesn't accumulate one dead file per closed terminal. Never raises."""
+    cutoff = time.time() - ttl
+    try:
+        names = os.listdir(cache_dir())
+    except OSError:
+        return
+    for name in names:
+        if not (name.startswith("session_") and name.endswith(".json")):
+            continue
+        p = os.path.join(cache_dir(), name)
+        try:
+            if os.path.getmtime(p) < cutoff:
+                os.remove(p)
+        except OSError:
+            pass
 
 
 def load(key: str, ttl: float = TTL_SECONDS, cwd: str | None = None) -> "SessionFrame | None":
@@ -330,6 +401,7 @@ def save(key: str, frame: SessionFrame) -> None:
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(frame.to_json())
     os.replace(tmp, path)  # atomic
+    _cleanup_stale()       # reap dead terminals' files (the fresh one is kept)
 
 
 def clear(key: str) -> None:

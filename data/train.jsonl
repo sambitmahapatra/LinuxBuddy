@@ -1,0 +1,688 @@
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE002", "seed_id": "ABE002", "source": "aug:filler", "text": "can you play some music"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE002", "seed_id": "ABE002", "source": "aug:filler", "text": "can you play some music for me"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE002", "source": "hand_abstain", "text": "play some music"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE003", "seed_id": "ABE003", "source": "aug:filler", "text": "could you order a pizza"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE003", "seed_id": "ABE003", "source": "aug:filler", "text": "order a pizza for me"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE003", "source": "hand_abstain", "text": "order a pizza"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE004", "seed_id": "ABE004", "source": "aug:filler", "text": "can you translate this to french"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE004", "seed_id": "ABE004", "source": "aug:filler", "text": "hey translate this to french"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE004", "source": "hand_abstain", "text": "translate this to french"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE005", "seed_id": "ABE005", "source": "aug:filler", "text": "could you set a reminder for 5pm"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE005", "seed_id": "ABE005", "source": "aug:filler", "text": "set a reminder for 5pm for me"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE005", "source": "hand_abstain", "text": "set a reminder for 5pm"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE006", "seed_id": "ABE006", "source": "aug:filler", "text": "can you open youtube please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE006", "seed_id": "ABE006", "source": "aug:filler", "text": "please open youtube please"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE006", "source": "hand_abstain", "text": "open youtube"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE009", "seed_id": "ABE009", "source": "aug:filler", "text": "please what can you do please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE009", "seed_id": "ABE009", "source": "aug:filler", "text": "what can you do please"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE009", "source": "hand_abstain", "text": "what can you do"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE010", "seed_id": "ABE010", "source": "aug:filler", "text": "can you help me please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE010", "seed_id": "ABE010", "source": "aug:filler+dropout", "text": "hey help me for"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE010", "source": "hand_abstain", "text": "help me"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE011", "seed_id": "ABE011", "source": "aug:filler", "text": "could you undo that for me"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE011", "seed_id": "ABE011", "source": "aug:filler", "text": "please undo that"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE011", "source": "hand_abstain", "text": "undo that"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE012", "seed_id": "ABE012", "source": "aug:filler", "text": "hey make it faster please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE012", "seed_id": "ABE012", "source": "aug:filler", "text": "please make it faster"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE012", "source": "hand_abstain", "text": "make it faster"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE014", "seed_id": "ABE014", "source": "aug:filler", "text": "can you why isn't this working for me"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE014", "seed_id": "ABE014", "source": "aug:filler", "text": "why isn't this working for me"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE014", "source": "hand_abstain", "text": "why isn't this working"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE015", "seed_id": "ABE015", "source": "aug:filler", "text": "can you good morning please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE015", "seed_id": "ABE015", "source": "aug:filler", "text": "could you good morning"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE015", "source": "hand_abstain", "text": "good morning"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE016", "seed_id": "ABE016", "source": "aug:filler", "text": "can you thanks a lot please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE016", "seed_id": "ABE016", "source": "aug:filler", "text": "could you thanks a lot"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE016", "source": "hand_abstain", "text": "thanks a lot"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE018", "seed_id": "ABE018", "source": "aug:filler", "text": "can you flibbertigibbet wotsit thingamajig please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABE018", "seed_id": "ABE018", "source": "aug:filler", "text": "could you flibbertigibbet wotsit thingamajig please"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABE018", "source": "hand_abstain", "text": "flibbertigibbet wotsit thingamajig"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS001", "seed_id": "ABS001", "source": "aug:filler+synonym", "text": "can you clean up the temp filess please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS001", "seed_id": "ABS001", "source": "aug:synonym+filler", "text": "could you clean up the temp filess please"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS001", "source": "stress_abstain", "text": "clean up the temp files"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS002", "seed_id": "ABS002", "source": "aug:filler", "text": "hey organize the downloads please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS002", "seed_id": "ABS002", "source": "aug:filler", "text": "organize the downloads for me"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS002", "source": "stress_abstain", "text": "organize the downloads"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS003", "seed_id": "ABS003", "source": "aug:synonym", "text": "tidy up this directory"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS003", "seed_id": "ABS003", "source": "aug:synonym+filler", "text": "hey tidy up this directory please"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS003", "source": "stress_abstain", "text": "tidy up this folder"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS004", "seed_id": "ABS004", "source": "aug:filler", "text": "could you fix this"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS004", "seed_id": "ABS004", "source": "aug:filler", "text": "please fix this for me"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS004", "source": "stress_abstain", "text": "fix this"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS005", "seed_id": "ABS005", "source": "aug:filler", "text": "can you sort this out"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS005", "seed_id": "ABS005", "source": "aug:filler", "text": "sort this out please"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS005", "source": "stress_abstain", "text": "sort this out"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS008", "seed_id": "ABS008", "source": "aug:filler", "text": "hey tell me a joke please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS008", "seed_id": "ABS008", "source": "aug:filler", "text": "please tell me a joke please"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS008", "source": "stress_abstain", "text": "tell me a joke"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS009", "seed_id": "ABS009", "source": "aug:filler", "text": "can you asdfghjkl"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS009", "seed_id": "ABS009", "source": "aug:filler+dropout", "text": "asdfghjkl for"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS009", "source": "stress_abstain", "text": "asdfghjkl"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS010", "seed_id": "ABS010", "source": "aug:filler", "text": "can you qwerty zxcvbn please"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS010", "seed_id": "ABS010", "source": "aug:filler", "text": "please qwerty zxcvbn"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS010", "source": "stress_abstain", "text": "qwerty zxcvbn"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS011", "seed_id": "ABS011", "source": "aug:filler", "text": "hey banana telephone sunshine for me"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS011", "seed_id": "ABS011", "source": "aug:filler", "text": "please banana telephone sunshine"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS011", "source": "stress_abstain", "text": "banana telephone sunshine"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS012", "seed_id": "ABS012", "source": "aug:filler", "text": "can you what's the weather for me"}
+{"domain": "", "intent": "_ABSTAIN", "parent_seed_id": "ABS012", "seed_id": "ABS012", "source": "aug:filler", "text": "please what's the weather please"}
+{"domain": "", "intent": "_ABSTAIN", "seed_id": "ABS012", "source": "stress_abstain", "text": "what's the weather"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E001", "seed_id": "E001", "source": "aug:dropout+filler", "text": "hey take to the logs folder"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E001", "seed_id": "E001", "source": "aug:dropout+synonym", "text": "take to the logs directory"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E001", "seed_id": "E001", "source": "aug:filler+dropout", "text": "hey take to the logs folder please"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E001", "seed_id": "E001", "source": "aug:synonym", "text": "take me to the logs directory"}
+{"domain": "navigation", "intent": "goto", "seed_id": "E001", "source": "sweep", "text": "take me to the logs folder"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E003", "seed_id": "E003", "source": "aug:dropout+filler", "text": "hey enter data directory for me"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E003", "seed_id": "E003", "source": "aug:dropout+filler", "text": "hey enter data directory please"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E003", "seed_id": "E003", "source": "aug:filler+dropout", "text": "please enter data directory"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E003", "seed_id": "E003", "source": "aug:synonym", "text": "enter the data folder"}
+{"domain": "navigation", "intent": "goto", "seed_id": "E003", "source": "sweep", "text": "enter the data directory"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E004", "seed_id": "E004", "source": "aug:dropout", "text": "open src folder"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E004", "seed_id": "E004", "source": "aug:filler+dropout", "text": "hey open the src folder for"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E004", "seed_id": "E004", "source": "aug:filler+synonym", "text": "hey open the src directory"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E004", "seed_id": "E004", "source": "aug:synonym", "text": "open the src directory"}
+{"domain": "navigation", "intent": "goto", "seed_id": "E004", "source": "sweep", "text": "open the src folder"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E005", "seed_id": "E005", "source": "aug:filler", "text": "could you move into data for me"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E005", "seed_id": "E005", "source": "aug:filler", "text": "please move into data please"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E005", "seed_id": "E005", "source": "aug:filler+synonym", "text": "hey relocate into data for me"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E005", "seed_id": "E005", "source": "aug:synonym", "text": "relocate into data"}
+{"domain": "navigation", "intent": "goto", "seed_id": "E005", "source": "sweep", "text": "move into data"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E007", "seed_id": "E007", "source": "aug:filler", "text": "can you go up please"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E007", "seed_id": "E007", "source": "aug:filler", "text": "could you go up"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E007", "seed_id": "E007", "source": "aug:filler", "text": "hey go up for me"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E007", "seed_id": "E007", "source": "aug:filler", "text": "please go up for me"}
+{"domain": "navigation", "intent": "cd_parent", "seed_id": "E007", "source": "sweep", "text": "go up"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E008", "seed_id": "E008", "source": "aug:filler", "text": "can you up a level"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E008", "seed_id": "E008", "source": "aug:filler", "text": "can you up a level for me"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E008", "seed_id": "E008", "source": "aug:filler", "text": "can you up a level please"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E008", "seed_id": "E008", "source": "aug:filler", "text": "hey up a level please"}
+{"domain": "navigation", "intent": "cd_parent", "seed_id": "E008", "source": "sweep", "text": "up a level"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E009", "seed_id": "E009", "source": "aug:dropout", "text": "take me to parent folder"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E009", "seed_id": "E009", "source": "aug:dropout", "text": "take to the parent folder"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E009", "seed_id": "E009", "source": "aug:dropout+filler", "text": "please take to the parent folder"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E009", "seed_id": "E009", "source": "aug:filler+dropout", "text": "could you take to the parent folder please"}
+{"domain": "navigation", "intent": "cd_parent", "seed_id": "E009", "source": "sweep", "text": "take me to the parent folder"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E010", "seed_id": "E010", "source": "aug:filler+dropout", "text": "please go back up one directory for"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E010", "seed_id": "E010", "source": "aug:filler+synonym", "text": "can you go back up one folder for me"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E010", "seed_id": "E010", "source": "aug:synonym", "text": "go back up one folder"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E010", "seed_id": "E010", "source": "aug:synonym+filler", "text": "could you go back up one folder for me"}
+{"domain": "navigation", "intent": "cd_parent", "seed_id": "E010", "source": "sweep", "text": "go back up one directory"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E011", "seed_id": "E011", "source": "aug:filler", "text": "can you up two levels for me"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E011", "seed_id": "E011", "source": "aug:filler", "text": "hey up two levels please"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E011", "seed_id": "E011", "source": "aug:filler", "text": "please up two levels"}
+{"domain": "navigation", "intent": "cd_parent", "parent_seed_id": "E011", "seed_id": "E011", "source": "aug:filler", "text": "up two levels for me"}
+{"domain": "navigation", "intent": "cd_parent", "seed_id": "E011", "source": "sweep", "text": "up two levels"}
+{"domain": "navigation", "intent": "go_home", "parent_seed_id": "E012", "seed_id": "E012", "source": "aug:dropout", "text": "take home"}
+{"domain": "navigation", "intent": "go_home", "parent_seed_id": "E012", "seed_id": "E012", "source": "aug:dropout+filler", "text": "can you take home"}
+{"domain": "navigation", "intent": "go_home", "parent_seed_id": "E012", "seed_id": "E012", "source": "aug:filler", "text": "could you take me home for me"}
+{"domain": "navigation", "intent": "go_home", "parent_seed_id": "E012", "seed_id": "E012", "source": "aug:filler+dropout", "text": "can you take me home for"}
+{"domain": "navigation", "intent": "go_home", "seed_id": "E012", "source": "sweep", "text": "take me home"}
+{"domain": "navigation", "intent": "go_home", "parent_seed_id": "E013", "seed_id": "E013", "source": "aug:filler", "text": "go to my home directory please"}
+{"domain": "navigation", "intent": "go_home", "parent_seed_id": "E013", "seed_id": "E013", "source": "aug:filler", "text": "hey go to my home directory please"}
+{"domain": "navigation", "intent": "go_home", "parent_seed_id": "E013", "seed_id": "E013", "source": "aug:synonym", "text": "go to my home folder"}
+{"domain": "navigation", "intent": "go_home", "parent_seed_id": "E013", "seed_id": "E013", "source": "aug:synonym+filler", "text": "could you go to my home folder"}
+{"domain": "navigation", "intent": "go_home", "seed_id": "E013", "source": "sweep", "text": "go to my home directory"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E016", "seed_id": "E016", "source": "aug:filler", "text": "could you go back to the project root for me"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E016", "seed_id": "E016", "source": "aug:filler", "text": "go back to the project root please"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E016", "seed_id": "E016", "source": "aug:filler", "text": "hey go back to the project root"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E016", "seed_id": "E016", "source": "aug:filler+dropout", "text": "please go back to project root please"}
+{"domain": "navigation", "intent": "goto", "seed_id": "E016", "source": "sweep", "text": "go back to the project root"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E017", "seed_id": "E017", "source": "aug:dropout", "text": "take to testlinuxbuddy"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E017", "seed_id": "E017", "source": "aug:filler", "text": "could you take me to testlinuxbuddy"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E017", "seed_id": "E017", "source": "aug:filler", "text": "hey take me to testlinuxbuddy please"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E017", "seed_id": "E017", "source": "aug:filler+dropout", "text": "hey take me to testlinuxbuddy for"}
+{"domain": "navigation", "intent": "goto", "seed_id": "E017", "source": "sweep", "text": "take me to testlinuxbuddy"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E018", "seed_id": "E018", "source": "aug:filler", "text": "can you go to /tmp"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E018", "seed_id": "E018", "source": "aug:filler", "text": "could you go to /tmp"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E018", "seed_id": "E018", "source": "aug:filler", "text": "go to /tmp please"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E018", "seed_id": "E018", "source": "aug:filler", "text": "please go to /tmp for me"}
+{"domain": "navigation", "intent": "goto", "seed_id": "E018", "source": "sweep", "text": "go to /tmp"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E019", "seed_id": "E019", "source": "aug:dropout", "text": "take to /mnt/c/Users"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E019", "seed_id": "E019", "source": "aug:filler", "text": "can you take me to /mnt/c/Users please"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E019", "seed_id": "E019", "source": "aug:filler", "text": "could you take me to /mnt/c/Users for me"}
+{"domain": "navigation", "intent": "goto", "parent_seed_id": "E019", "seed_id": "E019", "source": "aug:filler", "text": "hey take me to /mnt/c/Users"}
+{"domain": "navigation", "intent": "goto", "seed_id": "E019", "source": "sweep", "text": "take me to /mnt/c/Users"}
+{"domain": "navigation", "intent": "go_back", "parent_seed_id": "E020", "seed_id": "E020", "source": "aug:filler", "text": "could you go back to where i was for me"}
+{"domain": "navigation", "intent": "go_back", "parent_seed_id": "E020", "seed_id": "E020", "source": "aug:filler", "text": "hey go back to where i was"}
+{"domain": "navigation", "intent": "go_back", "parent_seed_id": "E020", "seed_id": "E020", "source": "aug:filler", "text": "hey go back to where i was for me"}
+{"domain": "navigation", "intent": "go_back", "seed_id": "E020", "source": "sweep", "text": "go back to where i was"}
+{"domain": "navigation", "intent": "where_am_i", "parent_seed_id": "E021", "seed_id": "E021", "source": "aug:filler", "text": "can you where am i for me"}
+{"domain": "navigation", "intent": "where_am_i", "parent_seed_id": "E021", "seed_id": "E021", "source": "aug:filler", "text": "could you where am i please"}
+{"domain": "navigation", "intent": "where_am_i", "parent_seed_id": "E021", "seed_id": "E021", "source": "aug:filler", "text": "hey where am i"}
+{"domain": "navigation", "intent": "where_am_i", "parent_seed_id": "E021", "seed_id": "E021", "source": "aug:filler", "text": "please where am i please"}
+{"domain": "navigation", "intent": "where_am_i", "seed_id": "E021", "source": "sweep", "text": "where am i"}
+{"domain": "navigation", "intent": "where_am_i", "parent_seed_id": "E022", "seed_id": "E022", "source": "aug:filler", "text": "please what folder am i in"}
+{"domain": "navigation", "intent": "where_am_i", "parent_seed_id": "E022", "seed_id": "E022", "source": "aug:filler", "text": "please what folder am i in for me"}
+{"domain": "navigation", "intent": "where_am_i", "parent_seed_id": "E022", "seed_id": "E022", "source": "aug:filler+synonym", "text": "can you what directory am i in"}
+{"domain": "navigation", "intent": "where_am_i", "parent_seed_id": "E022", "seed_id": "E022", "source": "aug:filler+synonym", "text": "please what directory am i in for me"}
+{"domain": "navigation", "intent": "where_am_i", "seed_id": "E022", "source": "sweep", "text": "what folder am i in"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E024", "seed_id": "E024", "source": "aug:dropout", "text": "find csv files"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E024", "seed_id": "E024", "source": "aug:filler", "text": "could you find all csv files"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E024", "seed_id": "E024", "source": "aug:filler+dropout", "text": "can you find csv files please"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E024", "seed_id": "E024", "source": "aug:synonym", "text": "where are all csv files"}
+{"domain": "file_discovery", "intent": "find_by_type", "seed_id": "E024", "source": "sweep", "text": "find all csv files"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E025", "seed_id": "E025", "source": "aug:filler", "text": "list every python file for me"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E025", "seed_id": "E025", "source": "aug:filler", "text": "list every python file please"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E025", "seed_id": "E025", "source": "aug:synonym", "text": "list every python files"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E025", "seed_id": "E025", "source": "aug:synonym+filler", "text": "list every python files for me"}
+{"domain": "file_discovery", "intent": "find_by_type", "seed_id": "E025", "source": "sweep", "text": "list every python file"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E026", "seed_id": "E026", "source": "aug:dropout", "text": "where are json files"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E026", "seed_id": "E026", "source": "aug:filler", "text": "please where are the json files for me"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E026", "seed_id": "E026", "source": "aug:synonym", "text": "where are the json filess"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E026", "seed_id": "E026", "source": "aug:synonym+dropout", "text": "where are json filess"}
+{"domain": "file_discovery", "intent": "find_by_type", "seed_id": "E026", "source": "sweep", "text": "where are the json files"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E027", "seed_id": "E027", "source": "aug:filler+synonym", "text": "give me all the log files please"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E027", "seed_id": "E027", "source": "aug:synonym", "text": "display all the log files"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E027", "seed_id": "E027", "source": "aug:synonym", "text": "show all the log files"}
+{"domain": "file_discovery", "intent": "find_by_type", "parent_seed_id": "E027", "seed_id": "E027", "source": "aug:synonym+dropout", "text": "give all the log files"}
+{"domain": "file_discovery", "intent": "find_by_type", "seed_id": "E027", "source": "sweep", "text": "show me all the log files"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E028", "seed_id": "E028", "source": "aug:filler+dropout", "text": "hey which files are biggest for me"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E028", "seed_id": "E028", "source": "aug:filler+synonym", "text": "could you which filess are the biggest please"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E028", "seed_id": "E028", "source": "aug:synonym", "text": "which filess are the biggest"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E028", "seed_id": "E028", "source": "aug:synonym+filler", "text": "which filess are the biggest please"}
+{"domain": "file_discovery", "intent": "find_largest", "seed_id": "E028", "source": "sweep", "text": "which files are the biggest"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E030", "seed_id": "E030", "source": "aug:dropout", "text": "what's taking up most space"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E030", "seed_id": "E030", "source": "aug:dropout+filler", "text": "can you what's taking up most space please"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E030", "seed_id": "E030", "source": "aug:filler", "text": "hey what's taking up the most space please"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E030", "seed_id": "E030", "source": "aug:filler+dropout", "text": "hey what's taking up most space"}
+{"domain": "file_discovery", "intent": "find_largest", "seed_id": "E030", "source": "sweep", "text": "what's taking up the most space"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E031", "seed_id": "E031", "source": "aug:filler", "text": "please which files are huge"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E031", "seed_id": "E031", "source": "aug:filler", "text": "please which files are huge please"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E031", "seed_id": "E031", "source": "aug:filler", "text": "which files are huge please"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E031", "seed_id": "E031", "source": "aug:synonym", "text": "which filess are huge"}
+{"domain": "file_discovery", "intent": "find_largest", "seed_id": "E031", "source": "sweep", "text": "which files are huge"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E032", "seed_id": "E032", "source": "aug:filler", "text": "could you biggest files here"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E032", "seed_id": "E032", "source": "aug:filler", "text": "please biggest files here"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E032", "seed_id": "E032", "source": "aug:synonym", "text": "biggest filess here"}
+{"domain": "file_discovery", "intent": "find_largest", "parent_seed_id": "E032", "seed_id": "E032", "source": "aug:synonym+filler", "text": "hey biggest filess here for me"}
+{"domain": "file_discovery", "intent": "find_largest", "seed_id": "E032", "source": "sweep", "text": "biggest files here"}
+{"domain": "file_discovery", "intent": "find_by_name", "parent_seed_id": "E033", "seed_id": "E033", "source": "aug:filler", "text": "can you where is settings.json"}
+{"domain": "file_discovery", "intent": "find_by_name", "parent_seed_id": "E033", "seed_id": "E033", "source": "aug:filler", "text": "please where is settings.json please"}
+{"domain": "file_discovery", "intent": "find_by_name", "parent_seed_id": "E033", "seed_id": "E033", "source": "aug:filler+fname", "text": "where is settings.yaml please"}
+{"domain": "file_discovery", "intent": "find_by_name", "parent_seed_id": "E033", "seed_id": "E033", "source": "aug:fname", "text": "where is settings.xml"}
+{"domain": "file_discovery", "intent": "find_by_name", "seed_id": "E033", "source": "sweep", "text": "where is settings.json"}
+{"domain": "file_discovery", "intent": "find_by_name", "parent_seed_id": "E035", "seed_id": "E035", "source": "aug:filler", "text": "can you locate train.py"}
+{"domain": "file_discovery", "intent": "find_by_name", "parent_seed_id": "E035", "seed_id": "E035", "source": "aug:filler", "text": "could you locate train.py"}
+{"domain": "file_discovery", "intent": "find_by_name", "parent_seed_id": "E035", "seed_id": "E035", "source": "aug:fname", "text": "locate train.go"}
+{"domain": "file_discovery", "intent": "find_by_name", "parent_seed_id": "E035", "seed_id": "E035", "source": "aug:fname", "text": "locate train.js"}
+{"domain": "file_discovery", "intent": "find_by_name", "seed_id": "E035", "source": "sweep", "text": "locate train.py"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E036", "seed_id": "E036", "source": "aug:filler", "text": "can you what changed recently"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E036", "seed_id": "E036", "source": "aug:filler", "text": "can you what changed recently please"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E036", "seed_id": "E036", "source": "aug:filler", "text": "hey what changed recently for me"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E036", "seed_id": "E036", "source": "aug:filler", "text": "what changed recently please"}
+{"domain": "file_discovery", "intent": "find_recent", "seed_id": "E036", "source": "sweep", "text": "what changed recently"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E037", "seed_id": "E037", "source": "aug:filler", "text": "could you files modified today"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E037", "seed_id": "E037", "source": "aug:filler+synonym", "text": "could you filess modified today please"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E037", "seed_id": "E037", "source": "aug:filler+synonym", "text": "please filess modified today please"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E037", "seed_id": "E037", "source": "aug:synonym", "text": "filess modified today"}
+{"domain": "file_discovery", "intent": "find_recent", "seed_id": "E037", "source": "sweep", "text": "files modified today"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E039", "seed_id": "E039", "source": "aug:dropout", "text": "what did i touch in last hour"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E039", "seed_id": "E039", "source": "aug:filler", "text": "can you what did i touch in the last hour for me"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E039", "seed_id": "E039", "source": "aug:filler", "text": "hey what did i touch in the last hour"}
+{"domain": "file_discovery", "intent": "find_recent", "parent_seed_id": "E039", "seed_id": "E039", "source": "aug:filler+dropout", "text": "hey what did i touch in the last hour for"}
+{"domain": "file_discovery", "intent": "find_recent", "seed_id": "E039", "source": "sweep", "text": "what did i touch in the last hour"}
+{"domain": "file_discovery", "intent": "find_by_size", "parent_seed_id": "E040", "seed_id": "E040", "source": "aug:filler", "text": "can you files bigger than 100mb please"}
+{"domain": "file_discovery", "intent": "find_by_size", "parent_seed_id": "E040", "seed_id": "E040", "source": "aug:filler", "text": "hey files bigger than 100mb please"}
+{"domain": "file_discovery", "intent": "find_by_size", "parent_seed_id": "E040", "seed_id": "E040", "source": "aug:filler", "text": "please files bigger than 100mb"}
+{"domain": "file_discovery", "intent": "find_by_size", "parent_seed_id": "E040", "seed_id": "E040", "source": "aug:synonym", "text": "filess bigger than 100mb"}
+{"domain": "file_discovery", "intent": "find_by_size", "seed_id": "E040", "source": "sweep", "text": "files bigger than 100mb"}
+{"domain": "file_discovery", "intent": "find_by_size", "parent_seed_id": "E041", "seed_id": "E041", "source": "aug:filler", "text": "anything over 1 gig please"}
+{"domain": "file_discovery", "intent": "find_by_size", "parent_seed_id": "E041", "seed_id": "E041", "source": "aug:filler", "text": "can you anything over 1 gig for me"}
+{"domain": "file_discovery", "intent": "find_by_size", "parent_seed_id": "E041", "seed_id": "E041", "source": "aug:filler", "text": "could you anything over 1 gig for me"}
+{"domain": "file_discovery", "intent": "find_by_size", "parent_seed_id": "E041", "seed_id": "E041", "source": "aug:filler", "text": "hey anything over 1 gig for me"}
+{"domain": "file_discovery", "intent": "find_by_size", "seed_id": "E041", "source": "sweep", "text": "anything over 1 gig"}
+{"domain": "file_discovery", "intent": "find_empty", "parent_seed_id": "E044", "seed_id": "E044", "source": "aug:filler", "text": "please any empty folders"}
+{"domain": "file_discovery", "intent": "find_empty", "parent_seed_id": "E044", "seed_id": "E044", "source": "aug:filler", "text": "please any empty folders for me"}
+{"domain": "file_discovery", "intent": "find_empty", "parent_seed_id": "E044", "seed_id": "E044", "source": "aug:filler+dropout", "text": "please any empty folders for"}
+{"domain": "file_discovery", "intent": "find_empty", "parent_seed_id": "E044", "seed_id": "E044", "source": "aug:synonym", "text": "any empty directorys"}
+{"domain": "file_discovery", "intent": "find_empty", "seed_id": "E044", "source": "sweep", "text": "any empty folders"}
+{"domain": "file_discovery", "intent": "count_files", "parent_seed_id": "E046", "seed_id": "E046", "source": "aug:dropout+synonym", "text": "count python filess"}
+{"domain": "file_discovery", "intent": "count_files", "parent_seed_id": "E046", "seed_id": "E046", "source": "aug:filler", "text": "could you count the python files"}
+{"domain": "file_discovery", "intent": "count_files", "parent_seed_id": "E046", "seed_id": "E046", "source": "aug:filler", "text": "could you count the python files please"}
+{"domain": "file_discovery", "intent": "count_files", "parent_seed_id": "E046", "seed_id": "E046", "source": "aug:synonym", "text": "count the python filess"}
+{"domain": "file_discovery", "intent": "count_files", "seed_id": "E046", "source": "sweep", "text": "count the python files"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E047", "seed_id": "E047", "source": "aug:dropout", "text": "show config.yaml"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E047", "seed_id": "E047", "source": "aug:filler+dropout", "text": "please show config.yaml for me"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E047", "seed_id": "E047", "source": "aug:fname+dropout", "text": "show app.conf"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E047", "seed_id": "E047", "source": "aug:fname+dropout", "text": "show defaults.yaml"}
+{"domain": "file_inspection", "intent": "preview_head", "seed_id": "E047", "source": "sweep", "text": "show me config.yaml"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E048", "seed_id": "E048", "source": "aug:dropout", "text": "print readme"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E048", "seed_id": "E048", "source": "aug:dropout+filler", "text": "please print readme please"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E048", "seed_id": "E048", "source": "aug:filler", "text": "print the readme please"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E048", "seed_id": "E048", "source": "aug:filler+dropout", "text": "please print readme"}
+{"domain": "file_inspection", "intent": "preview_head", "seed_id": "E048", "source": "sweep", "text": "print the readme"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E050", "seed_id": "E050", "source": "aug:dropout", "text": "what's in log"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E050", "seed_id": "E050", "source": "aug:filler", "text": "could you what's in the log for me"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E050", "seed_id": "E050", "source": "aug:filler", "text": "please what's in the log for me"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E050", "seed_id": "E050", "source": "aug:filler", "text": "please what's in the log please"}
+{"domain": "file_inspection", "intent": "preview_head", "seed_id": "E050", "source": "sweep", "text": "what's in the log"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E051", "seed_id": "E051", "source": "aug:filler", "text": "could you first 10 lines of train.log please"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E051", "seed_id": "E051", "source": "aug:filler", "text": "please first 10 lines of train.log please"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E051", "seed_id": "E051", "source": "aug:fname", "text": "first 10 lines of train.out"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E051", "seed_id": "E051", "source": "aug:fname+filler", "text": "can you first 10 lines of train.out"}
+{"domain": "file_inspection", "intent": "preview_head", "seed_id": "E051", "source": "sweep", "text": "first 10 lines of train.log"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E052", "seed_id": "E052", "source": "aug:filler", "text": "can you peek at data.csv please"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E052", "seed_id": "E052", "source": "aug:filler", "text": "peek at data.csv for me"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E052", "seed_id": "E052", "source": "aug:filler+fname", "text": "can you peek at data.json for me"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E052", "seed_id": "E052", "source": "aug:fname", "text": "peek at data.tsv"}
+{"domain": "file_inspection", "intent": "preview_head", "seed_id": "E052", "source": "sweep", "text": "peek at data.csv"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E053", "seed_id": "E053", "source": "aug:dropout", "text": "top of csv"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E053", "seed_id": "E053", "source": "aug:filler", "text": "can you top of the csv"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E053", "seed_id": "E053", "source": "aug:filler", "text": "could you top of the csv for me"}
+{"domain": "file_inspection", "intent": "preview_head", "parent_seed_id": "E053", "seed_id": "E053", "source": "aug:filler", "text": "please top of the csv for me"}
+{"domain": "file_inspection", "intent": "preview_head", "seed_id": "E053", "source": "sweep", "text": "top of the csv"}
+{"domain": "file_inspection", "intent": "preview_tail", "parent_seed_id": "E055", "seed_id": "E055", "source": "aug:dropout", "text": "show end of error.log"}
+{"domain": "file_inspection", "intent": "preview_tail", "parent_seed_id": "E055", "seed_id": "E055", "source": "aug:dropout+fname", "text": "show end of error.csv"}
+{"domain": "file_inspection", "intent": "preview_tail", "parent_seed_id": "E055", "seed_id": "E055", "source": "aug:filler+fname", "text": "hey show the end of error.out for me"}
+{"domain": "file_inspection", "intent": "preview_tail", "parent_seed_id": "E055", "seed_id": "E055", "source": "aug:fname", "text": "show the end of error.csv"}
+{"domain": "file_inspection", "intent": "preview_tail", "seed_id": "E055", "source": "sweep", "text": "show the end of error.log"}
+{"domain": "file_inspection", "intent": "_ABSTAIN", "parent_seed_id": "E056", "seed_id": "E056", "source": "aug:dropout+filler", "text": "tail output please"}
+{"domain": "file_inspection", "intent": "_ABSTAIN", "parent_seed_id": "E056", "seed_id": "E056", "source": "aug:filler", "text": "can you tail the output"}
+{"domain": "file_inspection", "intent": "_ABSTAIN", "seed_id": "E056", "source": "sweep", "text": "tail the output"}
+{"domain": "file_inspection", "intent": "count_lines", "parent_seed_id": "E057", "seed_id": "E057", "source": "aug:fname", "text": "how many lines in data.json"}
+{"domain": "file_inspection", "intent": "count_lines", "parent_seed_id": "E057", "seed_id": "E057", "source": "aug:fname", "text": "how many lines in data.log"}
+{"domain": "file_inspection", "intent": "count_lines", "parent_seed_id": "E057", "seed_id": "E057", "source": "aug:fname", "text": "how many lines in data.tsv"}
+{"domain": "file_inspection", "intent": "count_lines", "parent_seed_id": "E057", "seed_id": "E057", "source": "aug:synonym", "text": "count the lines in data.csv"}
+{"domain": "file_inspection", "intent": "count_lines", "seed_id": "E057", "source": "sweep", "text": "how many lines in data.csv"}
+{"domain": "file_inspection", "intent": "detect_type", "parent_seed_id": "E059", "seed_id": "E059", "source": "aug:filler+synonym", "text": "can you what kind of files is model.pkl please"}
+{"domain": "file_inspection", "intent": "detect_type", "parent_seed_id": "E059", "seed_id": "E059", "source": "aug:filler+synonym", "text": "please what kind of files is model.pkl please"}
+{"domain": "file_inspection", "intent": "detect_type", "parent_seed_id": "E059", "seed_id": "E059", "source": "aug:filler+synonym", "text": "what kind of files is model.pkl please"}
+{"domain": "file_inspection", "intent": "detect_type", "parent_seed_id": "E059", "seed_id": "E059", "source": "aug:synonym", "text": "what kind of files is model.pkl"}
+{"domain": "file_inspection", "intent": "detect_type", "seed_id": "E059", "source": "sweep", "text": "what kind of file is model.pkl"}
+{"domain": "file_inspection", "intent": "_ABSTAIN", "parent_seed_id": "E060", "seed_id": "E060", "source": "aug:filler", "text": "could you what is this file"}
+{"domain": "file_inspection", "intent": "_ABSTAIN", "parent_seed_id": "E060", "seed_id": "E060", "source": "aug:synonym", "text": "what is this files"}
+{"domain": "file_inspection", "intent": "_ABSTAIN", "seed_id": "E060", "source": "sweep", "text": "what is this file"}
+{"domain": "file_inspection", "intent": "show_stat", "parent_seed_id": "E061", "seed_id": "E061", "source": "aug:filler", "text": "can you who owns config.yaml for me"}
+{"domain": "file_inspection", "intent": "show_stat", "parent_seed_id": "E061", "seed_id": "E061", "source": "aug:filler", "text": "could you who owns config.yaml please"}
+{"domain": "file_inspection", "intent": "show_stat", "parent_seed_id": "E061", "seed_id": "E061", "source": "aug:filler", "text": "hey who owns config.yaml please"}
+{"domain": "file_inspection", "intent": "show_stat", "parent_seed_id": "E061", "seed_id": "E061", "source": "aug:fname", "text": "who owns app.conf"}
+{"domain": "file_inspection", "intent": "show_stat", "seed_id": "E061", "source": "sweep", "text": "who owns config.yaml"}
+{"domain": "file_inspection", "intent": "show_stat", "parent_seed_id": "E063", "seed_id": "E063", "source": "aug:filler", "text": "can you how big is config.yaml for me"}
+{"domain": "file_inspection", "intent": "show_stat", "parent_seed_id": "E063", "seed_id": "E063", "source": "aug:filler", "text": "please how big is config.yaml"}
+{"domain": "file_inspection", "intent": "show_stat", "parent_seed_id": "E063", "seed_id": "E063", "source": "aug:fname", "text": "how big is settings.json"}
+{"domain": "file_inspection", "intent": "show_stat", "parent_seed_id": "E063", "seed_id": "E063", "source": "aug:fname+filler", "text": "hey how big is settings.json for me"}
+{"domain": "file_inspection", "intent": "show_stat", "seed_id": "E063", "source": "sweep", "text": "how big is config.yaml"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E064", "seed_id": "E064", "source": "aug:fname+filler", "text": "can you find error in train.csv"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E064", "seed_id": "E064", "source": "aug:fname+filler", "text": "could you find error in train.csv please"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E064", "seed_id": "E064", "source": "aug:fname+filler", "text": "hey find error in train.out please"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E064", "seed_id": "E064", "source": "aug:synonym+fname", "text": "list error in train.csv"}
+{"domain": "text_and_logs", "intent": "search_in_file", "seed_id": "E064", "source": "sweep", "text": "find error in train.log"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E065", "seed_id": "E065", "source": "aug:dropout+filler", "text": "could you search for TODO in code for me"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E065", "seed_id": "E065", "source": "aug:filler+synonym", "text": "can you look for TODO in the code"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E065", "seed_id": "E065", "source": "aug:synonym", "text": "grep for TODO in the code"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E065", "seed_id": "E065", "source": "aug:synonym", "text": "look for TODO in the code"}
+{"domain": "text_and_logs", "intent": "search_in_file", "seed_id": "E065", "source": "sweep", "text": "search for TODO in the code"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E067", "seed_id": "E067", "source": "aug:dropout", "text": "show errors in log"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E067", "seed_id": "E067", "source": "aug:filler", "text": "can you show errors in the log"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E067", "seed_id": "E067", "source": "aug:filler", "text": "show errors in the log for me"}
+{"domain": "text_and_logs", "intent": "search_in_file", "parent_seed_id": "E067", "seed_id": "E067", "source": "aug:filler", "text": "show errors in the log please"}
+{"domain": "text_and_logs", "intent": "search_in_file", "seed_id": "E067", "source": "sweep", "text": "show errors in the log"}
+{"domain": "text_and_logs", "intent": "count_matches", "parent_seed_id": "E069", "seed_id": "E069", "source": "aug:dropout", "text": "count warnings in train.log"}
+{"domain": "text_and_logs", "intent": "count_matches", "parent_seed_id": "E069", "seed_id": "E069", "source": "aug:filler+fname", "text": "could you count the warnings in train.csv for me"}
+{"domain": "text_and_logs", "intent": "count_matches", "parent_seed_id": "E069", "seed_id": "E069", "source": "aug:fname+dropout", "text": "count warnings in train.csv"}
+{"domain": "text_and_logs", "intent": "count_matches", "parent_seed_id": "E069", "seed_id": "E069", "source": "aug:fname+dropout", "text": "count warnings in train.out"}
+{"domain": "text_and_logs", "intent": "count_matches", "seed_id": "E069", "source": "sweep", "text": "count the warnings in train.log"}
+{"domain": "text_and_logs", "intent": "search_recursive", "parent_seed_id": "E071", "seed_id": "E071", "source": "aug:filler", "text": "could you find 'deprecated' everywhere please"}
+{"domain": "text_and_logs", "intent": "search_recursive", "parent_seed_id": "E071", "seed_id": "E071", "source": "aug:filler", "text": "find 'deprecated' everywhere please"}
+{"domain": "text_and_logs", "intent": "search_recursive", "parent_seed_id": "E071", "seed_id": "E071", "source": "aug:filler", "text": "hey find 'deprecated' everywhere"}
+{"domain": "text_and_logs", "intent": "search_recursive", "parent_seed_id": "E071", "seed_id": "E071", "source": "aug:synonym", "text": "show me 'deprecated' everywhere"}
+{"domain": "text_and_logs", "intent": "search_recursive", "seed_id": "E071", "source": "sweep", "text": "find 'deprecated' everywhere"}
+{"domain": "text_and_logs", "intent": "sort_lines", "parent_seed_id": "E072", "seed_id": "E072", "source": "aug:filler", "text": "hey sort names.txt for me"}
+{"domain": "text_and_logs", "intent": "sort_lines", "parent_seed_id": "E072", "seed_id": "E072", "source": "aug:filler", "text": "please sort names.txt"}
+{"domain": "text_and_logs", "intent": "sort_lines", "parent_seed_id": "E072", "seed_id": "E072", "source": "aug:filler", "text": "please sort names.txt please"}
+{"domain": "text_and_logs", "intent": "sort_lines", "parent_seed_id": "E072", "seed_id": "E072", "source": "aug:filler", "text": "sort names.txt for me"}
+{"domain": "text_and_logs", "intent": "sort_lines", "seed_id": "E072", "source": "sweep", "text": "sort names.txt"}
+{"domain": "text_and_logs", "intent": "_ABSTAIN", "parent_seed_id": "E073", "seed_id": "E073", "source": "aug:filler", "text": "hey sort this list please"}
+{"domain": "text_and_logs", "intent": "_ABSTAIN", "parent_seed_id": "E073", "seed_id": "E073", "source": "aug:filler", "text": "sort this list for me"}
+{"domain": "text_and_logs", "intent": "_ABSTAIN", "seed_id": "E073", "source": "sweep", "text": "sort this list"}
+{"domain": "text_and_logs", "intent": "unique_lines", "parent_seed_id": "E075", "seed_id": "E075", "source": "aug:fname", "text": "remove duplicate lines from names.md"}
+{"domain": "text_and_logs", "intent": "unique_lines", "parent_seed_id": "E075", "seed_id": "E075", "source": "aug:fname+filler", "text": "can you remove duplicate lines from names.md"}
+{"domain": "text_and_logs", "intent": "unique_lines", "parent_seed_id": "E075", "seed_id": "E075", "source": "aug:fname+synonym", "text": "rerelocate duplicate lines from names.rst"}
+{"domain": "text_and_logs", "intent": "unique_lines", "parent_seed_id": "E075", "seed_id": "E075", "source": "aug:synonym+fname", "text": "rerelocate duplicate lines from names.md"}
+{"domain": "text_and_logs", "intent": "unique_lines", "seed_id": "E075", "source": "sweep", "text": "remove duplicate lines from names.txt"}
+{"domain": "workspace_and_shell", "intent": "env_var", "parent_seed_id": "E077", "seed_id": "E077", "source": "aug:dropout", "text": "show PORT variable"}
+{"domain": "workspace_and_shell", "intent": "env_var", "parent_seed_id": "E077", "seed_id": "E077", "source": "aug:dropout+filler", "text": "can you show PORT variable"}
+{"domain": "workspace_and_shell", "intent": "env_var", "parent_seed_id": "E077", "seed_id": "E077", "source": "aug:dropout+filler", "text": "show PORT variable for me"}
+{"domain": "workspace_and_shell", "intent": "env_var", "parent_seed_id": "E077", "seed_id": "E077", "source": "aug:filler+dropout", "text": "hey show PORT variable please"}
+{"domain": "workspace_and_shell", "intent": "env_var", "seed_id": "E077", "source": "sweep", "text": "show the PORT variable"}
+{"domain": "workspace_and_shell", "intent": "env_var", "parent_seed_id": "E078", "seed_id": "E078", "source": "aug:dropout", "text": "print home variable"}
+{"domain": "workspace_and_shell", "intent": "env_var", "parent_seed_id": "E078", "seed_id": "E078", "source": "aug:filler", "text": "print the home variable for me"}
+{"domain": "workspace_and_shell", "intent": "env_var", "parent_seed_id": "E078", "seed_id": "E078", "source": "aug:filler+dropout", "text": "can you print home variable"}
+{"domain": "workspace_and_shell", "intent": "env_var", "parent_seed_id": "E078", "seed_id": "E078", "source": "aug:filler+dropout", "text": "hey print home variable for me"}
+{"domain": "workspace_and_shell", "intent": "env_var", "seed_id": "E078", "source": "sweep", "text": "print the home variable"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "parent_seed_id": "E079", "seed_id": "E079", "source": "aug:filler", "text": "could you how much space is left for me"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "parent_seed_id": "E079", "seed_id": "E079", "source": "aug:filler", "text": "please how much space is left for me"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "parent_seed_id": "E079", "seed_id": "E079", "source": "aug:filler+dropout", "text": "hey how much space is left for"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "parent_seed_id": "E079", "seed_id": "E079", "source": "aug:filler+dropout", "text": "please how much space is left for"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "seed_id": "E079", "source": "sweep", "text": "how much space is left"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "parent_seed_id": "E080", "seed_id": "E080", "source": "aug:filler", "text": "can you how much room is left on ubuntu"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "parent_seed_id": "E080", "seed_id": "E080", "source": "aug:filler", "text": "hey how much room is left on ubuntu please"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "parent_seed_id": "E080", "seed_id": "E080", "source": "aug:filler", "text": "how much room is left on ubuntu for me"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "parent_seed_id": "E080", "seed_id": "E080", "source": "aug:filler", "text": "please how much room is left on ubuntu"}
+{"domain": "workspace_and_shell", "intent": "disk_free", "seed_id": "E080", "source": "sweep", "text": "how much room is left on ubuntu"}
+{"domain": "workspace_and_shell", "intent": "disk_usage", "parent_seed_id": "E082", "seed_id": "E082", "source": "aug:filler", "text": "hey how big is this folder for me"}
+{"domain": "workspace_and_shell", "intent": "disk_usage", "parent_seed_id": "E082", "seed_id": "E082", "source": "aug:filler", "text": "please how big is this folder please"}
+{"domain": "workspace_and_shell", "intent": "disk_usage", "parent_seed_id": "E082", "seed_id": "E082", "source": "aug:filler+synonym", "text": "can you how big is this directory"}
+{"domain": "workspace_and_shell", "intent": "disk_usage", "parent_seed_id": "E082", "seed_id": "E082", "source": "aug:synonym", "text": "how big is this directory"}
+{"domain": "workspace_and_shell", "intent": "disk_usage", "seed_id": "E082", "source": "sweep", "text": "how big is this folder"}
+{"domain": "workspace_and_shell", "intent": "where_python", "parent_seed_id": "E084", "seed_id": "E084", "source": "aug:filler", "text": "can you where is python"}
+{"domain": "workspace_and_shell", "intent": "where_python", "parent_seed_id": "E084", "seed_id": "E084", "source": "aug:filler", "text": "could you where is python please"}
+{"domain": "workspace_and_shell", "intent": "where_python", "parent_seed_id": "E084", "seed_id": "E084", "source": "aug:filler", "text": "please where is python for me"}
+{"domain": "workspace_and_shell", "intent": "where_python", "parent_seed_id": "E084", "seed_id": "E084", "source": "aug:filler", "text": "please where is python please"}
+{"domain": "workspace_and_shell", "intent": "where_python", "seed_id": "E084", "source": "sweep", "text": "where is python"}
+{"domain": "workspace_and_shell", "intent": "show_history", "parent_seed_id": "E086", "seed_id": "E086", "source": "aug:filler", "text": "can you what commands did i run recently"}
+{"domain": "workspace_and_shell", "intent": "show_history", "parent_seed_id": "E086", "seed_id": "E086", "source": "aug:filler", "text": "can you what commands did i run recently please"}
+{"domain": "workspace_and_shell", "intent": "show_history", "parent_seed_id": "E086", "seed_id": "E086", "source": "aug:filler", "text": "hey what commands did i run recently"}
+{"domain": "workspace_and_shell", "intent": "show_history", "parent_seed_id": "E086", "seed_id": "E086", "source": "aug:filler", "text": "please what commands did i run recently for me"}
+{"domain": "workspace_and_shell", "intent": "show_history", "seed_id": "E086", "source": "sweep", "text": "what commands did i run recently"}
+{"domain": "workspace_and_shell", "intent": "date_time", "parent_seed_id": "E088", "seed_id": "E088", "source": "aug:filler", "text": "can you what's today's date for me"}
+{"domain": "workspace_and_shell", "intent": "date_time", "parent_seed_id": "E088", "seed_id": "E088", "source": "aug:filler", "text": "could you what's today's date"}
+{"domain": "workspace_and_shell", "intent": "date_time", "parent_seed_id": "E088", "seed_id": "E088", "source": "aug:filler", "text": "hey what's today's date for me"}
+{"domain": "workspace_and_shell", "intent": "date_time", "parent_seed_id": "E088", "seed_id": "E088", "source": "aug:filler", "text": "hey what's today's date please"}
+{"domain": "workspace_and_shell", "intent": "date_time", "seed_id": "E088", "source": "sweep", "text": "what's today's date"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "parent_seed_id": "E089", "seed_id": "E089", "source": "aug:filler", "text": "can you make run.sh executable please"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "parent_seed_id": "E089", "seed_id": "E089", "source": "aug:filler", "text": "could you make run.sh executable please"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "parent_seed_id": "E089", "seed_id": "E089", "source": "aug:filler", "text": "hey make run.sh executable"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "parent_seed_id": "E089", "seed_id": "E089", "source": "aug:filler", "text": "please make run.sh executable please"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "seed_id": "E089", "source": "sweep", "text": "make run.sh executable"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "parent_seed_id": "E091", "seed_id": "E091", "source": "aug:filler", "text": "hey this script should be executable"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "parent_seed_id": "E091", "seed_id": "E091", "source": "aug:filler", "text": "please this script should be executable"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "parent_seed_id": "E091", "seed_id": "E091", "source": "aug:filler+synonym", "text": "could you this file should be executable"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "parent_seed_id": "E091", "seed_id": "E091", "source": "aug:synonym", "text": "this file should be executable"}
+{"domain": "filesystem_permissions", "intent": "make_executable", "seed_id": "E091", "source": "sweep", "text": "this script should be executable"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "parent_seed_id": "E092", "seed_id": "E092", "source": "aug:filler", "text": "please make config.yaml private"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "parent_seed_id": "E092", "seed_id": "E092", "source": "aug:filler+fname", "text": "make settings.json private please"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "parent_seed_id": "E092", "seed_id": "E092", "source": "aug:fname", "text": "make defaults.yaml private"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "parent_seed_id": "E092", "seed_id": "E092", "source": "aug:fname+filler", "text": "please make app.conf private for me"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "seed_id": "E092", "source": "sweep", "text": "make config.yaml private"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "parent_seed_id": "E094", "seed_id": "E094", "source": "aug:dropout", "text": "lock down key file"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "parent_seed_id": "E094", "seed_id": "E094", "source": "aug:dropout+synonym", "text": "lock down key files"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "parent_seed_id": "E094", "seed_id": "E094", "source": "aug:filler+dropout", "text": "could you lock down the key file for"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "parent_seed_id": "E094", "seed_id": "E094", "source": "aug:synonym", "text": "lock down the key files"}
+{"domain": "filesystem_permissions", "intent": "set_permission", "seed_id": "E094", "source": "sweep", "text": "lock down the key file"}
+{"domain": "filesystem_permissions", "intent": "show_permissions", "parent_seed_id": "E095", "seed_id": "E095", "source": "aug:dropout", "text": "show permissions here"}
+{"domain": "filesystem_permissions", "intent": "show_permissions", "parent_seed_id": "E095", "seed_id": "E095", "source": "aug:filler", "text": "can you show the permissions here"}
+{"domain": "filesystem_permissions", "intent": "show_permissions", "parent_seed_id": "E095", "seed_id": "E095", "source": "aug:filler", "text": "can you show the permissions here for me"}
+{"domain": "filesystem_permissions", "intent": "show_permissions", "parent_seed_id": "E095", "seed_id": "E095", "source": "aug:filler+dropout", "text": "could you show permissions here please"}
+{"domain": "filesystem_permissions", "intent": "show_permissions", "seed_id": "E095", "source": "sweep", "text": "show the permissions here"}
+{"domain": "filesystem_permissions", "intent": "find_perms", "parent_seed_id": "E097", "seed_id": "E097", "source": "aug:filler", "text": "can you find world-writable files"}
+{"domain": "filesystem_permissions", "intent": "find_perms", "parent_seed_id": "E097", "seed_id": "E097", "source": "aug:filler", "text": "hey find world-writable files"}
+{"domain": "filesystem_permissions", "intent": "find_perms", "parent_seed_id": "E097", "seed_id": "E097", "source": "aug:synonym", "text": "where are world-writable files"}
+{"domain": "filesystem_permissions", "intent": "find_perms", "parent_seed_id": "E097", "seed_id": "E097", "source": "aug:synonym+filler", "text": "hey locate world-writable files"}
+{"domain": "filesystem_permissions", "intent": "find_perms", "seed_id": "E097", "source": "sweep", "text": "find world-writable files"}
+{"domain": "processes", "intent": "list_processes", "parent_seed_id": "E099", "seed_id": "E099", "source": "aug:filler", "text": "can you what's running for me"}
+{"domain": "processes", "intent": "list_processes", "parent_seed_id": "E099", "seed_id": "E099", "source": "aug:filler", "text": "hey what's running"}
+{"domain": "processes", "intent": "list_processes", "parent_seed_id": "E099", "seed_id": "E099", "source": "aug:filler", "text": "hey what's running for me"}
+{"domain": "processes", "intent": "list_processes", "parent_seed_id": "E099", "seed_id": "E099", "source": "aug:filler", "text": "what's running for me"}
+{"domain": "processes", "intent": "list_processes", "seed_id": "E099", "source": "sweep", "text": "what's running"}
+{"domain": "processes", "intent": "list_processes", "parent_seed_id": "E100", "seed_id": "E100", "source": "aug:filler", "text": "can you show my processes"}
+{"domain": "processes", "intent": "list_processes", "parent_seed_id": "E100", "seed_id": "E100", "source": "aug:filler", "text": "hey show my processes for me"}
+{"domain": "processes", "intent": "list_processes", "parent_seed_id": "E100", "seed_id": "E100", "source": "aug:filler", "text": "please show my processes for me"}
+{"domain": "processes", "intent": "list_processes", "parent_seed_id": "E100", "seed_id": "E100", "source": "aug:filler", "text": "please show my processes please"}
+{"domain": "processes", "intent": "list_processes", "seed_id": "E100", "source": "sweep", "text": "show my processes"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E102", "seed_id": "E102", "source": "aug:filler", "text": "can you who's using port 8000 please"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E102", "seed_id": "E102", "source": "aug:filler", "text": "could you who's using port 8000"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E102", "seed_id": "E102", "source": "aug:filler", "text": "could you who's using port 8000 for me"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E102", "seed_id": "E102", "source": "aug:filler", "text": "hey who's using port 8000"}
+{"domain": "processes", "intent": "process_on_port", "seed_id": "E102", "source": "sweep", "text": "who's using port 8000"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E104", "seed_id": "E104", "source": "aug:filler", "text": "can you what's listening"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E104", "seed_id": "E104", "source": "aug:filler", "text": "could you what's listening for me"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E104", "seed_id": "E104", "source": "aug:filler", "text": "hey what's listening for me"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E104", "seed_id": "E104", "source": "aug:filler", "text": "please what's listening please"}
+{"domain": "processes", "intent": "process_on_port", "seed_id": "E104", "source": "sweep", "text": "what's listening"}
+{"domain": "processes", "intent": "top_by_mem", "parent_seed_id": "E105", "seed_id": "E105", "source": "aug:dropout", "text": "what's using most memory"}
+{"domain": "processes", "intent": "top_by_mem", "parent_seed_id": "E105", "seed_id": "E105", "source": "aug:filler", "text": "can you what's using the most memory"}
+{"domain": "processes", "intent": "top_by_mem", "parent_seed_id": "E105", "seed_id": "E105", "source": "aug:filler", "text": "what's using the most memory please"}
+{"domain": "processes", "intent": "top_by_mem", "parent_seed_id": "E105", "seed_id": "E105", "source": "aug:filler+dropout", "text": "can you what's using most memory please"}
+{"domain": "processes", "intent": "top_by_mem", "seed_id": "E105", "source": "sweep", "text": "what's using the most memory"}
+{"domain": "processes", "intent": "top_by_cpu", "parent_seed_id": "E106", "seed_id": "E106", "source": "aug:filler", "text": "can you top cpu processes"}
+{"domain": "processes", "intent": "top_by_cpu", "parent_seed_id": "E106", "seed_id": "E106", "source": "aug:filler", "text": "can you top cpu processes please"}
+{"domain": "processes", "intent": "top_by_cpu", "parent_seed_id": "E106", "seed_id": "E106", "source": "aug:filler", "text": "hey top cpu processes"}
+{"domain": "processes", "intent": "top_by_cpu", "parent_seed_id": "E106", "seed_id": "E106", "source": "aug:filler", "text": "top cpu processes please"}
+{"domain": "processes", "intent": "top_by_cpu", "seed_id": "E106", "source": "sweep", "text": "top cpu processes"}
+{"domain": "processes", "intent": "kill_pid", "parent_seed_id": "E107", "seed_id": "E107", "source": "aug:filler", "text": "could you kill process 4321 please"}
+{"domain": "processes", "intent": "kill_pid", "parent_seed_id": "E107", "seed_id": "E107", "source": "aug:filler", "text": "hey kill process 4321"}
+{"domain": "processes", "intent": "kill_pid", "parent_seed_id": "E107", "seed_id": "E107", "source": "aug:filler", "text": "please kill process 4321"}
+{"domain": "processes", "intent": "kill_pid", "parent_seed_id": "E107", "seed_id": "E107", "source": "aug:filler", "text": "please kill process 4321 please"}
+{"domain": "processes", "intent": "kill_pid", "seed_id": "E107", "source": "sweep", "text": "kill process 4321"}
+{"domain": "processes", "intent": "kill_process", "parent_seed_id": "E108", "seed_id": "E108", "source": "aug:dropout", "text": "stop python process"}
+{"domain": "processes", "intent": "kill_process", "parent_seed_id": "E108", "seed_id": "E108", "source": "aug:dropout+filler", "text": "hey stop python process for me"}
+{"domain": "processes", "intent": "kill_process", "parent_seed_id": "E108", "seed_id": "E108", "source": "aug:filler", "text": "can you stop the python process for me"}
+{"domain": "processes", "intent": "kill_process", "parent_seed_id": "E108", "seed_id": "E108", "source": "aug:filler", "text": "hey stop the python process please"}
+{"domain": "processes", "intent": "kill_process", "seed_id": "E108", "source": "sweep", "text": "stop the python process"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E110", "seed_id": "E110", "source": "aug:filler", "text": "hey stop whatever's on port 8000 for me"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E110", "seed_id": "E110", "source": "aug:filler", "text": "hey stop whatever's on port 8000 please"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E110", "seed_id": "E110", "source": "aug:filler", "text": "please stop whatever's on port 8000"}
+{"domain": "processes", "intent": "process_on_port", "parent_seed_id": "E110", "seed_id": "E110", "source": "aug:filler", "text": "stop whatever's on port 8000 please"}
+{"domain": "processes", "intent": "process_on_port", "seed_id": "E110", "source": "sweep", "text": "stop whatever's on port 8000"}
+{"domain": "wsl_interop", "intent": "open_explorer", "parent_seed_id": "E112", "seed_id": "E112", "source": "aug:dropout+synonym", "text": "show this in files explorer"}
+{"domain": "wsl_interop", "intent": "open_explorer", "parent_seed_id": "E112", "seed_id": "E112", "source": "aug:filler", "text": "can you show this in the file explorer"}
+{"domain": "wsl_interop", "intent": "open_explorer", "parent_seed_id": "E112", "seed_id": "E112", "source": "aug:filler+synonym", "text": "hey show this in the files explorer for me"}
+{"domain": "wsl_interop", "intent": "open_explorer", "parent_seed_id": "E112", "seed_id": "E112", "source": "aug:synonym", "text": "show this in the files explorer"}
+{"domain": "wsl_interop", "intent": "open_explorer", "seed_id": "E112", "source": "sweep", "text": "show this in the file explorer"}
+{"domain": "wsl_interop", "intent": "path_to_windows", "parent_seed_id": "E114", "seed_id": "E114", "source": "aug:filler", "text": "hey convert this path to a windows path"}
+{"domain": "wsl_interop", "intent": "path_to_windows", "parent_seed_id": "E114", "seed_id": "E114", "source": "aug:filler", "text": "hey convert this path to a windows path please"}
+{"domain": "wsl_interop", "intent": "path_to_windows", "parent_seed_id": "E114", "seed_id": "E114", "source": "aug:filler", "text": "please convert this path to a windows path"}
+{"domain": "wsl_interop", "intent": "path_to_windows", "parent_seed_id": "E114", "seed_id": "E114", "source": "aug:filler", "text": "please convert this path to a windows path please"}
+{"domain": "wsl_interop", "intent": "path_to_windows", "seed_id": "E114", "source": "sweep", "text": "convert this path to a windows path"}
+{"domain": "wsl_interop", "intent": "copy_to_clipboard", "parent_seed_id": "E115", "seed_id": "E115", "source": "aug:dropout", "text": "copy this path to clipboard"}
+{"domain": "wsl_interop", "intent": "copy_to_clipboard", "parent_seed_id": "E115", "seed_id": "E115", "source": "aug:dropout+filler", "text": "can you copy this path to clipboard for me"}
+{"domain": "wsl_interop", "intent": "copy_to_clipboard", "parent_seed_id": "E115", "seed_id": "E115", "source": "aug:filler", "text": "can you copy this path to the clipboard"}
+{"domain": "wsl_interop", "intent": "copy_to_clipboard", "parent_seed_id": "E115", "seed_id": "E115", "source": "aug:filler", "text": "hey copy this path to the clipboard please"}
+{"domain": "wsl_interop", "intent": "copy_to_clipboard", "seed_id": "E115", "source": "sweep", "text": "copy this path to the clipboard"}
+{"domain": "wsl_interop", "intent": "open_vscode", "parent_seed_id": "E116", "seed_id": "E116", "source": "aug:filler", "text": "could you open this in vs code for me"}
+{"domain": "wsl_interop", "intent": "open_vscode", "parent_seed_id": "E116", "seed_id": "E116", "source": "aug:filler", "text": "hey open this in vs code"}
+{"domain": "wsl_interop", "intent": "open_vscode", "parent_seed_id": "E116", "seed_id": "E116", "source": "aug:filler", "text": "open this in vs code please"}
+{"domain": "wsl_interop", "intent": "open_vscode", "parent_seed_id": "E116", "seed_id": "E116", "source": "aug:filler", "text": "please open this in vs code please"}
+{"domain": "wsl_interop", "intent": "open_vscode", "seed_id": "E116", "source": "sweep", "text": "open this in vs code"}
+{"domain": "wsl_interop", "intent": "goto_cdrive", "parent_seed_id": "E118", "seed_id": "E118", "source": "aug:filler", "text": "can you where are my windows documents please"}
+{"domain": "wsl_interop", "intent": "goto_cdrive", "parent_seed_id": "E118", "seed_id": "E118", "source": "aug:filler", "text": "hey where are my windows documents"}
+{"domain": "wsl_interop", "intent": "goto_cdrive", "parent_seed_id": "E118", "seed_id": "E118", "source": "aug:filler", "text": "please where are my windows documents please"}
+{"domain": "wsl_interop", "intent": "goto_cdrive", "parent_seed_id": "E118", "seed_id": "E118", "source": "aug:filler", "text": "where are my windows documents please"}
+{"domain": "wsl_interop", "intent": "goto_cdrive", "seed_id": "E118", "source": "sweep", "text": "where are my windows documents"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E119", "seed_id": "E119", "source": "aug:dropout", "text": "zip up logs folder"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E119", "seed_id": "E119", "source": "aug:dropout+synonym", "text": "zip up logs directory"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E119", "seed_id": "E119", "source": "aug:filler+dropout", "text": "can you zip up logs folder"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E119", "seed_id": "E119", "source": "aug:synonym", "text": "zip up the logs directory"}
+{"domain": "archives_backup", "intent": "create_archive", "seed_id": "E119", "source": "sweep", "text": "zip up the logs folder"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E120", "seed_id": "E120", "source": "aug:dropout", "text": "make a backup of project"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E120", "seed_id": "E120", "source": "aug:filler", "text": "can you make a backup of the project for me"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E120", "seed_id": "E120", "source": "aug:filler", "text": "please make a backup of the project for me"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E120", "seed_id": "E120", "source": "aug:filler+dropout", "text": "please make a backup of project please"}
+{"domain": "archives_backup", "intent": "create_archive", "seed_id": "E120", "source": "sweep", "text": "make a backup of the project"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E122", "seed_id": "E122", "source": "aug:dropout", "text": "compress results"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E122", "seed_id": "E122", "source": "aug:filler", "text": "could you compress the results please"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E122", "seed_id": "E122", "source": "aug:filler", "text": "please compress the results for me"}
+{"domain": "archives_backup", "intent": "create_archive", "parent_seed_id": "E122", "seed_id": "E122", "source": "aug:filler+dropout", "text": "can you compress results for me"}
+{"domain": "archives_backup", "intent": "create_archive", "seed_id": "E122", "source": "sweep", "text": "compress the results"}
+{"domain": "archives_backup", "intent": "extract_tar", "parent_seed_id": "E123", "seed_id": "E123", "source": "aug:dropout", "text": "extract tarball"}
+{"domain": "archives_backup", "intent": "extract_tar", "parent_seed_id": "E123", "seed_id": "E123", "source": "aug:filler", "text": "could you extract the tarball for me"}
+{"domain": "archives_backup", "intent": "extract_tar", "parent_seed_id": "E123", "seed_id": "E123", "source": "aug:filler", "text": "extract the tarball please"}
+{"domain": "archives_backup", "intent": "extract_tar", "parent_seed_id": "E123", "seed_id": "E123", "source": "aug:filler+dropout", "text": "extract tarball please"}
+{"domain": "archives_backup", "intent": "extract_tar", "seed_id": "E123", "source": "sweep", "text": "extract the tarball"}
+{"domain": "archives_backup", "intent": "extract_zip", "parent_seed_id": "E124", "seed_id": "E124", "source": "aug:dropout", "text": "unzip archive"}
+{"domain": "archives_backup", "intent": "extract_zip", "parent_seed_id": "E124", "seed_id": "E124", "source": "aug:dropout+filler", "text": "unzip archive for me"}
+{"domain": "archives_backup", "intent": "extract_zip", "parent_seed_id": "E124", "seed_id": "E124", "source": "aug:filler", "text": "can you unzip the archive"}
+{"domain": "archives_backup", "intent": "extract_zip", "parent_seed_id": "E124", "seed_id": "E124", "source": "aug:filler", "text": "hey unzip the archive please"}
+{"domain": "archives_backup", "intent": "extract_zip", "seed_id": "E124", "source": "sweep", "text": "unzip the archive"}
+{"domain": "archives_backup", "intent": "list_archive", "parent_seed_id": "E125", "seed_id": "E125", "source": "aug:dropout", "text": "what's inside backup tarball"}
+{"domain": "archives_backup", "intent": "list_archive", "parent_seed_id": "E125", "seed_id": "E125", "source": "aug:dropout+filler", "text": "can you what's inside backup tarball"}
+{"domain": "archives_backup", "intent": "list_archive", "parent_seed_id": "E125", "seed_id": "E125", "source": "aug:dropout+filler", "text": "please what's inside backup tarball for me"}
+{"domain": "archives_backup", "intent": "list_archive", "parent_seed_id": "E125", "seed_id": "E125", "source": "aug:filler", "text": "hey what's inside the backup tarball for me"}
+{"domain": "archives_backup", "intent": "list_archive", "seed_id": "E125", "source": "sweep", "text": "what's inside the backup tarball"}
+{"domain": "archives_backup", "intent": "copy_file", "parent_seed_id": "E127", "seed_id": "E127", "source": "aug:filler+synonym", "text": "copy config.yaml for me"}
+{"domain": "archives_backup", "intent": "copy_file", "parent_seed_id": "E127", "seed_id": "E127", "source": "aug:fname", "text": "make a copy of app.conf"}
+{"domain": "archives_backup", "intent": "copy_file", "parent_seed_id": "E127", "seed_id": "E127", "source": "aug:fname+filler", "text": "could you make a copy of settings.json please"}
+{"domain": "archives_backup", "intent": "copy_file", "parent_seed_id": "E127", "seed_id": "E127", "source": "aug:synonym+fname", "text": "duplicate app.conf"}
+{"domain": "archives_backup", "intent": "copy_file", "seed_id": "E127", "source": "sweep", "text": "make a copy of config.yaml"}
+{"domain": "python_environments", "intent": "check_package", "parent_seed_id": "E128", "seed_id": "E128", "source": "aug:filler", "text": "could you is numpy installed"}
+{"domain": "python_environments", "intent": "check_package", "parent_seed_id": "E128", "seed_id": "E128", "source": "aug:filler", "text": "hey is numpy installed"}
+{"domain": "python_environments", "intent": "check_package", "parent_seed_id": "E128", "seed_id": "E128", "source": "aug:filler", "text": "is numpy installed for me"}
+{"domain": "python_environments", "intent": "check_package", "parent_seed_id": "E128", "seed_id": "E128", "source": "aug:filler+dropout", "text": "hey is numpy installed for"}
+{"domain": "python_environments", "intent": "check_package", "seed_id": "E128", "source": "sweep", "text": "is numpy installed"}
+{"domain": "python_environments", "intent": "check_package", "parent_seed_id": "E130", "seed_id": "E130", "source": "aug:filler", "text": "can you check if torch is there"}
+{"domain": "python_environments", "intent": "check_package", "parent_seed_id": "E130", "seed_id": "E130", "source": "aug:filler", "text": "can you check if torch is there for me"}
+{"domain": "python_environments", "intent": "check_package", "parent_seed_id": "E130", "seed_id": "E130", "source": "aug:filler", "text": "could you check if torch is there for me"}
+{"domain": "python_environments", "intent": "check_package", "parent_seed_id": "E130", "seed_id": "E130", "source": "aug:filler", "text": "hey check if torch is there"}
+{"domain": "python_environments", "intent": "check_package", "seed_id": "E130", "source": "sweep", "text": "check if torch is there"}
+{"domain": "python_environments", "intent": "check_installed", "parent_seed_id": "E132", "seed_id": "E132", "source": "aug:filler", "text": "can you check if docker is there"}
+{"domain": "python_environments", "intent": "check_installed", "parent_seed_id": "E132", "seed_id": "E132", "source": "aug:filler", "text": "could you check if docker is there please"}
+{"domain": "python_environments", "intent": "check_installed", "parent_seed_id": "E132", "seed_id": "E132", "source": "aug:filler", "text": "hey check if docker is there for me"}
+{"domain": "python_environments", "intent": "check_installed", "parent_seed_id": "E132", "seed_id": "E132", "source": "aug:filler+dropout", "text": "please check if docker is there for"}
+{"domain": "python_environments", "intent": "check_installed", "seed_id": "E132", "source": "sweep", "text": "check if docker is there"}
+{"domain": "python_environments", "intent": "check_installed", "parent_seed_id": "E133", "seed_id": "E133", "source": "aug:filler", "text": "can you do i have node for me"}
+{"domain": "python_environments", "intent": "check_installed", "parent_seed_id": "E133", "seed_id": "E133", "source": "aug:filler", "text": "hey do i have node"}
+{"domain": "python_environments", "intent": "check_installed", "parent_seed_id": "E133", "seed_id": "E133", "source": "aug:filler", "text": "hey do i have node please"}
+{"domain": "python_environments", "intent": "check_installed", "parent_seed_id": "E133", "seed_id": "E133", "source": "aug:filler", "text": "please do i have node"}
+{"domain": "python_environments", "intent": "check_installed", "seed_id": "E133", "source": "sweep", "text": "do i have node"}
+{"domain": "python_environments", "intent": "pip_list", "parent_seed_id": "E135", "seed_id": "E135", "source": "aug:filler", "text": "could you list my pip packages"}
+{"domain": "python_environments", "intent": "pip_list", "parent_seed_id": "E135", "seed_id": "E135", "source": "aug:filler", "text": "hey list my pip packages"}
+{"domain": "python_environments", "intent": "pip_list", "parent_seed_id": "E135", "seed_id": "E135", "source": "aug:filler", "text": "list my pip packages for me"}
+{"domain": "python_environments", "intent": "pip_list", "parent_seed_id": "E135", "seed_id": "E135", "source": "aug:filler", "text": "please list my pip packages please"}
+{"domain": "python_environments", "intent": "pip_list", "seed_id": "E135", "source": "sweep", "text": "list my pip packages"}
+{"domain": "python_environments", "intent": "where_python", "parent_seed_id": "E136", "seed_id": "E136", "source": "aug:filler", "text": "can you which python am i using please"}
+{"domain": "python_environments", "intent": "where_python", "parent_seed_id": "E136", "seed_id": "E136", "source": "aug:filler", "text": "hey which python am i using for me"}
+{"domain": "python_environments", "intent": "where_python", "parent_seed_id": "E136", "seed_id": "E136", "source": "aug:filler", "text": "please which python am i using please"}
+{"domain": "python_environments", "intent": "where_python", "parent_seed_id": "E136", "seed_id": "E136", "source": "aug:filler+dropout", "text": "please which python am i using for"}
+{"domain": "python_environments", "intent": "where_python", "seed_id": "E136", "source": "sweep", "text": "which python am i using"}
+{"domain": "python_environments", "intent": "run_script", "parent_seed_id": "E137", "seed_id": "E137", "source": "aug:filler", "text": "please run train.py for me"}
+{"domain": "python_environments", "intent": "run_script", "parent_seed_id": "E137", "seed_id": "E137", "source": "aug:filler", "text": "run train.py for me"}
+{"domain": "python_environments", "intent": "run_script", "parent_seed_id": "E137", "seed_id": "E137", "source": "aug:fname", "text": "run train.go"}
+{"domain": "python_environments", "intent": "run_script", "parent_seed_id": "E137", "seed_id": "E137", "source": "aug:fname+filler", "text": "could you run train.rb for me"}
+{"domain": "python_environments", "intent": "run_script", "seed_id": "E137", "source": "sweep", "text": "run train.py"}
+{"domain": "python_environments", "intent": "_ABSTAIN", "parent_seed_id": "E138", "seed_id": "E138", "source": "aug:filler", "text": "could you install the requests package for me"}
+{"domain": "python_environments", "intent": "_ABSTAIN", "parent_seed_id": "E138", "seed_id": "E138", "source": "aug:filler", "text": "please install the requests package"}
+{"domain": "python_environments", "intent": "_ABSTAIN", "seed_id": "E138", "source": "sweep", "text": "install the requests package"}
+{"domain": "python_environments", "intent": "_ABSTAIN", "parent_seed_id": "E139", "seed_id": "E139", "source": "aug:filler", "text": "can you add pandas to my environment please"}
+{"domain": "python_environments", "intent": "_ABSTAIN", "parent_seed_id": "E139", "seed_id": "E139", "source": "aug:filler", "text": "please add pandas to my environment please"}
+{"domain": "python_environments", "intent": "_ABSTAIN", "seed_id": "E139", "source": "sweep", "text": "add pandas to my environment"}
+{"domain": "file_management", "intent": "move_file", "parent_seed_id": "E141", "seed_id": "E141", "source": "aug:filler", "text": "hey rename a.txt to b.txt please"}
+{"domain": "file_management", "intent": "move_file", "parent_seed_id": "E141", "seed_id": "E141", "source": "aug:fname", "text": "rename a.md to b.txt"}
+{"domain": "file_management", "intent": "move_file", "parent_seed_id": "E141", "seed_id": "E141", "source": "aug:fname", "text": "rename a.rst to b.txt"}
+{"domain": "file_management", "intent": "move_file", "parent_seed_id": "E141", "seed_id": "E141", "source": "aug:fname+filler", "text": "hey rename a.rst to b.txt please"}
+{"domain": "file_management", "intent": "move_file", "seed_id": "E141", "source": "sweep", "text": "rename a.txt to b.txt"}
+{"domain": "file_management", "intent": "copy_file", "parent_seed_id": "E142", "seed_id": "E142", "source": "aug:filler", "text": "copy requirements.txt to archives please"}
+{"domain": "file_management", "intent": "copy_file", "parent_seed_id": "E142", "seed_id": "E142", "source": "aug:fname", "text": "copy pyproject.toml to archives"}
+{"domain": "file_management", "intent": "copy_file", "parent_seed_id": "E142", "seed_id": "E142", "source": "aug:fname", "text": "copy setup.cfg to archives"}
+{"domain": "file_management", "intent": "copy_file", "parent_seed_id": "E142", "seed_id": "E142", "source": "aug:fname+filler", "text": "could you copy setup.cfg to archives for me"}
+{"domain": "file_management", "intent": "copy_file", "seed_id": "E142", "source": "sweep", "text": "copy requirements.txt to archives"}
+{"domain": "file_management", "intent": "delete_file", "parent_seed_id": "E143", "seed_id": "E143", "source": "aug:filler", "text": "hey delete old.log"}
+{"domain": "file_management", "intent": "delete_file", "parent_seed_id": "E143", "seed_id": "E143", "source": "aug:filler+fname", "text": "could you delete old.csv please"}
+{"domain": "file_management", "intent": "delete_file", "parent_seed_id": "E143", "seed_id": "E143", "source": "aug:filler+fname", "text": "hey delete old.csv please"}
+{"domain": "file_management", "intent": "delete_file", "parent_seed_id": "E143", "seed_id": "E143", "source": "aug:fname", "text": "delete old.csv"}
+{"domain": "file_management", "intent": "delete_file", "seed_id": "E143", "source": "sweep", "text": "delete old.log"}
+{"domain": "file_management", "intent": "delete_file", "parent_seed_id": "E144", "seed_id": "E144", "source": "aug:filler", "text": "can you get rid of output.tmp"}
+{"domain": "file_management", "intent": "delete_file", "parent_seed_id": "E144", "seed_id": "E144", "source": "aug:filler", "text": "could you get rid of output.tmp"}
+{"domain": "file_management", "intent": "delete_file", "parent_seed_id": "E144", "seed_id": "E144", "source": "aug:filler", "text": "please get rid of output.tmp please"}
+{"domain": "file_management", "intent": "delete_file", "parent_seed_id": "E144", "seed_id": "E144", "source": "aug:filler+dropout", "text": "get rid of output.tmp for"}
+{"domain": "file_management", "intent": "delete_file", "seed_id": "E144", "source": "sweep", "text": "get rid of output.tmp"}
+{"domain": "file_management", "intent": "make_dir", "parent_seed_id": "E145", "seed_id": "E145", "source": "aug:filler+synonym", "text": "can you create a directory photos for me"}
+{"domain": "file_management", "intent": "make_dir", "parent_seed_id": "E145", "seed_id": "E145", "source": "aug:synonym", "text": "create a directory photos"}
+{"domain": "file_management", "intent": "make_dir", "parent_seed_id": "E145", "seed_id": "E145", "source": "aug:synonym", "text": "create a folder photos"}
+{"domain": "file_management", "intent": "make_dir", "parent_seed_id": "E145", "seed_id": "E145", "source": "aug:synonym+filler", "text": "please create a directory photos"}
+{"domain": "file_management", "intent": "make_dir", "seed_id": "E145", "source": "sweep", "text": "make a folder photos"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG001", "seed_id": "SG001", "source": "aug:dropout", "text": "where are python scripts"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG001", "seed_id": "SG001", "source": "aug:filler+synonym", "text": "can you where are the python files please"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG001", "seed_id": "SG001", "source": "aug:synonym", "text": "where are the python files"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG001", "seed_id": "SG001", "source": "aug:synonym+filler", "text": "hey where are the python files"}
+{"domain": "", "intent": "find_by_type", "seed_id": "SG001", "source": "stress_gap", "text": "where are the python scripts"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG002", "seed_id": "SG002", "source": "aug:dropout+filler", "text": "can you list python files for me"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG002", "seed_id": "SG002", "source": "aug:filler+dropout", "text": "could you list python files for me"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG002", "seed_id": "SG002", "source": "aug:filler+dropout", "text": "hey list python files please"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG002", "seed_id": "SG002", "source": "aug:filler+synonym", "text": "list all python filess please"}
+{"domain": "", "intent": "find_by_type", "seed_id": "SG002", "source": "stress_gap", "text": "list all python files"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG003", "seed_id": "SG003", "source": "aug:dropout", "text": "where are spreadsheets"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG003", "seed_id": "SG003", "source": "aug:filler", "text": "could you where are the spreadsheets for me"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG003", "seed_id": "SG003", "source": "aug:filler", "text": "could you where are the spreadsheets please"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG003", "seed_id": "SG003", "source": "aug:synonym", "text": "where are the csv files"}
+{"domain": "", "intent": "find_by_type", "seed_id": "SG003", "source": "stress_gap", "text": "where are the spreadsheets"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG005", "seed_id": "SG005", "source": "aug:filler", "text": "please spreadsheet files please"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG005", "seed_id": "SG005", "source": "aug:filler", "text": "spreadsheet files please please"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG005", "seed_id": "SG005", "source": "aug:filler+synonym", "text": "could you spreadsheet filess please please"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG005", "seed_id": "SG005", "source": "aug:synonym", "text": "spreadsheet filess please"}
+{"domain": "", "intent": "find_by_type", "seed_id": "SG005", "source": "stress_gap", "text": "spreadsheet files please"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG006", "seed_id": "SG006", "source": "aug:filler+dropout", "text": "please find all files here please"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG006", "seed_id": "SG006", "source": "aug:filler+synonym", "text": "can you list all the files here please"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG006", "seed_id": "SG006", "source": "aug:synonym+dropout", "text": "show all the files here"}
+{"domain": "", "intent": "find_by_type", "parent_seed_id": "SG006", "seed_id": "SG006", "source": "aug:synonym+filler", "text": "list all the files here please"}
+{"domain": "", "intent": "find_by_type", "seed_id": "SG006", "source": "stress_gap", "text": "find all the files here"}
+{"domain": "", "intent": "find_by_time", "parent_seed_id": "SG007", "seed_id": "SG007", "source": "aug:dropout", "text": "what changed in last day"}
+{"domain": "", "intent": "find_by_time", "parent_seed_id": "SG007", "seed_id": "SG007", "source": "aug:dropout+filler", "text": "could you what changed in last day please"}
+{"domain": "", "intent": "find_by_time", "parent_seed_id": "SG007", "seed_id": "SG007", "source": "aug:filler", "text": "hey what changed in the last day please"}
+{"domain": "", "intent": "find_by_time", "parent_seed_id": "SG007", "seed_id": "SG007", "source": "aug:filler", "text": "what changed in the last day for me"}
+{"domain": "", "intent": "find_by_time", "seed_id": "SG007", "source": "stress_gap", "text": "what changed in the last day"}
+{"domain": "", "intent": "find_by_time", "parent_seed_id": "SG008", "seed_id": "SG008", "source": "aug:dropout+filler", "text": "please what changed in last day in this directory please"}
+{"domain": "", "intent": "find_by_time", "parent_seed_id": "SG008", "seed_id": "SG008", "source": "aug:dropout+filler", "text": "what changed in last day in this directory please"}
+{"domain": "", "intent": "find_by_time", "parent_seed_id": "SG008", "seed_id": "SG008", "source": "aug:filler", "text": "hey what changed in the last day in this directory"}
+{"domain": "", "intent": "find_by_time", "parent_seed_id": "SG008", "seed_id": "SG008", "source": "aug:synonym", "text": "what changed in the last day in this folder"}
+{"domain": "", "intent": "find_by_time", "seed_id": "SG008", "source": "stress_gap", "text": "what changed in the last day in this directory"}
+{"domain": "", "intent": "list_all", "parent_seed_id": "SG010", "seed_id": "SG010", "source": "aug:filler", "text": "can you list everything here for me"}
+{"domain": "", "intent": "list_all", "parent_seed_id": "SG010", "seed_id": "SG010", "source": "aug:filler", "text": "hey list everything here"}
+{"domain": "", "intent": "list_all", "parent_seed_id": "SG010", "seed_id": "SG010", "source": "aug:filler", "text": "please list everything here"}
+{"domain": "", "intent": "list_all", "parent_seed_id": "SG010", "seed_id": "SG010", "source": "aug:filler+dropout", "text": "hey list everything here for"}
+{"domain": "", "intent": "list_all", "seed_id": "SG010", "source": "stress_gap", "text": "list everything here"}
+{"domain": "", "intent": "list_all", "parent_seed_id": "SG011", "seed_id": "SG011", "source": "aug:dropout+filler", "text": "please show what's in this folder please"}
+{"domain": "", "intent": "list_all", "parent_seed_id": "SG011", "seed_id": "SG011", "source": "aug:filler+dropout", "text": "could you show me what's in this folder for"}
+{"domain": "", "intent": "list_all", "parent_seed_id": "SG011", "seed_id": "SG011", "source": "aug:synonym", "text": "display what's in this folder"}
+{"domain": "", "intent": "list_all", "parent_seed_id": "SG011", "seed_id": "SG011", "source": "aug:synonym", "text": "give me what's in this folder"}
+{"domain": "", "intent": "list_all", "seed_id": "SG011", "source": "stress_gap", "text": "show me what's in this folder"}
+{"domain": "", "intent": "list_processes", "parent_seed_id": "SG013", "seed_id": "SG013", "source": "aug:filler", "text": "can you what processes are running"}
+{"domain": "", "intent": "list_processes", "parent_seed_id": "SG013", "seed_id": "SG013", "source": "aug:filler", "text": "could you what processes are running for me"}
+{"domain": "", "intent": "list_processes", "parent_seed_id": "SG013", "seed_id": "SG013", "source": "aug:filler", "text": "please what processes are running for me"}
+{"domain": "", "intent": "list_processes", "parent_seed_id": "SG013", "seed_id": "SG013", "source": "aug:filler", "text": "please what processes are running please"}
+{"domain": "", "intent": "list_processes", "seed_id": "SG013", "source": "stress_gap", "text": "what processes are running"}
+{"domain": "", "intent": "list_processes", "parent_seed_id": "SG014", "seed_id": "SG014", "source": "aug:filler", "text": "can you what processes are running in this directory for me"}
+{"domain": "", "intent": "list_processes", "parent_seed_id": "SG014", "seed_id": "SG014", "source": "aug:filler", "text": "could you what processes are running in this directory please"}
+{"domain": "", "intent": "list_processes", "parent_seed_id": "SG014", "seed_id": "SG014", "source": "aug:filler+synonym", "text": "can you what processes are running in this folder for me"}
+{"domain": "", "intent": "list_processes", "parent_seed_id": "SG014", "seed_id": "SG014", "source": "aug:synonym", "text": "what processes are running in this folder"}
+{"domain": "", "intent": "list_processes", "seed_id": "SG014", "source": "stress_gap", "text": "what processes are running in this directory"}
+{"domain": "", "intent": "show_stat", "parent_seed_id": "SG015", "seed_id": "SG015", "source": "aug:dropout+fname", "text": "show me stats for readme.txt"}
+{"domain": "", "intent": "show_stat", "parent_seed_id": "SG015", "seed_id": "SG015", "source": "aug:fname+filler", "text": "hey show me the stats for scratch.txt for me"}
+{"domain": "", "intent": "show_stat", "parent_seed_id": "SG015", "seed_id": "SG015", "source": "aug:fname+synonym", "text": "give me the stats for readme.txt"}
+{"domain": "", "intent": "show_stat", "parent_seed_id": "SG015", "seed_id": "SG015", "source": "aug:synonym+filler", "text": "can you display the stats for notes.txt please"}
+{"domain": "", "intent": "show_stat", "seed_id": "SG015", "source": "stress_gap", "text": "show me the stats for notes.txt"}
+{"domain": "", "intent": "show_permissions", "parent_seed_id": "SG016", "seed_id": "SG016", "source": "aug:dropout", "text": "show permissions of notes.txt"}
+{"domain": "", "intent": "show_permissions", "parent_seed_id": "SG016", "seed_id": "SG016", "source": "aug:filler", "text": "can you show the permissions of notes.txt for me"}
+{"domain": "", "intent": "show_permissions", "parent_seed_id": "SG016", "seed_id": "SG016", "source": "aug:filler", "text": "show the permissions of notes.txt please"}
+{"domain": "", "intent": "show_permissions", "parent_seed_id": "SG016", "seed_id": "SG016", "source": "aug:fname", "text": "show the permissions of scratch.txt"}
+{"domain": "", "intent": "show_permissions", "seed_id": "SG016", "source": "stress_gap", "text": "show the permissions of notes.txt"}
+{"domain": "", "intent": "check_syntax", "parent_seed_id": "SG017", "seed_id": "SG017", "source": "aug:dropout", "text": "check syntax of src/main.py"}
+{"domain": "", "intent": "check_syntax", "parent_seed_id": "SG017", "seed_id": "SG017", "source": "aug:filler", "text": "hey check the syntax of src/main.py please"}
+{"domain": "", "intent": "check_syntax", "parent_seed_id": "SG017", "seed_id": "SG017", "source": "aug:filler+fname", "text": "check the syntax of lib/core.py for me"}
+{"domain": "", "intent": "check_syntax", "parent_seed_id": "SG017", "seed_id": "SG017", "source": "aug:fname", "text": "check the syntax of lib/core.py"}
+{"domain": "", "intent": "check_syntax", "seed_id": "SG017", "source": "stress_gap", "text": "check the syntax of src/main.py"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG018", "seed_id": "SG018", "source": "aug:filler", "text": "can you erase scratch.tmp for me"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG018", "seed_id": "SG018", "source": "aug:filler", "text": "erase scratch.tmp please"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG018", "seed_id": "SG018", "source": "aug:filler+fname", "text": "erase old.tmp for me"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG018", "seed_id": "SG018", "source": "aug:fname", "text": "erase old.tmp"}
+{"domain": "", "intent": "delete_file", "seed_id": "SG018", "source": "stress_gap", "text": "erase scratch.tmp"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG019", "seed_id": "SG019", "source": "aug:filler+fname", "text": "can you nuke temp.tmp please"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG019", "seed_id": "SG019", "source": "aug:fname", "text": "nuke old.tmp"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG019", "seed_id": "SG019", "source": "aug:fname", "text": "nuke temp.tmp"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG019", "seed_id": "SG019", "source": "aug:fname+filler", "text": "could you nuke old.tmp for me"}
+{"domain": "", "intent": "delete_file", "seed_id": "SG019", "source": "stress_gap", "text": "nuke scratch.tmp"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG020", "seed_id": "SG020", "source": "aug:filler", "text": "hey throw away scratch.tmp"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG020", "seed_id": "SG020", "source": "aug:filler", "text": "please throw away scratch.tmp"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG020", "seed_id": "SG020", "source": "aug:filler+fname", "text": "please throw away old.tmp for me"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG020", "seed_id": "SG020", "source": "aug:fname", "text": "throw away old.tmp"}
+{"domain": "", "intent": "delete_file", "seed_id": "SG020", "source": "stress_gap", "text": "throw away scratch.tmp"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG022", "seed_id": "SG022", "source": "aug:filler", "text": "could you discard scratch.tmp"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG022", "seed_id": "SG022", "source": "aug:fname", "text": "discard cache.tmp"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG022", "seed_id": "SG022", "source": "aug:fname", "text": "discard old.tmp"}
+{"domain": "", "intent": "delete_file", "parent_seed_id": "SG022", "seed_id": "SG022", "source": "aug:fname+filler", "text": "can you discard temp.tmp for me"}
+{"domain": "", "intent": "delete_file", "seed_id": "SG022", "source": "stress_gap", "text": "discard scratch.tmp"}
+{"domain": "", "intent": "make_dir", "parent_seed_id": "SG024", "seed_id": "SG024", "source": "aug:filler", "text": "can you set up a folder called reports for me"}
+{"domain": "", "intent": "make_dir", "parent_seed_id": "SG024", "seed_id": "SG024", "source": "aug:filler", "text": "please set up a folder called reports"}
+{"domain": "", "intent": "make_dir", "parent_seed_id": "SG024", "seed_id": "SG024", "source": "aug:synonym", "text": "set up a directory called reports"}
+{"domain": "", "intent": "make_dir", "parent_seed_id": "SG024", "seed_id": "SG024", "source": "aug:synonym+filler", "text": "please set up a directory called reports for me"}
+{"domain": "", "intent": "make_dir", "seed_id": "SG024", "source": "stress_gap", "text": "set up a folder called reports"}
+{"domain": "", "intent": "copy_file", "parent_seed_id": "SG026", "seed_id": "SG026", "source": "aug:filler", "text": "can you clone config.yaml for me"}
+{"domain": "", "intent": "copy_file", "parent_seed_id": "SG026", "seed_id": "SG026", "source": "aug:filler", "text": "can you clone config.yaml please"}
+{"domain": "", "intent": "copy_file", "parent_seed_id": "SG026", "seed_id": "SG026", "source": "aug:fname", "text": "clone app.conf"}
+{"domain": "", "intent": "copy_file", "parent_seed_id": "SG026", "seed_id": "SG026", "source": "aug:fname", "text": "clone defaults.yaml"}
+{"domain": "", "intent": "copy_file", "seed_id": "SG026", "source": "stress_gap", "text": "clone config.yaml"}
+{"domain": "", "intent": "copy_file", "parent_seed_id": "SG027", "seed_id": "SG027", "source": "aug:filler", "text": "can you replicate config.yaml for me"}
+{"domain": "", "intent": "copy_file", "parent_seed_id": "SG027", "seed_id": "SG027", "source": "aug:filler", "text": "can you replicate config.yaml please"}
+{"domain": "", "intent": "copy_file", "parent_seed_id": "SG027", "seed_id": "SG027", "source": "aug:filler+fname", "text": "could you replicate defaults.yaml"}
+{"domain": "", "intent": "copy_file", "parent_seed_id": "SG027", "seed_id": "SG027", "source": "aug:fname", "text": "replicate app.conf"}
+{"domain": "", "intent": "copy_file", "seed_id": "SG027", "source": "stress_gap", "text": "replicate config.yaml"}
