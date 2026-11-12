@@ -1,13 +1,44 @@
 # STATUS — LinuxBuddy
 
-**Last updated:** 2026-11-12 (Task 45 — **context-aware resolver WIRED into `lb`
-(option 1.5, torch-free): novel multi-turn recovery 36%→79%, 0 single-turn
-regression, destructive 3/3 abstain, live chains work**)
+**Last updated:** 2026-11-12 (Task 46 B — **continual-learning loop built + demonstrated;
+the complete 0-regression ship gate REJECTED both retrain candidates (honest
+stability–plasticity tension); nothing adopted, shipped model stands**)
 
 ## Where we are
 **v1.0.0 (rules engine) is COMPLETE** on the `v1-file-discovery` line; v2 work is
 underway on branch **`v2-multiturn`**. **`v2_remaining_proposal.md` is the v2 plan
 of record** (the never-committed `ROADMAP_V2.md` is stale — ignore it).
+
+**Task 46 (B) — continual learning: grow-from-real-use loop (graded concept #3). DONE,
+awaits review.** Three commits (feedback hook / loop / demonstration). Offline,
+human-gated, seed-pinned (42); no runtime LLM/network.
+- **Part A — feedback capture.** `src/linuxbuddy/feedback.py` + a one-line `cli.py`
+  seam: `lb` abstains → append to offline `~/.cache/linuxbuddy/feedback.jsonl`. The ONE
+  always-on addition; `lb --feedback` / `--feedback-clear`. Fully defensive (unwritable
+  cache = silent no-op, never breaks `lb`). Successful emits are NOT logged. 7 tests.
+- **Part B — the loop.** `src/linuxbuddy/ml/retrain.py`: relabel (frozen label space) →
+  fold into a candidate train (old train = rehearsal buffer) + leakage-assert vs BOTH
+  frozen evals → retrain (REUSE Task-38 fine-tune, seed 42, candidate dir) → evaluate
+  ALL floors → ship gate. `finetune.py` parameterized (`train_path`/`out_dir`, defaults
+  unchanged); `hybrid._load_config` honours inert `LINUXBUDDY_MODEL_DIR` (eval-support:
+  point the encoder at a candidate's ONNX without touching the shipped model). 11 tests.
+- **Part C — demonstration.** `experiments/task46_cl/run_demo.py` →
+  `continual_learning_report.md`. 26 verified *encoder* misses (find_recent 18,
+  find_empty 4, show_history 3, disk_usage 1); honest held-out split (12 never trained);
+  2 cumulative cycles; candidates cached in `models/cl_candidates/` (gitignored).
+- **Result (raw, honest).** *Plasticity (held-out):* top-1 0→17%, gold-in-top-3 67→83%,
+  mean gold cosine 0.538→0.567→0.572. *Encoder floors:* HELD (FP 3%, zero-data 96%, gap,
+  val). *Authoritative runtime 0-regression floors:* **REGRESSED** — 587 CORRECT 404→403,
+  multiturn novel 11/14→10/14 (c1)→9/14 (c2); GATE_LEAK 0, in-vocab 24/24. Concrete
+  interference: cycle 2 *forgot* N02 'show me the heavy one' / N03 'the big one'.
+- **Ship-gate verdict: REJECT both** (complete gate = encoder proxies + 0-regression
+  runtime floors). An encoder-only gate would have wrongly adopted. **Nothing adopted;
+  shipped checkpoint unchanged.** This is the gate working: the stability–plasticity
+  tradeoff is real and the floors made 'don't forget' enforceable.
+- **Decision for Sambit:** accept the honest REJECT as the concept-#3 demonstration, OR
+  request a follow-up balanced-rehearsal cycle (+ size-coref turns in the buffer) that
+  aims to pass the 0-regression gate. Suites: main **464 passed/8 skip**, `.venv-ml`
+  **472 passed**. **Not pushed.**
 
 **Task 45 (wire context-aware resolution into the session path — option 1.5, part A).**
 Productionized the Task-44 spike **inside `lb`**, torch-free; additive, fallback-only.

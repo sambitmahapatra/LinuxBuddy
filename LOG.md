@@ -2474,3 +2474,80 @@ descriptions; `tests/test_session_resolver.py`; `experiments/task45_wire/eval_e2
 (reproducible acceptance runner, not wired). dogfood CSVs gitignored. **Not pushed.**
 Next = B (continual learning). Out of scope kept out: no torch runtime, no bespoke
 head, no learned dialogue-act head, no multi-target disambiguation.
+
+---
+
+## 2026-11-12 — Task 46 (B): continual learning — the grow-from-real-use loop (graded concept #3)
+
+Built the offline, human-gated, rehearsal-based continual-learning loop and ran a
+real demonstration framed as the **stability–plasticity tradeoff**. Three commits
+(feedback hook / loop / demonstration). No runtime LLM, no network — consistent with
+the offline identity.
+
+**Part A — feedback capture (`src/linuxbuddy/feedback.py` + `cli.py` seam).** When
+`lb` abstains (rules + encoder both decline), append the request to a LOCAL
+`~/.cache/linuxbuddy/feedback.jsonl` (`{request, cwd, ts, path: single|session,
+outcome}`). The ONE always-on addition. `lb --feedback` prints it, `--feedback-clear`
+wipes it. Deliberately tiny + defensive: every op wrapped so a feedback failure
+(unwritable cache / full disk) can NEVER break `lb` — verified the abstain still
+returns rc 1 with empty stdout. The hook fires only on the abstain return in
+`_run_single_turn`; a successful emit is NOT logged (success isn't feedback).
+Widget edit/rejection detection is a harder change — left as noted future work.
+7 tests (`tests/test_feedback.py`).
+
+**Part B — the loop (`src/linuxbuddy/ml/retrain.py`).** relabel (against the FROZEN
+`label_space.json`, drop genuine OOD) → fold into a candidate `train.jsonl`
+(old train = the **rehearsal buffer**) with a hard leakage assertion vs BOTH frozen
+evals → retrain by REUSING the Task-38 contrastive fine-tune (seed 42) into a
+candidate dir → evaluate every floor → ship gate. Supporting changes, both inert by
+default: `finetune.py` gained optional `train_path`/`out_dir` params (defaults
+preserve shipped behaviour) so a candidate trains without touching the shipped model;
+`hybrid._load_config` honours `LINUXBUDDY_MODEL_DIR` (eval-support only — points the
+encoder at a candidate's ONNX for the runtime floors; unset = shipped, never changes
+default behaviour). 11 tests (`tests/test_retrain.py`) incl. the ship gate rejecting
+a runtime regression while the encoder proxies pass.
+
+**Part C — demonstration (`experiments/task46_cl/run_demo.py` → `continual_learning_report.md`).**
+Seeded **26 REAL misses**, every one verified to be a genuine *encoder* miss on the
+shipped `lb` (wrong intent #1 or below `t_read` — what a retrain can fix; slot-filling
+gaps excluded). Phenomena: find_recent (18, systematically confused with its neighbour
+`find_by_time`), find_empty (4), show_history (3), disk_usage (1). **Honest held-out
+split:** half the phrasings of each phenomenon (12 misses) are NEVER trained on — so
+recovery is generalization, not memorization. Two cumulative cycles (c1 = 7 misses,
+c2 = all 14); candidates cached under `models/cl_candidates/` (gitignored). Floors
+measured with the SAME decision rule the user sees (cosine top-1 ≥ t_read).
+
+**Raw results (reported before any interpretation, per the working agreement).**
+- *Plasticity (held-out, never trained):* top-1 emit **0% → 17% → 17%**; gold-in-top-3
+  **67% → 83%**; mean gold cosine **0.538 → 0.567 → 0.572** (monotonic — the boundary
+  keeps moving even where top-1 plateaus). Top-1 is capped by a genuine semantic
+  adjacency (find_recent ≈ find_by_time): rehearsal lifts gold from #2/#3 toward #1 but
+  the sticky neighbour holds the last mile.
+- *Encoder-level stability:* HELD — nonsense FP 3%→3%, zero-data tail top-3 96%→96%,
+  gap 93%→(96/93)%, val top-1 72%→72%.
+- *Authoritative runtime floors (0-regression, end-to-end `lb`):* **REGRESSED.**
+  587 CORRECT **404 → 403** (−1 both cycles); multiturn novel **11/14 → 10/14 (c1) →
+  9/14 (c2)**; GATE_LEAK 0 and in-vocab 24/24 throughout. Concrete catastrophic
+  interference: cycle 2 newly *forgot* the size-coref turns **N02 'show me the heavy
+  one'** and **N03 'the big one'** (shipped resolved both) — fitting find_recent nudged
+  the nearby 'heavy'/'big' resolutions below threshold.
+
+**Interpretation / verdict.** The encoder proxies (gap/val/nonsense/zero) PASSED for
+both cycles — an encoder-only gate would have wrongly shipped a net-negative model.
+The complete gate (proxies + the 587/multiturn **0-regression** runtime floors)
+**REJECTED both candidates.** Nothing was adopted; the shipped checkpoint stands.
+This is the loop *succeeding*: the human gate + hard floors prevent regression-shipping,
+plasticity vs stability is a real measured tradeoff (not hand-waved), and the fix is
+localized — the find_recent/find_by_time boundary needs *balanced* rehearsal (and the
+size-coref turns rehearsed alongside), not more one-sided examples. The `LINUXBUDDY_MODEL_DIR`
+seam let all of this run without ever mutating the shipped model.
+
+**Tests / suites.** main venv **464 passed, 8 skipped**; `.venv-ml` **472 passed**
+(both include the 7 feedback + 11 retrain tests). Fine-tune cost ~15 min/cycle on CPU
+(candidates cached for re-runs).
+
+**For Sambit to review.** (1) The honest outcome is a REJECT, not an adopt — I did not
+massage data to force a clean adoption; the tradeoff is the finding. (2) Decision:
+accept this as the concept-#3 demonstration, or ask for a follow-up cycle with balanced
+rehearsal (+ size-coref turns in the buffer) that aims to pass the 0-regression gate.
+**Not pushed.**
