@@ -19,7 +19,7 @@ from __future__ import annotations
 import os
 import sys
 
-from . import gate, hybrid, session, session_resolver
+from . import feedback, gate, hybrid, session, session_resolver
 from .nlu import parse, abstain_hint
 from .planner import compile, risk_ops, PlanError
 from .render import to_shell, RenderError
@@ -41,6 +41,19 @@ def main(argv: list[str] | None = None) -> int:
         fr = session.load(session.store_key())
         print(fr.to_json() if fr is not None
               else "LinuxBuddy: no active session frame")
+        return 0
+    if args == ["--feedback"]:
+        recs = feedback.read()
+        if not recs:
+            print(f"LinuxBuddy: no feedback logged ({feedback.feedback_path()})")
+        else:
+            print(f"# {len(recs)} abstain(s) logged offline at {feedback.feedback_path()}")
+            for r in recs:
+                print(f"  [{r.get('path','?')}] {r.get('request','')!r}")
+        return 0
+    if args == ["--feedback-clear"]:
+        n = feedback.clear()
+        print(f"LinuxBuddy: cleared {n} feedback record(s)")
         return 0
 
     request = " ".join(args)
@@ -66,6 +79,11 @@ def _run_single_turn(request: str) -> int:
             return _emit_frame(enc_frame, info)
         # Prefer a specific hint ("how big? try ...") when we can tell which
         # defining slot was missing; otherwise the generic message.
+        # Offline continual-learning capture (Task 46): an abstain is a clean,
+        # high-signal miss — log it locally. "session" when the multi-turn widget
+        # is active (this call came via the session fallback), else "single".
+        feedback.log_abstain(request,
+                             "session" if os.environ.get("LINUXBUDDY_SESSION") else "single")
         print(abstain_hint(request) or _ABSTAIN_MSG, file=sys.stderr)
         return 1
     return _emit_frame(frame, None)
